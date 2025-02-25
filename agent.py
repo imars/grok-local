@@ -130,7 +130,7 @@ def ask_grok(prompt, headless=False):
         submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
         submit_button.click()
         logging.debug("Prompt submitted")
-        time.sleep(5)  # Wait for reply to load
+        time.sleep(5)  # Wait for reply to start loading
 
         logging.debug("Waiting for response")
         initial_count = len(driver.find_elements(By.CLASS_NAME, "css-146c3p1"))
@@ -141,7 +141,7 @@ def ask_grok(prompt, headless=False):
                 if elem.get_attribute("textContent").strip() and 
                    "Grok" in elem.get_attribute("textContent") and 
                    any(kw in elem.get_attribute("textContent").lower() for kw in ["def", "print", "f-string"]) and
-                   prompt not in elem.get_attribute("textContent")  # Substring check
+                   prompt.strip() not in elem.get_attribute("textContent").strip()  # Normalized check
             ],
             message="No new Grok response with code appeared"
         )
