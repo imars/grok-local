@@ -107,9 +107,11 @@ def ask_grok(prompt, headless=False):
         response_elements = wait.until(
             lambda driver: [
                 elem for elem in driver.find_elements(By.CLASS_NAME, "css-146c3p1")[initial_count:]
-                if elem.get_attribute("textContent").strip() and "Grok" in elem.get_attribute("textContent")
+                if elem.get_attribute("textContent").strip() and 
+                   "Grok" in elem.get_attribute("textContent") and 
+                   any(kw in elem.get_attribute("textContent").lower() for kw in ["def", "print", "f-string"])
             ],
-            message="No new Grok response appeared"
+            message="No new Grok response with code appeared"
         )
         full_response = response_elements[-1].get_attribute("textContent")
         logging.debug(f"Response received: {full_response}")
