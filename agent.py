@@ -1,6 +1,7 @@
 import requests
 import git
 import os
+import pickle
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
@@ -15,6 +16,7 @@ REPO_URL = "git@github.com:imars/grok-local.git"
 MODEL = "llama3.2:latest"
 OLLAMA_URL = "http://localhost:11434"
 GROK_URL = "https://x.com/i/grok?conversation=1894190038096736744"
+COOKIE_FILE = os.path.join(PROJECT_DIR, "cookies.pkl")
 
 def git_push(message="Automated commit"):
     print(f"DEBUG: Starting git_push with message: {message}")
@@ -44,18 +46,37 @@ def ask_grok(prompt):
     print(f"DEBUG: Navigating to {GROK_URL}")
     driver.get(GROK_URL)
     wait = WebDriverWait(driver, 20)
-    
+
+    # Load cookies if they exist
+    if os.path.exists(COOKIE_FILE):
+        print("DEBUG: Loading cookies")
+        cookies = pickle.load(open(COOKIE_FILE, "rb"))
+        for cookie in cookies:
+            driver.add_cookie(cookie)
+        driver.refresh()
+
     try:
-        print("DEBUG: Waiting for prompt input")
+        # Check if signed in by looking for prompt input
+        print("DEBUG: Checking for prompt input")
         prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
+        print("DEBUG: Signed in - sending prompt")
+    except:
+        print("DEBUG: Sign-in required - please log in manually this time")
+        input("DEBUG: Log in manually in the browser, then press Enter here: ")
+        # Save cookies after manual login
+        pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
+        print("DEBUG: Cookies saved - retrying prompt")
+        prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
+
+    try:
         print("DEBUG: Sending prompt to input")
+        prompt_box.clear()
         prompt_box.send_keys(prompt)
         print("DEBUG: Looking for submit button")
         submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
         submit_button.click()
         print("DEBUG: Waiting for response")
-        # Wait for a new response div with my text
-        response = wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'css-146c3p1') and contains(text(), 'Here')]")))
+        response = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@class='css-175oi2r r-3pj75a']/div[last()]")))
         full_response = response.text
         print(f"DEBUG: Response received: {full_response}")
         return full_response
