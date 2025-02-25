@@ -37,6 +37,17 @@ def read_file(filename):
     print(f"DEBUG: File read: {content}")
     return content
 
+def get_multiline_input(prompt):
+    print(prompt)
+    print("DEBUG: Enter response (end with an empty line):")
+    lines = []
+    while True:
+        line = input()
+        if line.strip() == "":
+            break
+        lines.append(line)
+    return "\n".join(lines)
+
 def ask_grok(prompt):
     print(f"DEBUG: Starting ask_grok with prompt: {prompt}")
     chrome_options = Options()
@@ -47,7 +58,7 @@ def ask_grok(prompt):
     driver.get(GROK_URL)
     wait = WebDriverWait(driver, 60)
 
-    # Load cookies if they exist and are valid
+    # Try loading cookies
     if os.path.exists(COOKIE_FILE):
         print("DEBUG: Loading cookies")
         cookies = pickle.load(open(COOKIE_FILE, "rb"))
@@ -55,19 +66,17 @@ def ask_grok(prompt):
             try:
                 driver.add_cookie(cookie)
             except:
-                print("DEBUG: Invalid cookie detected - forcing new login")
-                os.remove(COOKIE_FILE)
-                break
+                print("DEBUG: Invalid cookie detected")
         driver.refresh()
 
     try:
         print("DEBUG: Checking for prompt input")
         prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
-        print("DEBUG: Signed in - sending prompt")
+        print("DEBUG: Signed in - proceeding")
     except:
-        print("DEBUG: Sign-in required - please log in manually this time")
-        driver.get("https://x.com/login")  # Redirect to login page
-        input("DEBUG: Log in manually with @ianatmars, handle any 2FA, then navigate back to GROK_URL and press Enter: ")
+        print("DEBUG: Sign-in required - forcing login")
+        driver.get("https://x.com/login")
+        input("DEBUG: Log in with @ianatmars, handle 2FA/CAPTCHA, navigate to GROK_URL, then press Enter: ")
         driver.get(GROK_URL)
         pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
         print("DEBUG: Cookies saved - retrying prompt")
@@ -81,29 +90,21 @@ def ask_grok(prompt):
         submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
         submit_button.click()
         print("DEBUG: Waiting for response")
-        # Wait for a new response with "optimized" or "Here"
-        time.sleep(2)  # Let response start
+        time.sleep(2)  # Let DOM settle
+        # Re-fetch responses after submission to avoid stale references
+        initial_count = len(driver.find_elements(By.CLASS_NAME, "css-146c3p1"))
+        wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "css-146c3p1")) > initial_count)
         responses = driver.find_elements(By.CLASS_NAME, "css-146c3p1")
-        wait.until(lambda driver: any("optimized" in r.get_attribute("textContent") or "Here" in r.get_attribute("textContent") for r in driver.find_elements(By.CLASS_NAME, "css-146c3p1")))
-        new_responses = driver.find_elements(By.CLASS_NAME, "css-146c3p1")
-        # Pick the latest response with "optimized" or "Here"
-        for r in reversed(new_responses):
-            text = r.get_attribute("textContent")
-            if "optimized" in text or "Here" in text:
-                full_response = text
-                break
-        else:
-            raise Exception("No response with 'optimized' or 'Here' found")
+        full_response = responses[-1].get_attribute("textContent")
         print(f"DEBUG: Response received: {full_response}")
-        # Debug: Log all responses
-        for i, r in enumerate(new_responses):
+        for i, r in enumerate(responses):
             print(f"DEBUG: Response candidate {i}: {r.get_attribute('textContent')[:100]}...")
         return full_response
     except Exception as e:
         print(f"DEBUG: Error occurred: {e}")
-        print(f"DEBUG: Page source snippet: {driver.page_source[:500]}...")
+        print(f"DEBUG: Page source snippet: {driver.page_source[:1000]}...")
         print(f"DEBUG: Manual fallback - paste this to Grok:\n{prompt}")
-        response = input("DEBUG: Enter Grok's response here: ")
+        response = get_multiline_input("DEBUG: Enter Grok's response here:")
         print(f"DEBUG: Grok replied: {response}")
         return response
     finally:
