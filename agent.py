@@ -58,9 +58,11 @@ def get_multiline_input(prompt):
 
 def cookies_valid(driver):
     driver.get(GROK_URL)
+    time.sleep(2)  # Give page a moment to settle
+    logging.debug(f"Page title after cookie load: {driver.title}")
     try:
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "r-30o5oe")))
-        return True
+        return "Grok" in driver.title  # Confirm we’re on my page
     except:
         return False
 
@@ -76,7 +78,7 @@ def ask_grok(prompt, headless=False):
     else:
         logging.debug("Initializing ChromeDriver (GUI mode)")
     driver = webdriver.Chrome(options=chrome_options)
-    wait = WebDriverWait(driver, 120)
+    wait = WebDriverWait(driver, 180 if headless else 120)
 
     logging.debug(f"Navigating to {GROK_URL}")
     driver.get(GROK_URL)
@@ -91,54 +93,60 @@ def ask_grok(prompt, headless=False):
                 logging.debug("Invalid cookie detected")
         driver.refresh()
         if not cookies_valid(driver):
-            logging.debug("Cookies invalid")
-            if headless:
-                driver.quit()
-                return "Cookies invalid - run without --headless to re-login"
+            logging.debug("Cookies invalid or rejected")
+            driver.quit()
+            return "Cookies invalid - run without --headless to re-login and save fresh cookies"
     else:
         logging.debug("No cookies found - need initial login")
         if headless:
             driver.quit()
-            return "Run without --headless first to save cookies, then retry"
+            return "No cookies - run without --headless first to save them"
 
     try:
         prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
         logging.debug("Signed in - proceeding")
     except:
-        logging.debug("Sign-in required or cookies invalid")
-        driver.get("https://x.com/login")
-        if headless:
-            driver.quit()
-            return "Cookies failed - run without --headless to re-login and verify"
-        input("Log in with @ianatmars, then press Enter: ")
-        try:
-            verify_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@name='text']")))
-            verify_value = input("Enter phone (e.g., +1...) or email for verification: ")
-            verify_input.send_keys(verify_value)
-            next_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Next']")))
-            next_button.click()
-            logging.debug("Verification submitted")
-            time.sleep(5)
-        except:
-            logging.debug("No verification prompt detected")
-        driver.get(GROK_URL)
-        prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
+        logging.debug(f"Sign-in failed, page title: {driver.title}")
+        driver.quit()
+        return "Login failed - run without --headless to troubleshoot"
+
     pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
     logging.debug("Cookies saved")
 
     try:
         logging.debug("Sending prompt to input")
-        prompt_box.clear()
-        prompt_box.send_keys(prompt)
-        submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
-        submit_button.click()
+        for _ in range(2):
+            try:
+                prompt_box.clear()
+                prompt_box.send_keys(prompt)
+                time.sleep(1)
+                submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
+                submit_button.click()
+                logging.debug("Prompt submitted")
+                break
+            except Exception as e:
+                logging.debug(f"Prompt submission failed: {e}")
+                driver.refresh()
+                prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
+        else:
+            raise Exception("Failed to submit prompt after retries")
+
         logging.debug("Waiting for response")
         initial_count = len(driver.find_elements(By.CLASS_NAME, "css-146c3p1"))
         logging.debug(f"Initial response count: {initial_count}")
-        response_elements = wait.until(
-            lambda driver: driver.find_elements(By.CLASS_NAME, "css-146c3p1")[initial_count:],
-            message="No new response appeared"
-        )
+        for _ in range(2):
+            response_elements = wait.until(
+                lambda driver: [
+                    elem for elem in driver.find_elements(By.CLASS_NAME, "css-146c3p1")[initial_count:]
+                    if elem.get_attribute("textContent").strip() and "Grok" in elem.get_attribute("textContent")
+                ],
+                message="No new Grok response appeared"
+            )
+            if response_elements:
+                break
+            logging.debug("No response yet, refreshing")
+            driver.refresh()
+            time.sleep(5)
         full_response = response_elements[-1].get_attribute("textContent")
         logging.debug(f"Response received: {full_response}")
         pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
