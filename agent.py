@@ -45,14 +45,19 @@ def ask_grok(prompt):
     driver = webdriver.Chrome(options=chrome_options)
     print(f"DEBUG: Navigating to {GROK_URL}")
     driver.get(GROK_URL)
-    wait = WebDriverWait(driver, 30)
+    wait = WebDriverWait(driver, 60)
 
-    # Load cookies if they exist
+    # Load cookies if they exist and are valid
     if os.path.exists(COOKIE_FILE):
         print("DEBUG: Loading cookies")
         cookies = pickle.load(open(COOKIE_FILE, "rb"))
         for cookie in cookies:
-            driver.add_cookie(cookie)
+            try:
+                driver.add_cookie(cookie)
+            except:
+                print("DEBUG: Invalid cookie detected - forcing new login")
+                os.remove(COOKIE_FILE)
+                break
         driver.refresh()
 
     try:
@@ -61,7 +66,9 @@ def ask_grok(prompt):
         print("DEBUG: Signed in - sending prompt")
     except:
         print("DEBUG: Sign-in required - please log in manually this time")
-        input("DEBUG: Log in manually in the browser, then press Enter here: ")
+        driver.get("https://x.com/login")  # Redirect to login page
+        input("DEBUG: Log in manually with @ianatmars, handle any 2FA, then navigate back to GROK_URL and press Enter: ")
+        driver.get(GROK_URL)
         pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
         print("DEBUG: Cookies saved - retrying prompt")
         prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
@@ -74,17 +81,27 @@ def ask_grok(prompt):
         submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
         submit_button.click()
         print("DEBUG: Waiting for response")
-        # Wait for my response with "optimized" in it
-        response = wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'css-146c3p1') and contains(., 'optimized')]")))
-        full_response = response.get_attribute("textContent")
-        print(f"DEBUG: Response received: {full_response}")
-        # Debug: Log all matching elements
+        # Wait for a new response with "optimized" or "Here"
+        time.sleep(2)  # Let response start
         responses = driver.find_elements(By.CLASS_NAME, "css-146c3p1")
-        for i, r in enumerate(responses):
+        wait.until(lambda driver: any("optimized" in r.get_attribute("textContent") or "Here" in r.get_attribute("textContent") for r in driver.find_elements(By.CLASS_NAME, "css-146c3p1")))
+        new_responses = driver.find_elements(By.CLASS_NAME, "css-146c3p1")
+        # Pick the latest response with "optimized" or "Here"
+        for r in reversed(new_responses):
+            text = r.get_attribute("textContent")
+            if "optimized" in text or "Here" in text:
+                full_response = text
+                break
+        else:
+            raise Exception("No response with 'optimized' or 'Here' found")
+        print(f"DEBUG: Response received: {full_response}")
+        # Debug: Log all responses
+        for i, r in enumerate(new_responses):
             print(f"DEBUG: Response candidate {i}: {r.get_attribute('textContent')[:100]}...")
         return full_response
     except Exception as e:
         print(f"DEBUG: Error occurred: {e}")
+        print(f"DEBUG: Page source snippet: {driver.page_source[:500]}...")
         print(f"DEBUG: Manual fallback - paste this to Grok:\n{prompt}")
         response = input("DEBUG: Enter Grok's response here: ")
         print(f"DEBUG: Grok replied: {response}")
@@ -139,7 +156,7 @@ def main():
 
     prompt = f"Optimize this code:\n{code}"
     grok_response = ask_grok(prompt)
-    print(f"Grok says:\n{grok_response}")  # Added newline for full output
+    print(f"Grok says:\n{grok_response}")
 
 if __name__ == "__main__":
     main()
