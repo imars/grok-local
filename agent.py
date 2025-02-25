@@ -78,7 +78,7 @@ def ask_grok(prompt, headless=False):
     else:
         logging.debug("Initializing ChromeDriver (GUI mode)")
     driver = webdriver.Chrome(options=chrome_options)
-    wait = WebDriverWait(driver, 180)
+    wait = WebDriverWait(driver, 600)  # Max 10 minutes
 
     logging.debug(f"Navigating to {GROK_URL}")
     driver.get(GROK_URL)
@@ -92,7 +92,7 @@ def ask_grok(prompt, headless=False):
                 driver.add_cookie(cookie)
             logging.debug("All cookies loaded")
             driver.refresh()
-            time.sleep(2)
+            time.sleep(5)
             if not cookies_valid(driver):
                 logging.debug("Cookies invalid or rejected")
                 driver.quit()
@@ -130,28 +130,44 @@ def ask_grok(prompt, headless=False):
         submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
         submit_button.click()
         logging.debug("Prompt submitted")
-        time.sleep(5)  # Wait for reply to start
+        time.sleep(60)  # Wait for X to process
 
         logging.debug("Waiting for response")
-        initial_count = len(driver.find_elements(By.CLASS_NAME, "css-146c3p1"))
-        logging.debug(f"Initial response count: {initial_count}")
+        initial_count = len(driver.find_elements(By.CSS_SELECTOR, "[data-testid='markdown-code-block']"))
+        logging.debug(f"Initial markdown block count: {initial_count}")
         response_elements = wait.until(
             lambda driver: [
-                elem for elem in driver.find_elements(By.CLASS_NAME, "css-146c3p1")[initial_count:]
+                elem.find_element(By.TAG_NAME, "pre") 
+                for elem in driver.find_elements(By.CSS_SELECTOR, "[data-testid='markdown-code-block']")[initial_count:]
                 if elem.get_attribute("textContent").strip() and 
-                   "Grok" in elem.get_attribute("textContent") and 
-                   "```python" in elem.get_attribute("textContent").lower() and  # Look for code block
-                   all(p not in elem.get_attribute("textContent").lower() for p in ["optimize this code", "def greet(name):"]) and
-                   any(r in elem.get_attribute("textContent").lower() for r in ["here’s", "optimized", "version"])
+                   "optimized" in elem.get_attribute("textContent").lower()
             ],
-            message="No new Grok response with code appeared"
+            message="No new Grok response with 'optimized' appeared"
         )
-        full_response = response_elements[-1].get_attribute("textContent")
+        full_response = response_elements[-1].get_attribute("textContent")  # Get the latest reply
         logging.debug(f"Response received: {full_response}")
         pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
         return full_response
     except Exception as e:
         logging.debug(f"Error occurred: {e}")
+        for _ in range(5):
+            driver.refresh()
+            time.sleep(20)
+            try:
+                response_elements = [
+                    elem.find_element(By.TAG_NAME, "pre") 
+                    for elem in driver.find_elements(By.CSS_SELECTOR, "[data-testid='markdown-code-block']")[initial_count:]
+                    if elem.get_attribute("textContent").strip() and 
+                       "optimized" in elem.get_attribute("textContent").lower()
+                ]
+                if response_elements:
+                    full_response = response_elements[-1].get_attribute("textContent")
+                    logging.debug(f"Response received after refresh: {full_response}")
+                    pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
+                    return full_response
+            except:
+                pass
+        logging.debug("Fallback triggered")
         with open("page_source.html", "w") as f:
             f.write(driver.page_source)
         logging.debug("Full page source saved to page_source.html")
