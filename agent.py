@@ -48,7 +48,7 @@ def read_file(filename):
 
 def get_multiline_input(prompt):
     print(prompt)
-    print("DEBUG: Paste response below, then press Ctrl+D (Unix) or Ctrl+Z then Enter (Windows) to finish:")
+    print("DEBUG: Paste response below, then press Ctrl+D (Unix) or Ctrl+Z then Enter (Windows):")
     response = sys.stdin.read()
     return response.strip()
 
@@ -95,9 +95,9 @@ def ask_grok(prompt, headless=False):
         driver.get("https://x.com/login")
         input("DEBUG: Log in with @ianatmars, navigate to GROK_URL, then press Enter: ")
         driver.get(GROK_URL)
-        pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
-        print("DEBUG: Cookies saved - retrying prompt")
-        prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
+    # Always save cookies after successful navigation
+    pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
+    print("DEBUG: Cookies saved")
 
     try:
         print("DEBUG: Sending prompt to input")
@@ -137,7 +137,7 @@ def local_reasoning(task):
     try:
         payload = {
             "model": MODEL,
-            "messages": [{"role": "user", "content": f"Plan: {task}"}]
+            "messages": [{"role": "user", "content": f"Briefly summarize steps to {task}"}]
         }
         print(f"DEBUG: Sending request to {OLLAMA_URL}/api/chat")
         start_time = time.time()
@@ -172,7 +172,7 @@ def main():
     args = parser.parse_args()
 
     print("DEBUG: Starting main")
-    task = "Read main.py and push it to GitHub."
+    task = "push main.py to GitHub"
     plan = local_reasoning(task)
     print(f"Plan: {plan}")
 
