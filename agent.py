@@ -140,9 +140,9 @@ def ask_grok(prompt, headless=False):
                 elem for elem in driver.find_elements(By.CLASS_NAME, "css-146c3p1")[initial_count:]
                 if elem.get_attribute("textContent").strip() and 
                    "Grok" in elem.get_attribute("textContent") and 
-                   any(kw in elem.get_attribute("textContent").lower() for kw in ["def", "print", "f-string"]) and
-                   all(p not in elem.get_attribute("textContent").lower() for p in ["optimize this code", "def greet(name):"])
-                   and any(r in elem.get_attribute("textContent").lower() for r in ["here’s", "optimized", "version"])
+                   "```python" in elem.get_attribute("textContent").lower() and  # Look for code block
+                   all(p not in elem.get_attribute("textContent").lower() for p in ["optimize this code", "def greet(name):"]) and
+                   any(r in elem.get_attribute("textContent").lower() for r in ["here’s", "optimized", "version"])
             ],
             message="No new Grok response with code appeared"
         )
