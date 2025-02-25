@@ -51,14 +51,16 @@ def get_multiline_input(prompt):
 def ask_grok(prompt):
     print(f"DEBUG: Starting ask_grok with prompt: {prompt}")
     chrome_options = Options()
-    # chrome_options.add_argument("--headless")  # Uncomment later
-    print("DEBUG: Initializing ChromeDriver")
+    chrome_options.add_argument("--headless")  # Headless mode
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    print("DEBUG: Initializing ChromeDriver (headless)")
     driver = webdriver.Chrome(options=chrome_options)
     print(f"DEBUG: Navigating to {GROK_URL}")
     driver.get(GROK_URL)
     wait = WebDriverWait(driver, 60)
 
-    # Try loading cookies
+    # Load cookies if they exist
     if os.path.exists(COOKIE_FILE):
         print("DEBUG: Loading cookies")
         cookies = pickle.load(open(COOKIE_FILE, "rb"))
@@ -68,19 +70,19 @@ def ask_grok(prompt):
             except:
                 print("DEBUG: Invalid cookie detected")
         driver.refresh()
+    else:
+        print("DEBUG: No cookies found - need initial login")
+        driver.quit()
+        return "Run once without headless to save cookies, then retry"
 
     try:
         print("DEBUG: Checking for prompt input")
         prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
         print("DEBUG: Signed in - proceeding")
     except:
-        print("DEBUG: Sign-in required - forcing login")
-        driver.get("https://x.com/login")
-        input("DEBUG: Log in with @ianatmars, handle 2FA/CAPTCHA, navigate to GROK_URL, then press Enter: ")
-        driver.get(GROK_URL)
-        pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
-        print("DEBUG: Cookies saved - retrying prompt")
-        prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
+        print("DEBUG: Sign-in required or cookies invalid")
+        driver.quit()
+        return "Cookies failed - run without headless to re-login and save new cookies"
 
     try:
         print("DEBUG: Sending prompt to input")
@@ -90,19 +92,25 @@ def ask_grok(prompt):
         submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
         submit_button.click()
         print("DEBUG: Waiting for response")
-        time.sleep(2)  # Let DOM settle
-        # Re-fetch responses after submission to avoid stale references
+        time.sleep(5)  # Wait for response to load
         initial_count = len(driver.find_elements(By.CLASS_NAME, "css-146c3p1"))
         wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "css-146c3p1")) > initial_count)
         responses = driver.find_elements(By.CLASS_NAME, "css-146c3p1")
-        full_response = responses[-1].get_attribute("textContent")
+        # Filter for my response
+        for r in reversed(responses):
+            text = r.get_attribute("textContent").lower()
+            if "optimized" in text or "here" in text or "greet" in text:
+                full_response = r.get_attribute("textContent")
+                break
+        else:
+            raise Exception("No response with 'optimized', 'here', or 'greet' found")
         print(f"DEBUG: Response received: {full_response}")
         for i, r in enumerate(responses):
             print(f"DEBUG: Response candidate {i}: {r.get_attribute('textContent')[:100]}...")
         return full_response
     except Exception as e:
         print(f"DEBUG: Error occurred: {e}")
-        print(f"DEBUG: Page source snippet: {driver.page_source[:1000]}...")
+        print(f"DEBUG: Page source snippet: {driver.page_source[:2000]}...")
         print(f"DEBUG: Manual fallback - paste this to Grok:\n{prompt}")
         response = get_multiline_input("DEBUG: Enter Grok's response here:")
         print(f"DEBUG: Grok replied: {response}")
