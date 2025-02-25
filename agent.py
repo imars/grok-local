@@ -10,8 +10,8 @@ import json
 # Config
 PROJECT_DIR = os.getcwd()
 REPO_URL = "git@github.com:imars/grok-local.git"
-MODEL = "deepseek-r1:8b"
-OLLAMA_URL = "http://localhost:11434"  # Matches your Ollama app’s API port
+MODEL = "llama3.2:latest"
+OLLAMA_URL = "http://localhost:11434"
 GROK_URL = "https://www.google.com"  # Placeholder; replace with Grok URL
 
 def git_push(message="Automated commit"):
@@ -67,22 +67,37 @@ def ask_grok(prompt):
 def local_reasoning(task):
     print(f"DEBUG: Starting local_reasoning with task: {task}")
     try:
+        # Simplified prompt
         payload = {
             "model": MODEL,
-            "messages": [{"role": "user", "content": f"Perform this task: {task}"}]
+            "messages": [{"role": "user", "content": f"Plan: {task}"}]
         }
+        print(f"DEBUG: Sending request to {OLLAMA_URL}/api/chat")
+        start_time = time.time()
         response = requests.post(
             f"{OLLAMA_URL}/api/chat",
             json=payload,
-            timeout=10
+            stream=True,
+            timeout=120  # 2 minutes
         )
         response.raise_for_status()
-        result = json.loads(response.text)["message"]["content"]
-        print(f"DEBUG: Local reasoning result: {result}")
+        full_response = ""
+        print("DEBUG: Receiving streamed response")
+        for line in response.iter_lines():
+            if line:
+                chunk = json.loads(line.decode('utf-8'))
+                if "message" in chunk and "content" in chunk["message"]:
+                    full_response += chunk["message"]["content"]
+                    print(f"DEBUG: Chunk received after {time.time() - start_time:.2f}s: {chunk['message']['content']}")
+                if chunk.get("done", False):
+                    print(f"DEBUG: Stream completed after {time.time() - start_time:.2f}s")
+                    break
+        print(f"DEBUG: Local reasoning result: {full_response}")
+        return full_response
     except requests.exceptions.RequestException as e:
         result = f"Ollama error: {e}"
         print(f"DEBUG: Local reasoning failed: {result}")
-    return result
+        return result
 
 def main():
     print("DEBUG: Starting main")
