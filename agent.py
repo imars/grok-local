@@ -4,6 +4,8 @@ import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import time
 import json
 
@@ -12,7 +14,7 @@ PROJECT_DIR = os.getcwd()
 REPO_URL = "git@github.com:imars/grok-local.git"
 MODEL = "llama3.2:latest"
 OLLAMA_URL = "http://localhost:11434"
-GROK_URL = "https://x.ai/grok"  # Adjust to your actual Grok chat URL
+GROK_URL = "https://grok.x.ai/chat"  # Adjust to your actual Grok URL
 
 def git_push(message="Automated commit"):
     print(f"DEBUG: Starting git_push with message: {message}")
@@ -41,29 +43,29 @@ def ask_grok(prompt):
     driver = webdriver.Chrome(options=chrome_options)
     print(f"DEBUG: Navigating to {GROK_URL}")
     driver.get(GROK_URL)
-    print("DEBUG: Waiting for page load")
-    time.sleep(5)  # Longer wait for login/load
+    wait = WebDriverWait(driver, 20)
     
     try:
-        # Hypothetical selectors - adjust to real page
-        print("DEBUG: Looking for prompt input")
-        prompt_box = driver.find_element(By.ID, "chat-input")  # Example ID
+        print("DEBUG: Waiting for prompt input")
+        prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
         print("DEBUG: Sending prompt to input")
         prompt_box.send_keys(prompt)
         print("DEBUG: Looking for submit button")
-        driver.find_element(By.ID, "send-button").click()  # Example ID
+        submit_button = driver.find_element(By.ID, "submit-btn")  # Placeholder - adjust
+        submit_button.click()
         print("DEBUG: Waiting for response")
-        time.sleep(10)  # Wait for response
-        print("DEBUG: Fetching response")
-        response = driver.find_element(By.CLASS_NAME, "response-text").text  # Example class
-        print(f"DEBUG: Response received: {response}")
+        response = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "response")))  # Placeholder - adjust
+        print(f"DEBUG: Response received: {response.text}")
+        return response.text
     except Exception as e:
-        response = f"Error interacting with Grok: {e}"
-        print(f"DEBUG: Error occurred: {response}")
+        print(f"DEBUG: Error occurred: {e}")
+        print(f"DEBUG: Manual fallback - paste this to Grok:\n{prompt}")
+        response = input("DEBUG: Enter Grok's response here: ")
+        print(f"DEBUG: Grok replied: {response}")
+        return response
     finally:
         print("DEBUG: Closing browser")
         driver.quit()
-    return response
 
 def local_reasoning(task):
     print(f"DEBUG: Starting local_reasoning with task: {task}")
@@ -101,7 +103,7 @@ def local_reasoning(task):
 
 def main():
     print("DEBUG: Starting main")
-    task = "Read main.py, push it to GitHub, and ask Grok for optimization suggestions."
+    task = "Read main.py and push it to GitHub."
     plan = local_reasoning(task)
     print(f"Plan: {plan}")
 
@@ -112,10 +114,6 @@ def main():
     prompt = f"Optimize this code:\n{code}"
     grok_response = ask_grok(prompt)
     print(f"Grok says: {grok_response}")
-
-    # Simplified next steps prompt
-    next_steps = local_reasoning(f"What to do after: {grok_response}")
-    print(f"Next steps: {next_steps}")
 
 if __name__ == "__main__":
     main()
