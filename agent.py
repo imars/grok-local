@@ -66,9 +66,8 @@ def ask_grok(prompt, headless=False):
     driver = webdriver.Chrome(options=chrome_options)
     print(f"DEBUG: Navigating to {GROK_URL}")
     driver.get(GROK_URL)
-    wait = WebDriverWait(driver, 90)  # Increased timeout
+    wait = WebDriverWait(driver, 90)
 
-    # Load cookies if they exist
     if os.path.exists(COOKIE_FILE):
         print("DEBUG: Loading cookies")
         cookies = pickle.load(open(COOKIE_FILE, "rb"))
@@ -119,8 +118,9 @@ def ask_grok(prompt, headless=False):
         submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
         submit_button.click()
         print("DEBUG: Waiting for response")
-        time.sleep(15)  # More time for response
-        wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'css-146c3p1')]")))  # Broader selector
+        time.sleep(20)  # Increased initial wait
+        initial_count = len(driver.find_elements(By.CLASS_NAME, "css-146c3p1"))
+        wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "css-146c3p1")) > initial_count)
         responses = driver.find_elements(By.CLASS_NAME, "css-146c3p1")
         for r in reversed(responses):
             text = r.get_attribute("textContent").lower()
@@ -135,7 +135,7 @@ def ask_grok(prompt, headless=False):
         return full_response
     except Exception as e:
         print(f"DEBUG: Error occurred: {e}")
-        print(f"DEBUG: Page source snippet: {driver.page_source[:2000]}...")
+        print(f"DEBUG: Page source snippet: {driver.page_source[:4000]}...")  # More source
         print(f"DEBUG: Manual fallback - paste this to Grok:\n{prompt}")
         response = get_multiline_input("DEBUG: Enter Grok's response here:")
         print(f"DEBUG: Grok replied: {response}")
