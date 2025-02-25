@@ -118,9 +118,9 @@ def ask_grok(prompt, headless=False):
         submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
         submit_button.click()
         print("DEBUG: Waiting for response")
-        time.sleep(30)  # Increased wait
+        time.sleep(30)
         initial_count = len(driver.find_elements(By.CLASS_NAME, "css-146c3p1"))
-        wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "css-146c3p1")) > initial_count)
+        wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "css-146c3p1")) > initial_count + 1)  # Ensure new content
         responses = driver.find_elements(By.CLASS_NAME, "css-146c3p1")
         for i, r in enumerate(responses):
             text = r.get_attribute("textContent")
@@ -135,7 +135,7 @@ def ask_grok(prompt, headless=False):
     except Exception as e:
         print(f"DEBUG: Error occurred: {e}")
         with open("page_source.html", "w") as f:
-            f.write(driver.page_source)  # Full source for debugging
+            f.write(driver.page_source)
         print("DEBUG: Full page source saved to page_source.html")
         print(f"DEBUG: Manual fallback - paste this to Grok:\n{prompt}")
         response = get_multiline_input("DEBUG: Enter Grok's response here:")
