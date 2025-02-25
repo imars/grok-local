@@ -56,6 +56,16 @@ def get_multiline_input(prompt):
     response = sys.stdin.read()
     return response.strip()
 
+def cookies_valid(driver):
+    driver.get(GROK_URL)
+    time.sleep(2)
+    logging.debug(f"Page title after cookie load: {driver.title}")
+    try:
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "r-30o5oe")))
+        return "Grok" in driver.title
+    except:
+        return False
+
 def ask_grok(prompt, headless=False):
     logging.debug(f"Starting ask_grok with prompt: {prompt}, headless={headless}")
     chrome_options = Options()
@@ -68,31 +78,51 @@ def ask_grok(prompt, headless=False):
     else:
         logging.debug("Initializing ChromeDriver (GUI mode)")
     driver = webdriver.Chrome(options=chrome_options)
-    wait = WebDriverWait(driver, 120)
+    wait = WebDriverWait(driver, 180)
 
-    logging.debug(f"Navigating to login page")
-    driver.get("https://x.com/login")
-    logging.debug("At login page, waiting for user input")
-    input("Log in with @ianatmars, then press Enter: ")
-    try:
-        verify_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@name='text']")))
-        verify_value = input("Enter phone (e.g., +1...) or email for verification: ")
-        verify_input.send_keys(verify_value)
-        next_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Next']")))
-        next_button.click()
-        logging.debug("Verification submitted")
-        time.sleep(5)
-    except:
-        logging.debug("No verification prompt detected")
-    
     logging.debug(f"Navigating to {GROK_URL}")
     driver.get(GROK_URL)
-    prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
+
+    if os.path.exists(COOKIE_FILE) and headless:
+        logging.debug("Loading cookies")
+        try:
+            cookies = pickle.load(open(COOKIE_FILE, "rb"))
+            driver.delete_all_cookies()
+            for cookie in cookies:
+                driver.add_cookie(cookie)
+            logging.debug("All cookies loaded")
+            driver.refresh()
+            time.sleep(2)
+            if not cookies_valid(driver):
+                logging.debug("Cookies invalid or rejected")
+                driver.quit()
+                return "Cookies invalid - run without --headless to re-login"
+        except Exception as e:
+            logging.debug(f"Cookie loading failed: {e}")
+            driver.quit()
+            return "Cookie file corrupted - run without --headless to regenerate"
+    else:
+        logging.debug("No cookies or GUI mode - forcing manual login")
+        driver.get("https://x.com/login")
+        logging.debug("At login page, waiting for user input")
+        input("Log in with @ianatmars, then press Enter: ")
+        try:
+            verify_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@name='text']")))
+            verify_value = input("Enter phone (e.g., +1...) or email for verification: ")
+            verify_input.send_keys(verify_value)
+            next_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Next']")))
+            next_button.click()
+            logging.debug("Verification submitted")
+            time.sleep(5)
+        except:
+            logging.debug("No verification prompt detected")
+        driver.get(GROK_URL)
+        wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
     pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
     logging.debug("Cookies saved")
-    input("Press Enter if you’re on the Grok page, or Ctrl+C to abort: ")
 
     try:
+        prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
         logging.debug("Sending prompt to input")
         prompt_box.clear()
         prompt_box.send_keys(prompt)
@@ -109,7 +139,8 @@ def ask_grok(prompt, headless=False):
                 elem for elem in driver.find_elements(By.CLASS_NAME, "css-146c3p1")[initial_count:]
                 if elem.get_attribute("textContent").strip() and 
                    "Grok" in elem.get_attribute("textContent") and 
-                   any(kw in elem.get_attribute("textContent").lower() for kw in ["def", "print", "f-string"])
+                   any(kw in elem.get_attribute("textContent").lower() for kw in ["def", "print", "f-string"]) and
+                   elem.get_attribute("textContent") != prompt  # Exclude the prompt itself
             ],
             message="No new Grok response with code appeared"
         )
