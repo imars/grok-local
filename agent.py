@@ -66,7 +66,7 @@ def ask_grok(prompt, headless=False):
     driver = webdriver.Chrome(options=chrome_options)
     print(f"DEBUG: Navigating to {GROK_URL}")
     driver.get(GROK_URL)
-    wait = WebDriverWait(driver, 60)
+    wait = WebDriverWait(driver, 90)  # Increased timeout
 
     # Load cookies if they exist
     if os.path.exists(COOKIE_FILE):
@@ -95,7 +95,6 @@ def ask_grok(prompt, headless=False):
             driver.quit()
             return "Cookies failed - run without --headless to re-login and verify"
         input("DEBUG: Log in with @ianatmars, then press Enter: ")
-        # Handle verification if prompted
         try:
             verify_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@name='text']")))
             verify_value = input("DEBUG: Enter phone (e.g., +1...) or email for verification: ")
@@ -109,7 +108,6 @@ def ask_grok(prompt, headless=False):
         driver.get(GROK_URL)
         prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
         print("DEBUG: Signed in - proceeding")
-    # Save cookies after successful navigation
     pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
     print("DEBUG: Cookies saved")
 
@@ -121,8 +119,8 @@ def ask_grok(prompt, headless=False):
         submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
         submit_button.click()
         print("DEBUG: Waiting for response")
-        time.sleep(10)
-        wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'css-146c3p1') and (contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'optimized') or contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'here'))]")))
+        time.sleep(15)  # More time for response
+        wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'css-146c3p1')]")))  # Broader selector
         responses = driver.find_elements(By.CLASS_NAME, "css-146c3p1")
         for r in reversed(responses):
             text = r.get_attribute("textContent").lower()
