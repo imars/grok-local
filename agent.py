@@ -14,7 +14,7 @@ PROJECT_DIR = os.getcwd()
 REPO_URL = "git@github.com:imars/grok-local.git"
 MODEL = "llama3.2:latest"
 OLLAMA_URL = "http://localhost:11434"
-GROK_URL = "https://grok.x.ai/chat"  # Adjust to your actual Grok URL
+GROK_URL = "https://x.com/i/grok?conversation=1894190038096736744"
 
 def git_push(message="Automated commit"):
     print(f"DEBUG: Starting git_push with message: {message}")
@@ -38,7 +38,7 @@ def read_file(filename):
 def ask_grok(prompt):
     print(f"DEBUG: Starting ask_grok with prompt: {prompt}")
     chrome_options = Options()
-    chrome_options.add_argument("--headless")
+    # chrome_options.add_argument("--headless")  # Uncomment for headless later
     print("DEBUG: Initializing ChromeDriver")
     driver = webdriver.Chrome(options=chrome_options)
     print(f"DEBUG: Navigating to {GROK_URL}")
@@ -51,12 +51,14 @@ def ask_grok(prompt):
         print("DEBUG: Sending prompt to input")
         prompt_box.send_keys(prompt)
         print("DEBUG: Looking for submit button")
-        submit_button = driver.find_element(By.ID, "submit-btn")  # Placeholder - adjust
+        submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
         submit_button.click()
         print("DEBUG: Waiting for response")
-        response = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "response")))  # Placeholder - adjust
-        print(f"DEBUG: Response received: {response.text}")
-        return response.text
+        # Wait for a new response div with my text
+        response = wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'css-146c3p1') and contains(text(), 'Here')]")))
+        full_response = response.text
+        print(f"DEBUG: Response received: {full_response}")
+        return full_response
     except Exception as e:
         print(f"DEBUG: Error occurred: {e}")
         print(f"DEBUG: Manual fallback - paste this to Grok:\n{prompt}")
