@@ -59,6 +59,7 @@ def ask_grok(prompt, headless=False):
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
         print("DEBUG: Initializing ChromeDriver (headless)")
     else:
         print("DEBUG: Initializing ChromeDriver (GUI mode)")
@@ -89,13 +90,26 @@ def ask_grok(prompt, headless=False):
         print("DEBUG: Signed in - proceeding")
     except:
         print("DEBUG: Sign-in required or cookies invalid")
+        driver.get("https://x.com/login")
         if headless:
             driver.quit()
-            return "Cookies failed - run without --headless to re-login and save new cookies"
-        driver.get("https://x.com/login")
-        input("DEBUG: Log in with @ianatmars, navigate to GROK_URL, then press Enter: ")
+            return "Cookies failed - run without --headless to re-login and verify"
+        input("DEBUG: Log in with @ianatmars, then press Enter: ")
+        # Handle verification if prompted
+        try:
+            verify_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@name='text']")))
+            verify_value = input("DEBUG: Enter phone (e.g., +1...) or email for verification: ")
+            verify_input.send_keys(verify_value)
+            next_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Next']")))
+            next_button.click()
+            print("DEBUG: Verification submitted")
+            time.sleep(5)
+        except:
+            print("DEBUG: No verification prompt detected")
         driver.get(GROK_URL)
-    # Always save cookies after successful navigation
+        prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
+        print("DEBUG: Signed in - proceeding")
+    # Save cookies after successful navigation
     pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
     print("DEBUG: Cookies saved")
 
