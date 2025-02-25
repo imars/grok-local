@@ -2,6 +2,7 @@ import requests
 import git
 import os
 import pickle
+import argparse
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
@@ -9,6 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
 import json
+from git.exc import GitCommandError
 
 # Config
 PROJECT_DIR = os.getcwd()
@@ -23,11 +25,17 @@ def git_push(message="Automated commit"):
     repo = git.Repo(PROJECT_DIR)
     repo.git.add(A=True)
     print("DEBUG: Files staged")
-    repo.git.commit(m=message)
-    print("DEBUG: Commit made")
+    try:
+        repo.git.commit(m=message)
+        print("DEBUG: Commit made")
+    except GitCommandError as e:
+        if "nothing to commit" in str(e):
+            print("DEBUG: No changes to commit - proceeding")
+        else:
+            raise
     repo.git.push()
     print("DEBUG: Push completed")
-    return "Pushed to GitHub"
+    return "Pushed to GitHub or already up-to-date"
 
 def read_file(filename):
     print(f"DEBUG: Reading file: {filename}")
@@ -48,13 +56,16 @@ def get_multiline_input(prompt):
         lines.append(line)
     return "\n".join(lines)
 
-def ask_grok(prompt):
-    print(f"DEBUG: Starting ask_grok with prompt: {prompt}")
+def ask_grok(prompt, headless=False):
+    print(f"DEBUG: Starting ask_grok with prompt: {prompt}, headless={headless}")
     chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Headless mode
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    print("DEBUG: Initializing ChromeDriver (headless)")
+    if headless:
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        print("DEBUG: Initializing ChromeDriver (headless)")
+    else:
+        print("DEBUG: Initializing ChromeDriver (GUI mode)")
     driver = webdriver.Chrome(options=chrome_options)
     print(f"DEBUG: Navigating to {GROK_URL}")
     driver.get(GROK_URL)
@@ -72,8 +83,10 @@ def ask_grok(prompt):
         driver.refresh()
     else:
         print("DEBUG: No cookies found - need initial login")
-        driver.quit()
-        return "Run once without headless to save cookies, then retry"
+        if headless:
+            driver.quit()
+            return "Run without --headless first to save cookies, then retry"
+        # Proceed to manual login below
 
     try:
         print("DEBUG: Checking for prompt input")
@@ -81,8 +94,15 @@ def ask_grok(prompt):
         print("DEBUG: Signed in - proceeding")
     except:
         print("DEBUG: Sign-in required or cookies invalid")
-        driver.quit()
-        return "Cookies failed - run without headless to re-login and save new cookies"
+        if headless:
+            driver.quit()
+            return "Cookies failed - run without --headless to re-login and save new cookies"
+        driver.get("https://x.com/login")
+        input("DEBUG: Log in with @ianatmars, handle 2FA/CAPTCHA, navigate to GROK_URL, then press Enter: ")
+        driver.get(GROK_URL)
+        pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
+        print("DEBUG: Cookies saved - retrying prompt")
+        prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
 
     try:
         print("DEBUG: Sending prompt to input")
@@ -92,7 +112,7 @@ def ask_grok(prompt):
         submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
         submit_button.click()
         print("DEBUG: Waiting for response")
-        time.sleep(5)  # Wait for response to load
+        time.sleep(5)
         initial_count = len(driver.find_elements(By.CLASS_NAME, "css-146c3p1"))
         wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "css-146c3p1")) > initial_count)
         responses = driver.find_elements(By.CLASS_NAME, "css-146c3p1")
@@ -154,6 +174,10 @@ def local_reasoning(task):
         return result
 
 def main():
+    parser = argparse.ArgumentParser(description="Run the agent with optional headless mode")
+    parser.add_argument("--headless", action="store_true", help="Run Chrome in headless mode")
+    args = parser.parse_args()
+
     print("DEBUG: Starting main")
     task = "Read main.py and push it to GitHub."
     plan = local_reasoning(task)
@@ -164,7 +188,7 @@ def main():
     print(f"Git result: {git_result}")
 
     prompt = f"Optimize this code:\n{code}"
-    grok_response = ask_grok(prompt)
+    grok_response = ask_grok(prompt, headless=args.headless)
     print(f"Grok says:\n{grok_response}")
 
 if __name__ == "__main__":
