@@ -118,24 +118,25 @@ def ask_grok(prompt, headless=False):
         submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
         submit_button.click()
         print("DEBUG: Waiting for response")
-        time.sleep(20)  # Increased initial wait
+        time.sleep(30)  # Increased wait
         initial_count = len(driver.find_elements(By.CLASS_NAME, "css-146c3p1"))
         wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "css-146c3p1")) > initial_count)
         responses = driver.find_elements(By.CLASS_NAME, "css-146c3p1")
-        for r in reversed(responses):
-            text = r.get_attribute("textContent").lower()
-            if "optimized" in text or "here" in text or "greet" in text:
-                full_response = r.get_attribute("textContent")
+        for i, r in enumerate(responses):
+            text = r.get_attribute("textContent")
+            print(f"DEBUG: Response candidate {i}: {text[:100]}...")
+            if "optimized" in text.lower() or "here" in text.lower() or "greet" in text.lower():
+                full_response = text
                 break
         else:
             raise Exception("No response with 'optimized', 'here', or 'greet' found")
         print(f"DEBUG: Response received: {full_response}")
-        for i, r in enumerate(responses):
-            print(f"DEBUG: Response candidate {i}: {r.get_attribute('textContent')[:100]}...")
         return full_response
     except Exception as e:
         print(f"DEBUG: Error occurred: {e}")
-        print(f"DEBUG: Page source snippet: {driver.page_source[:4000]}...")  # More source
+        with open("page_source.html", "w") as f:
+            f.write(driver.page_source)  # Full source for debugging
+        print("DEBUG: Full page source saved to page_source.html")
         print(f"DEBUG: Manual fallback - paste this to Grok:\n{prompt}")
         response = get_multiline_input("DEBUG: Enter Grok's response here:")
         print(f"DEBUG: Grok replied: {response}")
