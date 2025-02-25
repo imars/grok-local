@@ -66,7 +66,7 @@ def ask_grok(prompt, headless=False):
     driver = webdriver.Chrome(options=chrome_options)
     print(f"DEBUG: Navigating to {GROK_URL}")
     driver.get(GROK_URL)
-    wait = WebDriverWait(driver, 90)
+    wait = WebDriverWait(driver, 120)
 
     if os.path.exists(COOKIE_FILE):
         print("DEBUG: Loading cookies")
@@ -118,18 +118,19 @@ def ask_grok(prompt, headless=False):
         submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
         submit_button.click()
         print("DEBUG: Waiting for response")
-        time.sleep(30)
+        time.sleep(60)  # Increased wait
         initial_count = len(driver.find_elements(By.CLASS_NAME, "css-146c3p1"))
-        wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "css-146c3p1")) > initial_count + 1)  # Ensure new content
-        responses = driver.find_elements(By.CLASS_NAME, "css-146c3p1")
+        print(f"DEBUG: Initial response count: {initial_count}")
+        wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "css-146c3p1")) > initial_count)
+        responses = driver.find_elements(By.TAG_NAME, "div")  # Broader search
         for i, r in enumerate(responses):
             text = r.get_attribute("textContent")
-            print(f"DEBUG: Response candidate {i}: {text[:100]}...")
-            if "optimized" in text.lower() or "here" in text.lower() or "greet" in text.lower():
+            if text and ("optimized" in text.lower() or "here" in text.lower() or "greet" in text.lower()):
+                print(f"DEBUG: Response candidate {i}: {text[:200]}...")
                 full_response = text
                 break
         else:
-            raise Exception("No response with 'optimized', 'here', or 'greet' found")
+            raise Exception("No response with 'optimized', 'here', or 'greet' found in any div")
         print(f"DEBUG: Response received: {full_response}")
         return full_response
     except Exception as e:
