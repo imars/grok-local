@@ -3,6 +3,7 @@ import git
 import os
 import pickle
 import argparse
+import sys
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
@@ -47,14 +48,9 @@ def read_file(filename):
 
 def get_multiline_input(prompt):
     print(prompt)
-    print("DEBUG: Enter response (end with an empty line):")
-    lines = []
-    while True:
-        line = input()
-        if line.strip() == "":
-            break
-        lines.append(line)
-    return "\n".join(lines)
+    print("DEBUG: Paste response below, then press Ctrl+D (Unix) or Ctrl+Z then Enter (Windows) to finish:")
+    response = sys.stdin.read()
+    return response.strip()
 
 def ask_grok(prompt, headless=False):
     print(f"DEBUG: Starting ask_grok with prompt: {prompt}, headless={headless}")
@@ -86,7 +82,6 @@ def ask_grok(prompt, headless=False):
         if headless:
             driver.quit()
             return "Run without --headless first to save cookies, then retry"
-        # Proceed to manual login below
 
     try:
         print("DEBUG: Checking for prompt input")
@@ -98,7 +93,7 @@ def ask_grok(prompt, headless=False):
             driver.quit()
             return "Cookies failed - run without --headless to re-login and save new cookies"
         driver.get("https://x.com/login")
-        input("DEBUG: Log in with @ianatmars, handle 2FA/CAPTCHA, navigate to GROK_URL, then press Enter: ")
+        input("DEBUG: Log in with @ianatmars, navigate to GROK_URL, then press Enter: ")
         driver.get(GROK_URL)
         pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
         print("DEBUG: Cookies saved - retrying prompt")
@@ -112,11 +107,9 @@ def ask_grok(prompt, headless=False):
         submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
         submit_button.click()
         print("DEBUG: Waiting for response")
-        time.sleep(5)
-        initial_count = len(driver.find_elements(By.CLASS_NAME, "css-146c3p1"))
-        wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "css-146c3p1")) > initial_count)
+        time.sleep(10)
+        wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'css-146c3p1') and (contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'optimized') or contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'here'))]")))
         responses = driver.find_elements(By.CLASS_NAME, "css-146c3p1")
-        # Filter for my response
         for r in reversed(responses):
             text = r.get_attribute("textContent").lower()
             if "optimized" in text or "here" in text or "greet" in text:
