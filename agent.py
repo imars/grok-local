@@ -12,7 +12,7 @@ PROJECT_DIR = os.getcwd()
 REPO_URL = "git@github.com:imars/grok-local.git"
 MODEL = "llama3.2:latest"
 OLLAMA_URL = "http://localhost:11434"
-GROK_URL = "https://www.google.com"  # Placeholder; replace with Grok URL
+GROK_URL = "https://x.ai/grok"  # Adjust to your actual Grok chat URL
 
 def git_push(message="Automated commit"):
     print(f"DEBUG: Starting git_push with message: {message}")
@@ -42,19 +42,20 @@ def ask_grok(prompt):
     print(f"DEBUG: Navigating to {GROK_URL}")
     driver.get(GROK_URL)
     print("DEBUG: Waiting for page load")
-    time.sleep(2)
+    time.sleep(5)  # Longer wait for login/load
     
     try:
+        # Hypothetical selectors - adjust to real page
         print("DEBUG: Looking for prompt input")
-        prompt_box = driver.find_element(By.ID, "prompt-input")
+        prompt_box = driver.find_element(By.ID, "chat-input")  # Example ID
         print("DEBUG: Sending prompt to input")
         prompt_box.send_keys(prompt)
         print("DEBUG: Looking for submit button")
-        driver.find_element(By.ID, "submit-button").click()
+        driver.find_element(By.ID, "send-button").click()  # Example ID
         print("DEBUG: Waiting for response")
-        time.sleep(3)
+        time.sleep(10)  # Wait for response
         print("DEBUG: Fetching response")
-        response = driver.find_element(By.ID, "response-output").text
+        response = driver.find_element(By.CLASS_NAME, "response-text").text  # Example class
         print(f"DEBUG: Response received: {response}")
     except Exception as e:
         response = f"Error interacting with Grok: {e}"
@@ -67,7 +68,6 @@ def ask_grok(prompt):
 def local_reasoning(task):
     print(f"DEBUG: Starting local_reasoning with task: {task}")
     try:
-        # Simplified prompt
         payload = {
             "model": MODEL,
             "messages": [{"role": "user", "content": f"Plan: {task}"}]
@@ -78,7 +78,7 @@ def local_reasoning(task):
             f"{OLLAMA_URL}/api/chat",
             json=payload,
             stream=True,
-            timeout=120  # 2 minutes
+            timeout=120
         )
         response.raise_for_status()
         full_response = ""
@@ -113,7 +113,8 @@ def main():
     grok_response = ask_grok(prompt)
     print(f"Grok says: {grok_response}")
 
-    next_steps = local_reasoning(f"Grok suggested: {grok_response}. What should I do next?")
+    # Simplified next steps prompt
+    next_steps = local_reasoning(f"What to do after: {grok_response}")
     print(f"Next steps: {next_steps}")
 
 if __name__ == "__main__":
