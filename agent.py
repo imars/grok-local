@@ -12,6 +12,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 import json
 from git.exc import GitCommandError
+import logging
 
 # Config
 PROJECT_DIR = os.getcwd()
@@ -21,139 +22,148 @@ OLLAMA_URL = "http://localhost:11434"
 GROK_URL = "https://x.com/i/grok?conversation=1894190038096736744"
 COOKIE_FILE = os.path.join(PROJECT_DIR, "cookies.pkl")
 
+# Setup logging
+logging.basicConfig(filename="agent.log", level=logging.DEBUG, format="%(asctime)s - %(message)s")
+
 def git_push(message="Automated commit"):
-    print(f"DEBUG: Starting git_push with message: {message}")
+    logging.debug(f"Starting git_push with message: {message}")
     repo = git.Repo(PROJECT_DIR)
     repo.git.add(A=True)
-    print("DEBUG: Files staged")
+    logging.debug("Files staged")
     try:
         repo.git.commit(m=message)
-        print("DEBUG: Commit made")
+        logging.debug("Commit made")
     except GitCommandError as e:
         if "nothing to commit" in str(e):
-            print("DEBUG: No changes to commit - proceeding")
+            logging.debug("No changes to commit - proceeding")
         else:
             raise
     repo.git.push()
-    print("DEBUG: Push completed")
+    logging.debug("Push completed")
     return "Pushed to GitHub or already up-to-date"
 
 def read_file(filename):
-    print(f"DEBUG: Reading file: {filename}")
+    logging.debug(f"Reading file: {filename}")
     filepath = os.path.join(PROJECT_DIR, filename)
     with open(filepath, "r") as f:
         content = f.read()
-    print(f"DEBUG: File read: {content}")
+    logging.debug(f"File read: {content}")
     return content
 
 def get_multiline_input(prompt):
     print(prompt)
-    print("DEBUG: Paste response below, then press Ctrl+D (Unix) or Ctrl+Z then Enter (Windows):")
+    print("Paste response below, then press Ctrl+D (Unix) or Ctrl+Z then Enter (Windows):")
     response = sys.stdin.read()
     return response.strip()
 
+def cookies_valid(driver):
+    driver.get(GROK_URL)
+    try:
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "r-30o5oe")))
+        return True
+    except:
+        return False
+
 def ask_grok(prompt, headless=False):
-    print(f"DEBUG: Starting ask_grok with prompt: {prompt}, headless={headless}")
+    logging.debug(f"Starting ask_grok with prompt: {prompt}, headless={headless}")
     chrome_options = Options()
     if headless:
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-        print("DEBUG: Initializing ChromeDriver (headless)")
+        logging.debug("Initializing ChromeDriver (headless)")
     else:
-        print("DEBUG: Initializing ChromeDriver (GUI mode)")
+        logging.debug("Initializing ChromeDriver (GUI mode)")
     driver = webdriver.Chrome(options=chrome_options)
-    print(f"DEBUG: Navigating to {GROK_URL}")
-    driver.get(GROK_URL)
     wait = WebDriverWait(driver, 120)
 
+    logging.debug(f"Navigating to {GROK_URL}")
+    driver.get(GROK_URL)
+
     if os.path.exists(COOKIE_FILE):
-        print("DEBUG: Loading cookies")
+        logging.debug("Loading cookies")
         cookies = pickle.load(open(COOKIE_FILE, "rb"))
         for cookie in cookies:
             try:
                 driver.add_cookie(cookie)
             except:
-                print("DEBUG: Invalid cookie detected")
+                logging.debug("Invalid cookie detected")
         driver.refresh()
+        if not cookies_valid(driver):
+            logging.debug("Cookies invalid")
+            if headless:
+                driver.quit()
+                return "Cookies invalid - run without --headless to re-login"
     else:
-        print("DEBUG: No cookies found - need initial login")
+        logging.debug("No cookies found - need initial login")
         if headless:
             driver.quit()
             return "Run without --headless first to save cookies, then retry"
 
     try:
-        print("DEBUG: Checking for prompt input")
         prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
-        print("DEBUG: Signed in - proceeding")
+        logging.debug("Signed in - proceeding")
     except:
-        print("DEBUG: Sign-in required or cookies invalid")
+        logging.debug("Sign-in required or cookies invalid")
         driver.get("https://x.com/login")
         if headless:
             driver.quit()
             return "Cookies failed - run without --headless to re-login and verify"
-        input("DEBUG: Log in with @ianatmars, then press Enter: ")
+        input("Log in with @ianatmars, then press Enter: ")
         try:
             verify_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@name='text']")))
-            verify_value = input("DEBUG: Enter phone (e.g., +1...) or email for verification: ")
+            verify_value = input("Enter phone (e.g., +1...) or email for verification: ")
             verify_input.send_keys(verify_value)
             next_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Next']")))
             next_button.click()
-            print("DEBUG: Verification submitted")
+            logging.debug("Verification submitted")
             time.sleep(5)
         except:
-            print("DEBUG: No verification prompt detected")
+            logging.debug("No verification prompt detected")
         driver.get(GROK_URL)
         prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
-        print("DEBUG: Signed in - proceeding")
     pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
-    print("DEBUG: Cookies saved")
+    logging.debug("Cookies saved")
 
     try:
-        print("DEBUG: Sending prompt to input")
+        logging.debug("Sending prompt to input")
         prompt_box.clear()
         prompt_box.send_keys(prompt)
-        print("DEBUG: Looking for submit button")
         submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
         submit_button.click()
-        print("DEBUG: Waiting for response")
-        time.sleep(60)  # Increased wait
+        logging.debug("Waiting for response")
         initial_count = len(driver.find_elements(By.CLASS_NAME, "css-146c3p1"))
-        print(f"DEBUG: Initial response count: {initial_count}")
-        wait.until(lambda driver: len(driver.find_elements(By.CLASS_NAME, "css-146c3p1")) > initial_count)
-        responses = driver.find_elements(By.TAG_NAME, "div")  # Broader search
-        for i, r in enumerate(responses):
-            text = r.get_attribute("textContent")
-            if text and ("optimized" in text.lower() or "here" in text.lower() or "greet" in text.lower()):
-                print(f"DEBUG: Response candidate {i}: {text[:200]}...")
-                full_response = text
-                break
-        else:
-            raise Exception("No response with 'optimized', 'here', or 'greet' found in any div")
-        print(f"DEBUG: Response received: {full_response}")
+        logging.debug(f"Initial response count: {initial_count}")
+        response_elements = wait.until(
+            lambda driver: driver.find_elements(By.CLASS_NAME, "css-146c3p1")[initial_count:],
+            message="No new response appeared"
+        )
+        full_response = response_elements[-1].get_attribute("textContent")
+        logging.debug(f"Response received: {full_response}")
+        pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
         return full_response
     except Exception as e:
-        print(f"DEBUG: Error occurred: {e}")
+        logging.debug(f"Error occurred: {e}")
         with open("page_source.html", "w") as f:
             f.write(driver.page_source)
-        print("DEBUG: Full page source saved to page_source.html")
-        print(f"DEBUG: Manual fallback - paste this to Grok:\n{prompt}")
-        response = get_multiline_input("DEBUG: Enter Grok's response here:")
-        print(f"DEBUG: Grok replied: {response}")
+        logging.debug("Full page source saved to page_source.html")
+        print(f"Manual fallback - paste this to Grok:\n{prompt}")
+        response = get_multiline_input("Enter Grok's response here:")
+        logging.debug(f"Grok replied: {response}")
         return response
     finally:
-        print("DEBUG: Closing browser")
+        logging.debug("Closing browser")
         driver.quit()
 
 def local_reasoning(task):
-    print(f"DEBUG: Starting local_reasoning with task: {task}")
+    logging.debug(f"Starting local_reasoning with task: {task}")
     try:
         payload = {
             "model": MODEL,
             "messages": [{"role": "user", "content": f"Briefly summarize steps to {task}"}]
         }
-        print(f"DEBUG: Sending request to {OLLAMA_URL}/api/chat")
+        logging.debug(f"Sending request to {OLLAMA_URL}/api/chat")
         start_time = time.time()
         response = requests.post(
             f"{OLLAMA_URL}/api/chat",
@@ -163,21 +173,21 @@ def local_reasoning(task):
         )
         response.raise_for_status()
         full_response = ""
-        print("DEBUG: Receiving streamed response")
+        logging.debug("Receiving streamed response")
         for line in response.iter_lines():
             if line:
                 chunk = json.loads(line.decode('utf-8'))
                 if "message" in chunk and "content" in chunk["message"]:
                     full_response += chunk["message"]["content"]
-                    print(f"DEBUG: Chunk received after {time.time() - start_time:.2f}s: {chunk['message']['content']}")
+                    logging.debug(f"Chunk received after {time.time() - start_time:.2f}s: {chunk['message']['content']}")
                 if chunk.get("done", False):
-                    print(f"DEBUG: Stream completed after {time.time() - start_time:.2f}s")
+                    logging.debug(f"Stream completed after {time.time() - start_time:.2f}s")
                     break
-        print(f"DEBUG: Local reasoning result: {full_response}")
+        logging.debug(f"Local reasoning result: {full_response}")
         return full_response
     except requests.exceptions.RequestException as e:
         result = f"Ollama error: {e}"
-        print(f"DEBUG: Local reasoning failed: {result}")
+        logging.debug(f"Local reasoning failed: {result}")
         return result
 
 def main():
@@ -185,7 +195,7 @@ def main():
     parser.add_argument("--headless", action="store_true", help="Run Chrome in headless mode")
     args = parser.parse_args()
 
-    print("DEBUG: Starting main")
+    logging.debug("Starting main")
     task = "push main.py to GitHub"
     plan = local_reasoning(task)
     print(f"Plan: {plan}")
