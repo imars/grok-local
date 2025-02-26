@@ -1,0 +1,1 @@
+and monitor the logs. If it fails, look for cookie-related errors or invalid session indicators.

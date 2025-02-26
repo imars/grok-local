@@ -1,0 +1,1 @@
+Let me know how this works or if you hit any snags! If the login succeeds but polling still fails, we can tweak the

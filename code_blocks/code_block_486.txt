@@ -1,0 +1,1 @@
+to automate the login process without manual intervention, which will work seamlessly in headless mode.

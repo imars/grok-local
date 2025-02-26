@@ -1,0 +1,1 @@
+Fix: Ensure the headless browser mimics a real user session with appropriate user-agent and options, and double-check cookie domain/path compatibility.

@@ -1,0 +1,18 @@
+def run_command(command_str):
+    print(f"Running command: {command_str}")
+    parts = command_str.split()
+    cmd = parts[0].strip('"')  # Strip quotes from command
+    if not parts or cmd.lower() not in SAFE_COMMANDS:
+        return f"Error: Only {', '.join(SAFE_COMMANDS)} allowed"
+    if any(danger in command_str.lower() for danger in ["sudo", "rm", "del", ";", "&", "|"]):
+        return "Error: Unsafe command"
+    args = [arg if not arg.startswith('/') else os.path.join(PROJECT_DIR, arg[1:]) for arg in parts[1:]]
+    full_cmd = [cmd] + args
+    print(f"Executing: {full_cmd}")
+    try:
+        result = subprocess.run(full_cmd, cwd=PROJECT_DIR, capture_output=True, text=True, timeout=10)
+        output = result.stdout if result.returncode == 0 else f"Error: {result.stderr}"
+        print(f"Command output: {output}")
+        return output
+    except Exception as e:
+        return f"Error: {e}"

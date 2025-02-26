@@ -1,0 +1,1 @@
+Store Credentials Securely: Hardcoding credentials in the script isn’t safe. Instead, we’ll use environment variables or a config file.

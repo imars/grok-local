@@ -1,0 +1,3 @@
+, then press Enter:
+Received: No GROK_LOCAL found after full scan
+Unknown command format

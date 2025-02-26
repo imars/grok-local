@@ -1,0 +1,1 @@
+In headless mode, if cookies fail or are absent, it attempts a full login.

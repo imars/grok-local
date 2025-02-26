@@ -1,0 +1,17 @@
+def poll_x(headless):
+    while True:
+        cmd = ask_grok("Polling for Grok 3...", fetch=True, headless=headless)
+        if cmd and "Cookie" not in cmd and "Failed" not in cmd:
+            print(f"Received: {cmd}")
+            if cmd.startswith("ask "):
+                result = subprocess.run(
+                    ["python", "grok-local.py", "--ask", cmd[4:]],
+                    capture_output=True, text=True
+                )
+                print(f"Result: {result.stdout}")
+                ask_grok(f"GROK_LOCAL_RESULT: {result.stdout}", headless=headless)
+            else:
+                print("Unknown command format")
+        else:
+            print(f"Poll failed: {cmd}")
+        time.sleep(30)

@@ -1,0 +1,1 @@
+In non-headless mode, it retains the manual login prompt for flexibility.

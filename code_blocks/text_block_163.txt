@@ -1,0 +1,1 @@
+Robustness: Test with a clean slate (delete cookies.pkl) to ensure the fallback to login works in headless mode once implemented.

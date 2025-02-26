@@ -1,0 +1,1 @@
+: Storing passwords in env vars is okay for personal use, but for production, consider a secrets manager (e.g., AWS Secrets Manager, HashiCorp Vault).

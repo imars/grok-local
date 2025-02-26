@@ -1,0 +1,30 @@
+def process_grok_interaction(driver, wait, prompt, fetch):
+    if fetch:
+        elements = driver.find_elements(By.CSS_SELECTOR, "[data-testid='markdown-code-block']")
+        logging.info(f"Total elements found: {len(elements)}")
+        for i, elem in enumerate(elements):
+            text = elem.get_attribute("textContent")
+            logging.info(f"Element {i}: {text}")
+            if "GROK_LOCAL:" in text:
+                cmd = text.replace("GROK_LOCAL:", "").strip()
+                logging.info(f"Found command: {cmd}")
+                return cmd
+        driver.quit()
+        return "No GROK_LOCAL found after full scan"
+    else:
+        prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
+        prompt_box.clear()
+        prompt_box.send_keys(prompt)
+        submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
+        submit_button.click()
+        time.sleep(15)
+        initial_count = len(driver.find_elements(By.CSS_SELECTOR, "[data-testid='markdown-code-block']"))
+        response_elements = wait.until(
+            lambda driver: [
+                elem.find_element(By.TAG_NAME, "pre")
+                for elem in driver.find_elements(By.CSS_SELECTOR, "[data-testid='markdown-code-block']")[initial_count:]
+                if elem.get_attribute("textContent")
+            ]
+        )
+        return response_elements[-1].get_attribute("textContent")
+    driver.quit()

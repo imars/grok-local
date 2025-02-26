@@ -1,0 +1,1 @@
+Your output (Received: No GROK_LOCAL found after full scan) indicates the login worked, but the conversation at GROK_URL doesn’t contain a GROK_LOCAL: command. To test the polling:

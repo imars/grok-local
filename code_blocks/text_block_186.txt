@@ -1,0 +1,221 @@
+It seems like you ran x_poller.py without the --headless flag (since it prompted for manual login), successfully logged in with @ianatmars, and then it polled X but didn’t find a GROK_LOCAL: command in the Grok conversation. That’s expected behavior if the conversation at GROK_URL doesn’t yet have a command for grok-local to process. However, since you want to implement a headless login, let’s modify x_poller.py to automate the login process without manual intervention, which will work seamlessly in headless mode.Headless Login ApproachTo enable headless login, we need to:Store Credentials Securely: Hardcoding credentials in the script isn’t safe. Instead, we’ll use environment variables or a config file.Automate Login: Simulate entering the username, password, and handling any verification steps (e.g., phone/email) using Selenium.Handle Edge Cases: Account for two-factor authentication (if enabled) or CAPTCHA (though CAPTCHA might require manual intervention or a service like 2Captcha).For simplicity, I’ll assume:You’re okay with storing credentials in environment variables (X_USERNAME, X_PASSWORD, X_VERIFY) for now.Your account doesn’t require 2FA or CAPTCHA every time (we’ll add a fallback if it does).You can set these in your terminal before running the script:bashexport X_USERNAME="ianatmars"
+export X_PASSWORD="your_password_here"
+export X_VERIFY="your_phone_or_email_here"Updated x_poller.py with Headless LoginHere’s the modified version with headless login support. I’ll output it as a cat command per your CLI preference:bashcat << 'EOF' > x_poller.py
+import requests
+import os
+import pickle
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+import json
+import logging
+import subprocess
+from logging.handlers import RotatingFileHandler
+
+PROJECT_DIR = os.getcwd()
+GROK_URL = "https://x.com/i/grok?conversation=1894190038096736744"
+COOKIE_FILE = os.path.join(PROJECT_DIR, "cookies.pkl")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(message)s",
+    handlers=[RotatingFileHandler("x_poller.log", maxBytes=1*1024*1024, backupCount=3)]
+)
+
+def handle_cookie_consent(driver, wait):
+    try:
+        consent_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Allow') or contains(text(), 'Accept')]")))
+        consent_button.click()
+        logging.info("Clicked cookie consent button")
+        time.sleep(2)
+        return True
+    except:
+        logging.info("No cookie consent button found")
+        return False
+
+def cookies_valid(driver):
+    driver.get(GROK_URL)
+    time.sleep(5)
+    logging.info(f"Checking cookies - Title: {driver.title}")
+    try:
+        wait = WebDriverWait(driver, 10)
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, "r-30o5oe")))  # Prompt box as auth indicator
+        return True
+    except:
+        return False
+
+def save_cookies(driver):
+    cookies = driver.get_cookies()
+    with open(COOKIE_FILE, "wb") as f:
+        pickle.dump(cookies, f)
+    logging.info(f"Saved {len(cookies)} cookies to {COOKIE_FILE}")
+
+def load_cookies(driver):
+    if not os.path.exists(COOKIE_FILE):
+        logging.info("No cookie file found")
+        return False
+    with open(COOKIE_FILE, "rb") as f:
+        cookies = pickle.load(f)
+    driver.delete_all_cookies()
+    for cookie in cookies:
+        try:
+            driver.add_cookie(cookie)
+        except Exception as e:
+            logging.warning(f"Failed to add cookie {cookie.get('name')}: {e}")
+    logging.info(f"Loaded {len(cookies)} cookies")
+    return True
+
+def perform_headless_login(driver, wait):
+    username = os.getenv("X_USERNAME")
+    password = os.getenv("X_PASSWORD")
+    verify = os.getenv("X_VERIFY")
+    
+    if not all([username, password, verify]):
+        logging.error("Missing credentials in environment variables: X_USERNAME, X_PASSWORD, X_VERIFY")
+        return False
+
+    driver.get("https://x.com/login")
+    logging.info("Navigating to login page")
+
+    # Enter username
+    username_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@autocomplete='username']")))
+    username_input.send_keys(username)
+    next_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), 'Next')]")))
+    next_button.click()
+    time.sleep(2)
+
+    # Enter password
+    password_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type='password']")))
+    password_input.send_keys(password)
+    login_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), 'Log in')]")))
+    login_button.click()
+    time.sleep(5)
+
+    # Handle verification step if present
+    try:
+        verify_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@name='text']")))
+        verify_input.send_keys(verify)
+        next_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Next']")))
+        next_button.click()
+        time.sleep(5)
+    except:
+        logging.info("No verification step required")
+
+    # Check if login succeeded
+    if "login" not in driver.current_url.lower():
+        save_cookies(driver)
+        return True
+    else:
+        logging.error("Login failed, still on login page")
+        return False
+
+def ask_grok(prompt, fetch=False, headless=False):
+    logging.info(f"ask_grok called - prompt: {prompt}, fetch: {fetch}, headless: {headless}")
+    chrome_options = Options()
+    if headless:
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    driver = webdriver.Chrome(options=chrome_options)
+    wait = WebDriverWait(driver, 60)
+
+    # Try loading cookies first
+    driver.get("https://x.com")  # Set domain context
+    if load_cookies(driver):
+        driver.get(GROK_URL)
+        time.sleep(5)
+        if cookies_valid(driver):
+            logging.info("Cookies valid, proceeding with interaction")
+            return process_grok_interaction(driver, wait, prompt, fetch)
+
+    # If cookies fail or in headless mode, attempt login
+    if headless:
+        if not perform_headless_login(driver, wait):
+            driver.quit()
+            return "Headless login failed"
+    else:
+        driver.get("https://x.com/login")
+        input("Log in with @ianatmars, then press Enter: ")
+        handle_cookie_consent(driver, wait)
+        try:
+            verify_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@name='text']")))
+            verify_value = input("Enter phone or email: ")
+            verify_input.send_keys(verify_value)
+            next_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Next']")))
+            next_button.click()
+            time.sleep(5)
+        except:
+            logging.info("No verification step required")
+        save_cookies(driver)
+
+    driver.get(GROK_URL)
+    time.sleep(5)
+    if handle_cookie_consent(driver, wait):
+        time.sleep(2)
+
+    return process_grok_interaction(driver, wait, prompt, fetch)
+
+def process_grok_interaction(driver, wait, prompt, fetch):
+    if fetch:
+        elements = driver.find_elements(By.CSS_SELECTOR, "[data-testid='markdown-code-block']")
+        logging.info(f"Total elements found: {len(elements)}")
+        for i, elem in enumerate(elements):
+            text = elem.get_attribute("textContent")
+            logging.info(f"Element {i}: {text}")
+            if "GROK_LOCAL:" in text:
+                cmd = text.replace("GROK_LOCAL:", "").strip()
+                logging.info(f"Found command: {cmd}")
+                driver.quit()
+                return cmd
+        driver.quit()
+        return "No GROK_LOCAL found after full scan"
+    else:
+        prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
+        prompt_box.clear()
+        prompt_box.send_keys(prompt)
+        submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
+        submit_button.click()
+        time.sleep(15)
+        initial_count = len(driver.find_elements(By.CSS_SELECTOR, "[data-testid='markdown-code-block']"))
+        response_elements = wait.until(
+            lambda driver: [
+                elem.find_element(By.TAG_NAME, "pre")
+                for elem in driver.find_elements(By.CSS_SELECTOR, "[data-testid='markdown-code-block']")[initial_count:]
+                if elem.get_attribute("textContent")
+            ]
+        )
+        driver.quit()
+        return response_elements[-1].get_attribute("textContent")
+
+def poll_x(headless):
+    while True:
+        cmd = ask_grok("Polling for Grok 3...", fetch=True, headless=headless)
+        if cmd and "Cookie" not in cmd and "Failed" not in cmd:
+            print(f"Received: {cmd}")
+            if cmd.startswith("ask "):
+                result = subprocess.run(
+                    ["python", "grok-local.py", "--ask", cmd[4:]],
+                    capture_output=True, text=True
+                )
+                print(f"Result: {result.stdout}")
+                ask_grok(f"GROK_LOCAL_RESULT: {result.stdout}", headless=headless)
+            else:
+                print("Unknown command format")
+        else:
+            print(f"Poll failed: {cmd}")
+        time.sleep(30)
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Poll X for Grok 3 commands")
+    parser.add_argument("--headless", action="store_true")
+    args = parser.parse_args()
+    poll_x(args.headless)
+EOFKey ChangesHeadless Login Function (perform_headless_login):Reads credentials from environment variables.Automates entering username, password, and verification (if needed).Saves cookies after successful login.Login Flow Integration:In headless mode, if cookies fail or are absent, it attempts a full login.In non-headless mode, it retains the manual login prompt for flexibility.Error Handling:Checks for missing credentials and logs login failures.Setup and TestingSet Environment Variables:bashexport X_USERNAME="ianatmars"
+export X_PASSWORD="your_password_here"
+export X_VERIFY="your_phone_or_email_here"Run in Headless Mode:bashpython x_poller.py --headlessCheck x_poller.log for login success or errors.If successful, it should poll and print "Received: No GROK_LOCAL found after full scan" (as before) unless there’s a command in the conversation.Debugging:If it fails, look for:"Missing credentials" (check env vars)."Login failed" (wrong credentials or 2FA/CAPTCHA).Selenium timeouts (adjust time.sleep() or wait.until() durations).Addressing Your OutputYour output (Received: No GROK_LOCAL found after full scan) indicates the login worked, but the conversation at GROK_URL doesn’t contain a GROK_LOCAL: command. To test the polling:Post a message in the Grok conversation like:GROK_LOCAL: ask what time is itRerun the script and see if it picks up the command and processes it via grok-local.py.Caveats2FA/CAPTCHA: If your account has 2FA or hits a CAPTCHA, headless login will fail. You’d need to:Disable 2FA temporarily for testing.Use a service like 2Captcha or manually log in once to save cookies.Security: Storing passwords in env vars is okay for personal use, but for production, consider a secrets manager (e.g., AWS Secrets Manager, HashiCorp Vault).Let me know how this works or if you hit any snags! If the login succeeds but polling still fails, we can tweak the process_grok_interaction function or investigate the conversation URL. What’s your next goal after this?

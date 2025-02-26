@@ -1,0 +1,1 @@
+Rerun the script and see if it picks up the command and processes it via

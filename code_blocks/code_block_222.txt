@@ -1,0 +1,1 @@
+pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))

@@ -1,0 +1,4 @@
+def main():
+    parser = argparse.ArgumentParser(description="Grok-Local Agent")
+    parser.add_argument("--ask", type=str, help="Run a single ask request and exit")
+    args = parser.parse_args()

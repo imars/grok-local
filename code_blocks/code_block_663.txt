@@ -1,0 +1,1 @@
+: If your account has 2FA or hits a CAPTCHA, headless login will fail. You’d need to:

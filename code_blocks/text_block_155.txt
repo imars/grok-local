@@ -1,0 +1,1 @@
+Ensured driver.quit() is called in all process_grok_interaction() paths to avoid resource leaks.

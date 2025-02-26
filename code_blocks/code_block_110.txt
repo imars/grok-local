@@ -1,0 +1,4 @@
+PROJECT_DIR = os.getcwd()
+REPO_URL = "git@github.com:imars/grok-local.git"
+MODEL = "llama3.2:latest"
+OLLAMA_URL = "

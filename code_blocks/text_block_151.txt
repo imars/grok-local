@@ -1,0 +1,1 @@
+In headless mode, the script starts at https://x.com to set the domain context before loading cookies, then refreshes after applying them.

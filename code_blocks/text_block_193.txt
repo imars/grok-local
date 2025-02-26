@@ -1,0 +1,1 @@
+Automate Login: Simulate entering the username, password, and handling any verification steps (e.g., phone/email) using Selenium.

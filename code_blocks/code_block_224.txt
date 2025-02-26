@@ -1,0 +1,1 @@
+). However, if the session requires additional cookies set earlier (e.g., during login or consent), they might be missed.

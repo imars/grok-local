@@ -1,0 +1,1 @@
+cookies_valid() now checks for the presence of the prompt box (.r-30o5oe) as a stronger indicator of being logged in, rather than just the page title.

@@ -1,0 +1,2 @@
+"
+COOKIE_FILE = os.path.join(PROJECT_DIR, "cookies.pkl")

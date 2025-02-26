@@ -1,0 +1,4 @@
+def read_file(filename):
+    filepath = os.path.join(PROJECT_DIR, filename)
+    with open(filepath, "r") as f:
+        return f.read()

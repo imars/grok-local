@@ -1,0 +1,4 @@
+def write_file(filename, content):
+    filepath = os.path.join(PROJECT_DIR, filename)
+    with open(filepath, "w") as f:
+        f.write(content)

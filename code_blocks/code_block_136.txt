@@ -1,0 +1,17 @@
+def local_reasoning(task):
+    print(f"Running local_reasoning: {task}")
+    try:
+        payload = {"model": MODEL, "messages": [{"role": "user", "content": task}]}
+        response = requests.post(f"{OLLAMA_URL}/api/chat", json=payload, stream=True, timeout=120)
+        full_response = ""
+        for line in response.iter_lines():
+            if line:
+                chunk = json.loads(line.decode('utf-8'))
+                if "message" in chunk and "content" in chunk["message"]:
+                    full_response += chunk["message"]["content"]
+                if chunk.get("done", False):
+                    break
+        print(f"Reasoning result: {full_response}")
+        return full_response
+    except requests.exceptions.RequestException as e:
+        return f"Ollama error: {e}"

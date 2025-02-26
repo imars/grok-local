@@ -1,0 +1,46 @@
+if os.path.exists(COOKIE_FILE) and headless:
+    driver.get(GROK_URL)
+    try:
+        cookies = pickle.load(open(COOKIE_FILE, "rb"))
+        driver.delete_all_cookies()
+        for cookie in cookies:
+            driver.add_cookie(cookie)
+        driver.refresh()
+        time.sleep(5)
+        if not cookies_valid(driver):
+            logging.info("Cookies invalid, falling back to login")
+            os.remove(COOKIE_FILE)
+        else:
+            logging.info("Cookies valid, proceeding")
+            return process_grok_interaction(driver, wait, prompt, fetch)
+    except Exception as e:
+        logging.info(f"Cookie load error: {e}")
+
+driver.get("https://x.com/login")
+if not headless:
+    input("Log in with @ianatmars, then press Enter: ")
+else:
+    logging.info("Headless login not implemented yet, manual login required")
+    driver.quit()
+    return "Headless login not supported yet"
+
+handle_cookie_consent(driver, wait)
+
+try:
+    verify_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@name='text']")))
+    verify_value = input("Enter phone or email: ") if not headless else "YOUR_PHONE_OR_EMAIL"
+    verify_input.send_keys(verify_value)
+    next_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Next']")))
+    next_button.click()
+    time.sleep(5)
+except:
+    logging.info("No verification step required")
+
+driver.get(GROK_URL)
+time.sleep(5)
+if handle_cookie_consent(driver, wait):
+    time.sleep(2)
+pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
+logging.info("Cookies saved after consent")
+
+return process_grok_interaction(driver, wait, prompt, fetch)

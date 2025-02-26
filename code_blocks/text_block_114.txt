@@ -1,0 +1,251 @@
+We're working on a github project called grok-local. It's a local agent that uses Deepsek-R1 or Llama3.2 to utilise github using local git calls, to manage local files and to act as an agent for the user and Grok 3. Currently we've managed to get grok-local to drive github and to log into Grok 3 using ChromeDriver to operate X, bypassing local manual login by saving cookies. We're having some trouble in headless mode, which could be alleviated by making sure all cookies are being saved? Our workflow is setup and operating and we're starting off with the following 3 files:#main.html: 
+def greet(name):
+    message = "Hello, " + name + "!"
+    print(message)greet("Grok-Local")x_poller.pyimport requests
+i	mport os
+import pickle
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+import json
+import logging
+import subprocess
+from logging.handlers import RotatingFileHandlerPROJECT_DIR = os.getcwd()
+GROK_URL = "https://x.com/i/grok?conversation=1894190038096736744"
+COOKIE_FILE = os.path.join(PROJECT_DIR, "cookies.pkl")logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(message)s",
+    handlers=[RotatingFileHandler("x_poller.log", maxBytes=110241024, backupCount=3)]
+)def handle_cookie_consent(driver, wait):
+    try:
+        consent_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), 'Allow') or contains(text(), 'Accept')]")))
+        consent_button.click()
+        logging.info("Clicked cookie consent button")
+        time.sleep(2)
+        return True
+    except:
+        logging.info("No cookie consent button found")
+        return Falsedef cookies_valid(driver):
+    driver.get(GROK_URL)
+    time.sleep(5)
+    logging.info(f"Checking cookies - Title: {driver.title}")
+    return "Grok" in driver.title and "Login" not in driver.titledef ask_grok(prompt, fetch=False, headless=False):
+    logging.info(f"ask_grok called - prompt: {prompt}, fetch: {fetch}, headless: {headless}")
+    chrome_options = Options()
+    if headless:
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    driver = webdriver.Chrome(options=chrome_options)
+    wait = WebDriverWait(driver, 60)if os.path.exists(COOKIE_FILE) and headless:
+    driver.get(GROK_URL)
+    try:
+        cookies = pickle.load(open(COOKIE_FILE, "rb"))
+        driver.delete_all_cookies()
+        for cookie in cookies:
+            driver.add_cookie(cookie)
+        driver.refresh()
+        time.sleep(5)
+        if not cookies_valid(driver):
+            logging.info("Cookies invalid, falling back to login")
+            os.remove(COOKIE_FILE)
+        else:
+            logging.info("Cookies valid, proceeding")
+            return process_grok_interaction(driver, wait, prompt, fetch)
+    except Exception as e:
+        logging.info(f"Cookie load error: {e}")
+
+driver.get("https://x.com/login")
+if not headless:
+    input("Log in with @ianatmars, then press Enter: ")
+else:
+    logging.info("Headless login not implemented yet, manual login required")
+    driver.quit()
+    return "Headless login not supported yet"
+
+handle_cookie_consent(driver, wait)
+
+try:
+    verify_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@name='text']")))
+    verify_value = input("Enter phone or email: ") if not headless else "YOUR_PHONE_OR_EMAIL"
+    verify_input.send_keys(verify_value)
+    next_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Next']")))
+    next_button.click()
+    time.sleep(5)
+except:
+    logging.info("No verification step required")
+
+driver.get(GROK_URL)
+time.sleep(5)
+if handle_cookie_consent(driver, wait):
+    time.sleep(2)
+pickle.dump(driver.get_cookies(), open(COOKIE_FILE, "wb"))
+logging.info("Cookies saved after consent")
+
+return process_grok_interaction(driver, wait, prompt, fetch)def process_grok_interaction(driver, wait, prompt, fetch):
+    if fetch:
+        elements = driver.find_elements(By.CSS_SELECTOR, "[data-testid='markdown-code-block']")
+        logging.info(f"Total elements found: {len(elements)}")
+        for i, elem in enumerate(elements):
+            text = elem.get_attribute("textContent")
+            logging.info(f"Element {i}: {text}")
+            if "GROK_LOCAL:" in text:
+                cmd = text.replace("GROK_LOCAL:", "").strip()
+                logging.info(f"Found command: {cmd}")
+                return cmd
+        driver.quit()
+        return "No GROK_LOCAL found after full scan"
+    else:
+        prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
+        prompt_box.clear()
+        prompt_box.send_keys(prompt)
+        submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
+        submit_button.click()
+        time.sleep(15)
+        initial_count = len(driver.find_elements(By.CSS_SELECTOR, "[data-testid='markdown-code-block']"))
+        response_elements = wait.until(
+            lambda driver: [
+                elem.find_element(By.TAG_NAME, "pre")
+                for elem in driver.find_elements(By.CSS_SELECTOR, "[data-testid='markdown-code-block']")[initial_count:]
+                if elem.get_attribute("textContent")
+            ]
+        )
+        return response_elements[-1].get_attribute("textContent")
+    driver.quit()def poll_x(headless):
+    while True:
+        cmd = ask_grok("Polling for Grok 3...", fetch=True, headless=headless)
+        if cmd and "Cookie" not in cmd and "Failed" not in cmd:
+            print(f"Received: {cmd}")
+            if cmd.startswith("ask "):
+                result = subprocess.run(
+                    ["python", "grok-local.py", "--ask", cmd[4:]],
+                    capture_output=True, text=True
+                )
+                print(f"Result: {result.stdout}")
+                ask_grok(f"GROK_LOCAL_RESULT: {result.stdout}", headless=headless)
+            else:
+                print("Unknown command format")
+        else:
+            print(f"Poll failed: {cmd}")
+        time.sleep(30)if name == "main":
+    import argparse
+    parser = argparse.ArgumentParser(description="Poll X for Grok 3 commands")
+    parser.add_argument("--headless", action="store_true")
+    args = parser.parse_args()
+    poll_x(args.headless)and grok-local.py:import requests
+import git
+import os
+import subprocess
+import sys
+import time
+from git.exc import GitCommandError
+import argparse
+import shlexConfigPROJECT_DIR = os.getcwd()
+REPO_URL = "git@github.com:imars/grok-local.git"
+MODEL = "llama3.2:latest"
+OLLAMA_URL = "http://localhost:11434"
+SAFE_COMMANDS = {"grep", "tail", "cat", "ls", "dir", "head"}def git_push(message="Automated commit"):
+    repo = git.Repo(PROJECT_DIR)
+    repo.git.add(A=True)
+    try:
+        repo.git.commit(m=message)
+    except GitCommandError as e:
+        if "nothing to commit" in str(e):
+            pass
+        else:
+            raise
+    repo.git.push()
+    return "Pushed to GitHub or already up-to-date"def read_file(filename):
+    filepath = os.path.join(PROJECT_DIR, filename)
+    with open(filepath, "r") as f:
+        return f.read()def write_file(filename, content):
+    filepath = os.path.join(PROJECT_DIR, filename)
+    with open(filepath, "w") as f:
+        f.write(content)def run_command(command_str):
+    print(f"Running command: {command_str}")
+    parts = command_str.split()
+    cmd = parts[0].strip('"')  # Strip quotes from command
+    if not parts or cmd.lower() not in SAFE_COMMANDS:
+        return f"Error: Only {', '.join(SAFE_COMMANDS)} allowed"
+    if any(danger in command_str.lower() for danger in ["sudo", "rm", "del", ";", "&", "|"]):
+        return "Error: Unsafe command"
+    args = [arg if not arg.startswith('/') else os.path.join(PROJECT_DIR, arg[1:]) for arg in parts[1:]]
+    full_cmd = [cmd] + args
+    print(f"Executing: {full_cmd}")
+    try:
+        result = subprocess.run(full_cmd, cwd=PROJECT_DIR, capture_output=True, text=True, timeout=10)
+        output = result.stdout if result.returncode == 0 else f"Error: {result.stderr}"
+        print(f"Command output: {output}")
+        return output
+    except Exception as e:
+        return f"Error: {e}"def ask_local(request):
+    print(f"Processing ask_local: {request}")
+    if any(cmd in request.lower() for cmd in SAFE_COMMANDS):
+        return run_command(request)
+    return local_reasoning(request)def local_reasoning(task):
+    print(f"Running local_reasoning: {task}")
+    try:
+        payload = {"model": MODEL, "messages": [{"role": "user", "content": task}]}
+        response = requests.post(f"{OLLAMA_URL}/api/chat", json=payload, stream=True, timeout=120)
+        full_response = ""
+        for line in response.iter_lines():
+            if line:
+                chunk = json.loads(line.decode('utf-8'))
+                if "message" in chunk and "content" in chunk["message"]:
+                    full_response += chunk["message"]["content"]
+                if chunk.get("done", False):
+                    break
+        print(f"Reasoning result: {full_response}")
+        return full_response
+    except requests.exceptions.RequestException as e:
+        return f"Ollama error: {e}"def command_prompt():
+    print("Commands: optimize <file>, push <message>, run <cmd>, ask <request>, exit")
+    while True:
+        raw_cmd = input("> ").strip()
+        print(f"Raw input: '{raw_cmd}'")
+        if not raw_cmd:
+            continue
+        parts = shlex.split(raw_cmd)
+        action = parts[0].lower()
+        print(f"Parsed action: {action}, parts: {parts}")
+        if len(parts) < 2:
+            print("Error: Command requires an argument")
+            continue    if action == "exit":
+        print("Goodbye!")
+        break
+    elif action == "optimize":
+        filename = parts[1]
+        if not os.path.exists(os.path.join(PROJECT_DIR, filename)):
+            print(f"File {filename} not found")
+            continue
+        code = read_file(filename)
+        prompt = f"Optimize this code:\n{code}"
+        response = local_reasoning(prompt)
+        print(f"Optimized locally:\n{response}")
+        if "```python" in response:
+            code = response.split('```python\n')[1].split('```')[0].strip()
+            write_file(filename, code)
+            print(f"Updated {filename}")
+    elif action == "push":
+        print(git_push(parts[1]))
+    elif action == "run":
+        cmd_str = " ".join(parts[1:])
+        print(run_command(cmd_str))
+    elif action == "ask":
+        request = " ".join(parts[1:])
+        result = ask_local(request)
+        print(f"Local response:\n{result}")
+    else:
+        print("Unknown command. Try: optimize <file>, push <message>, run <cmd>, ask <request>, exit")def main():
+    parser = argparse.ArgumentParser(description="Grok-Local Agent")
+    parser.add_argument("--ask", type=str, help="Run a single ask request and exit")
+    args = parser.parse_args()if args.ask:
+    print(ask_local(args.ask))
+else:
+    command_prompt()if name == "main":
+    main()I'm using a cli so it' helpful if you output files as cat commands, when required.

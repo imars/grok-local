@@ -1,0 +1,1 @@
+You can set these in your terminal before running the script:

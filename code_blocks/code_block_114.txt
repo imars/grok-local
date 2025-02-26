@@ -1,0 +1,12 @@
+def git_push(message="Automated commit"):
+    repo = git.Repo(PROJECT_DIR)
+    repo.git.add(A=True)
+    try:
+        repo.git.commit(m=message)
+    except GitCommandError as e:
+        if "nothing to commit" in str(e):
+            pass
+        else:
+            raise
+    repo.git.push()
+    return "Pushed to GitHub or already up-to-date"
