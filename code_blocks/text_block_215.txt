@@ -1,3 +1,0 @@
-bashexport X_USERNAME="ianatmars"
-export X_PASSWORD="your_password_here"
-export X_VERIFY="your_phone_or_email_here"

@@ -1,1 +1,0 @@
-Cookies are now saved right after login, before navigating to

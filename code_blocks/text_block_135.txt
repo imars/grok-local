@@ -1,1 +1,0 @@
-The cookies_valid() function checks if "Grok" is in the title and "Login" isn’t, but this might not fully confirm authentication (e.g., if the page partially loads).

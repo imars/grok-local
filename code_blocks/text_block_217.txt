@@ -1,1 +1,0 @@
-bashpython x_poller.py --headless

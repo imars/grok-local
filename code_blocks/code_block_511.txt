@@ -1,1 +1,0 @@
-: Account for two-factor authentication (if enabled) or CAPTCHA (though CAPTCHA might require manual intervention or a service like 2Captcha).

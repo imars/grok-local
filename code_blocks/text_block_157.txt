@@ -1,1 +1,0 @@
-Manual Test: Run without --headless first to generate a fresh cookies.pkl. Verify it works by checking the logs (x_poller.log) for "Cookies valid, proceeding".

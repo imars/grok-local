@@ -1,1 +1,0 @@
-If cookies.pkl isn’t being read/written correctly due to filesystem issues in headless environments (e.g., containerized setups), this could break the flow.

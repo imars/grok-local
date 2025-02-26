@@ -1,1 +1,0 @@
-) as a stronger indicator of being logged in, rather than just the page title.

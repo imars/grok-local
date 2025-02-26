@@ -1,1 +1,0 @@
-Saves cookies after successful login.

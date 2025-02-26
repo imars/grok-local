@@ -1,2 +1,0 @@
-Let's do a headless login. I logged in successfully but then this happened: python x_poller.py
-Log in with

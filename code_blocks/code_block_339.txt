@@ -1,1 +1,0 @@
-to set the domain context before loading cookies, then refreshes after applying them.

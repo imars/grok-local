@@ -1,1 +1,0 @@
-Your account doesn’t require 2FA or CAPTCHA every time (we’ll add a fallback if it does).

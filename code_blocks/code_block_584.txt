@@ -1,1 +1,0 @@
-Checks for missing credentials and logs login failures.

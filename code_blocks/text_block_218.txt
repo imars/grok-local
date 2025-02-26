@@ -1,1 +1,0 @@
-Check x_poller.log for login success or errors.

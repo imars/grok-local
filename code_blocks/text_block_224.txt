@@ -1,1 +1,0 @@
-Selenium timeouts (adjust time.sleep() or wait.until() durations).

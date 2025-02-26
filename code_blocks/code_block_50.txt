@@ -1,5 +1,0 @@
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(message)s",
-    handlers=[RotatingFileHandler("x_poller.log", maxBytes=110241024, backupCount=3)]
-)

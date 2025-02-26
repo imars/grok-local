@@ -1,1 +1,0 @@
-Reads credentials from environment variables.

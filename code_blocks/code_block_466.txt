@@ -1,1 +1,0 @@
-flag (since it prompted for manual login), successfully logged in with

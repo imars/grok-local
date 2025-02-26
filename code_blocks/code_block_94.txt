@@ -1,6 +1,0 @@
-":
-    import argparse
-    parser = argparse.ArgumentParser(description="Poll X for Grok 3 commands")
-    parser.add_argument("--headless", action="store_true")
-    args = parser.parse_args()
-    poll_x(args.headless)

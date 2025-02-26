@@ -1,1 +1,0 @@
-To enable headless login, we need to:

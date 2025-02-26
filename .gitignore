@@ -1,1 +1,10 @@
 x_poller.log
+x_poller.log
+misc/
+*.log
+*.log.*
+cookies.pkl
+__pycache__/
+debug/
+code_blocks/
+last_processed.txt

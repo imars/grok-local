@@ -1,1 +1,0 @@
-Automates entering username, password, and verification (if needed).

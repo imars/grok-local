@@ -1,1 +1,0 @@
-Headless Login Function (perform_headless_login)

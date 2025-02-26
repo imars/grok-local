@@ -1,3 +1,0 @@
-PROJECT_DIR = os.getcwd()
-GROK_URL = "https://x.com/i/grok?conversation=1894190038096736744"
-COOKIE_FILE = os.path.join(PROJECT_DIR, "cookies.pkl")

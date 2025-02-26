@@ -1,4 +1,0 @@
-if args.ask:
-    print(ask_local(args.ask))
-else:
-    command_prompt()

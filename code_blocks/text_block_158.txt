@@ -1,1 +1,0 @@
-Headless Test: Run with --headless and monitor the logs. If it fails, look for cookie-related errors or invalid session indicators.

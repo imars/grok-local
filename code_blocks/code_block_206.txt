@@ -1,1 +1,0 @@
-after a manual login, and you're attempting to reuse them in headless mode. However, it seems like either the cookies aren't being fully saved, aren't being correctly loaded, or are insufficient for authentication in headless mode due to differences in browser behavior (e.g., missing JavaScript execution, stricter security policies, or session validation).

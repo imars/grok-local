@@ -1,1 +1,0 @@
-Headless Chrome might not handle JavaScript-driven cookie setting or redirects the same way as a visible browser, leading to invalid sessions.

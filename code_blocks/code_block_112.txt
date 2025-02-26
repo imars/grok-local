@@ -1,2 +1,0 @@
-"
-SAFE_COMMANDS = {"grep", "tail", "cat", "ls", "dir", "head"}

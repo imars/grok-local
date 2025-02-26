@@ -1,1 +1,0 @@
-If successful, it should poll and print "Received: No GROK_LOCAL found after full scan" (as before) unless there’s a command in the conversation.

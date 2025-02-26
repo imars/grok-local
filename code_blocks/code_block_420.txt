@@ -1,1 +1,0 @@
-: You mentioned headless login isn’t implemented. If you want to fully automate this, you’d need to store credentials securely (e.g., in an environment variable or keyring) and simulate the login form submission.

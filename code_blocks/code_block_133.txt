@@ -1,5 +1,0 @@
-def ask_local(request):
-    print(f"Processing ask_local: {request}")
-    if any(cmd in request.lower() for cmd in SAFE_COMMANDS):
-        return run_command(request)
-    return local_reasoning(request)

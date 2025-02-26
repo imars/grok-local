@@ -1,1 +1,0 @@
-You’re okay with storing credentials in environment variables (

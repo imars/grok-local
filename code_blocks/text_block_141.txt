@@ -1,1 +1,0 @@
-Let’s modify x_poller.py to improve cookie handling and add better logging for debugging in headless mode. I’ll also suggest a few tweaks to make it more robust. Since you’re using a CLI and prefer cat commands for file output, I’ll present the updated file that way.

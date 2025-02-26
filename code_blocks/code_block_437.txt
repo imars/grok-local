@@ -1,1 +1,0 @@
-) to ensure the fallback to login works in headless mode once implemented.

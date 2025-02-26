@@ -1,5 +1,0 @@
-def cookies_valid(driver):
-    driver.get(GROK_URL)
-    time.sleep(5)
-    logging.info(f"Checking cookies - Title: {driver.title}")
-    return "Grok" in driver.title and "Login" not in driver.title

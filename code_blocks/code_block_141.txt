@@ -1,2 +1,0 @@
-def command_prompt():
-    print("Commands: optimize

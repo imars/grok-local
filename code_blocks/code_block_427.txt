@@ -1,1 +1,0 @@
-: X might invalidate cookies periodically. Add logic to detect this (e.g., repeated "Cookies invalid" logs) and fall back to a login flow.
