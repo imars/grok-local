@@ -24,14 +24,20 @@ def run_grok_test():
         text=True
     )
 
-    # Feed commands and capture output
+    # Feed commands and capture full output
     output = []
     commit_time = None
     for cmd in commands:
         process.stdin.write(cmd + "\n")
         process.stdin.flush()
         time.sleep(1)  # Wait for output
-        cmd_output = process.stdout.readline().strip()
+        cmd_output = ""
+        while True:
+            line = process.stdout.readline().strip()
+            if not line or "Command:" in line:  # Stop at next prompt or empty line
+                break
+            cmd_output += line + "\n"
+        cmd_output = cmd_output.strip()
         if "what time is it" in cmd:
             commit_time = cmd_output
             output.append(f"{cmd}: {cmd_output}")
@@ -40,7 +46,13 @@ def run_grok_test():
             process.stdin.write(full_cmd + "\n")
             process.stdin.flush()
             time.sleep(1)
-            commit_output = process.stdout.readline().strip()
+            commit_output = ""
+            while True:
+                line = process.stdout.readline().strip()
+                if not line or "Command:" in line:
+                    break
+                commit_output += line + "\n"
+            commit_output = commit_output.strip()
             output.append(f"{full_cmd}: {commit_output}")
         else:
             output.append(f"{cmd}: {cmd_output}")
