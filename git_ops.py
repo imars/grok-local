@@ -71,3 +71,13 @@ def git_commit_and_push(message="Automated commit"):
     except git.GitCommandError as e:
         logger.error(f"Git error: {e}")
         return f"Git error: {str(e)}"
+
+def git_rm(filename):
+    try:
+        repo = Repo(PROJECT_DIR)
+        repo.git.rm(filename)
+        logger.info(f"Removed file from git: {filename}")
+        return f"Removed file from git: {filename}"
+    except git.GitCommandError as e:
+        logger.error(f"Git rm error for {filename}: {e}")
+        return f"Git rm error: {str(e)}"

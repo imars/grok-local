@@ -5,7 +5,7 @@ import datetime
 import logging
 from logging.handlers import RotatingFileHandler
 from file_ops import create_file, delete_file, move_file, copy_file, read_file, write_file, list_files
-from git_ops import git_status, git_pull, git_log, git_branch, git_checkout, git_commit_and_push
+from git_ops import git_status, git_pull, git_log, git_branch, git_checkout, git_commit_and_push, git_rm
 
 PROJECT_DIR = os.getcwd()
 LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
@@ -69,11 +69,14 @@ def ask_local(request, debug=False):
     elif req_lower.startswith("git checkout "):
         branch = request[12:].strip()
         return report_to_grok(git_checkout(branch))
+    elif req_lower.startswith("git rm "):
+        filename = request[6:].strip()
+        return report_to_grok(git_rm(filename))
     elif req_lower.startswith("create file "):
         filename = request[11:].strip()
         return report_to_grok(create_file(filename))
     elif req_lower.startswith("delete file "):
-        filename = request[11:].strip().replace("safe/", "")  # Strip safe/ prefix
+        filename = request[11:].strip().replace("safe/", "")
         return report_to_grok(delete_file(filename))
     elif req_lower.startswith("move file "):
         parts = request[9:].strip().split(" to ")
