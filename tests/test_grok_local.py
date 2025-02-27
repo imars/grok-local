@@ -9,7 +9,7 @@ PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(PROJECT_DIR)
 sys.path.append(PROJECT_DIR)
 
-from grok_local import ask_local
+from grok_local import ask_local, ensure_safe_dir
 
 def run_command(cmd, use_subprocess=False):
     """Run a command either via ask_local or subprocess."""
@@ -90,15 +90,42 @@ def test_sequence():
         checkpoint = json.load(f)
     assert "git pull failed" in checkpoint["description"].lower(), "Auto-checkpoint on Git error failed"
 
-    # Restore remote
+    # Restore remote with tracking
     subprocess.run(["git", "remote", "add", "origin", "git@github.com:imars/grok-local.git"], capture_output=True)
+    subprocess.run(["git", "branch", "--set-upstream-to=origin/main", "main"], capture_output=True)
 
     # Test 11: Prettier list_files
-    run_command("create file test2.txt")  # Recreate test2.txt
+    run_command("create file test2.txt")
     run_command("create file test3.txt")
     result = run_command("list files")
     print(f"Pretty list files: {result}")
     assert "1. test2.txt" in result and "2. test3.txt" in result, "Pretty list_files failed"
+
+    # Test 12: Restore command
+    # Save a checkpoint with a known state
+    run_command("write Restored content to test2.txt")
+    # Reset grok.txt to original state before checkpoint
+    with open(os.path.join(PROJECT_DIR, "grok.txt"), "w") as f:
+        f.write("I am Grok, master of the repo")
+    run_command("checkpoint Before restore test")
+    # Clear safe/ and modify a critical file
+    shutil.rmtree(safe_dir)
+    with open(os.path.join(PROJECT_DIR, "grok.txt"), "w") as f:
+        f.write("Modified Grok text")
+    # Restore safe_files only
+    result = run_command("restore")
+    print(f"Restore safe files: {result}")
+    assert "Restored files from checkpoint: test2.txt, test3.txt" in result, "Restore safe files failed"
+    result = run_command("read file test2.txt")
+    assert "Restored content" in result, "Restore didn’t reload safe file content"
+    with open(os.path.join(PROJECT_DIR, "grok.txt"), "r") as f:
+        assert f.read() == "Modified Grok text", "Restore shouldn’t affect critical files without --all"
+    # Restore all files
+    result = run_command("restore --all")
+    print(f"Restore all files: {result}")
+    assert "grok.txt" in result and "test2.txt" in result, "Restore --all didn’t reload all files"
+    with open(os.path.join(PROJECT_DIR, "grok.txt"), "r") as f:
+        assert f.read() == "I am Grok, master of the repo", "Restore --all didn’t reload critical file"
 
     print("All tests passed!")
 

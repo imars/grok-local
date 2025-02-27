@@ -25,6 +25,12 @@ CRITICAL_FILES = [
     ".gitignore", "grok.txt", "tests/test_grok_local.py", "README.md"
 ]
 
+def ensure_safe_dir():
+    """Create SAFE_DIR if it doesn’t exist."""
+    if not os.path.exists(SAFE_DIR):
+        os.makedirs(SAFE_DIR)
+        logger.info(f"Created safe directory: {SAFE_DIR}")
+
 def load_checkpoint():
     if os.path.exists(CHECKPOINT_FILE):
         with open(CHECKPOINT_FILE, "r") as f:
@@ -56,23 +62,36 @@ def save_checkpoint(description):
     logger.info(f"Saved checkpoint with description: {description}")
     return f"Checkpoint saved: {description}"
 
-def restore_checkpoint():
+def restore_checkpoint(all_files=False):
     checkpoint = load_checkpoint()
     if not checkpoint:
         return "No checkpoint found to restore"
     safe_files = checkpoint.get("safe_files", {})
-    if not safe_files:
-        return "No safe files to restore in checkpoint"
+    critical_files = checkpoint.get("files", {}) if all_files else {}
+    if not (safe_files or critical_files):
+        return "No files to restore in checkpoint"
     restored = []
+    ensure_safe_dir()  # Ensure safe/ exists before restoring
     for filename, content in safe_files.items():
         file_path = os.path.join(SAFE_DIR, filename)
         if os.path.exists(file_path):
             os.remove(file_path)  # Overwrite existing files
         with open(file_path, "w") as f:
             f.write(content)
+        logger.debug(f"Restored safe file: {filename}")
         restored.append(filename)
-    logger.info(f"Restored safe files from checkpoint: {restored}")
-    return f"Restored safe files from checkpoint: {', '.join(restored)}"
+    if all_files:
+        for filename, content in critical_files.items():
+            if content != "File not found":
+                file_path = os.path.join(PROJECT_DIR, filename)
+                if os.path.exists(file_path):
+                    os.remove(file_path)  # Ensure overwrite
+                with open(file_path, "w") as f:
+                    f.write(content)
+                logger.debug(f"Restored critical file: {filename}")
+                restored.append(filename)
+    logger.info(f"Restored files from checkpoint: {restored}")
+    return f"Restored files from checkpoint: {', '.join(restored)}"
 
 def report_to_grok(response):
     return response
@@ -221,8 +240,9 @@ def ask_local(request, debug=False):
         if not description:
             return "Error: Checkpoint requires a description"
         return save_checkpoint(description)
-    elif req_lower == "restore":
-        return restore_checkpoint()
+    elif req_lower.startswith("restore"):
+        all_files = "--all" in request.lower()
+        return restore_checkpoint(all_files)
     else:
         logger.warning(f"Unknown command received: {request}")
         result = f"Unknown command: {request}"
@@ -234,6 +254,7 @@ if __name__ == "__main__":
     parser.add_argument("--ask", type=str, help="Command to execute")
     parser.add_argument("--resume", action="store_true", help="Display last checkpoint")
     parser.add_argument("--debug", action="store_true", help="Enable debug output")
+    parser.add_argument("--all", action="store_true", help="Restore all files from checkpoint (including critical)")
     args = parser.parse_args()
 
     if args.resume:
