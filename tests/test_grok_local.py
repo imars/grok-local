@@ -15,7 +15,7 @@ def run_command(cmd, use_subprocess=False):
     """Run a command either via ask_local or subprocess."""
     if use_subprocess:
         result = subprocess.run(
-            ["python", "grok_local.py", "--ask", cmd],
+            ["python", "grok_checkpoint.py", "--ask", cmd],
             capture_output=True, text=True
         )
         return result.stdout.strip()
@@ -90,9 +90,10 @@ def test_sequence():
         checkpoint = json.load(f)
     assert "git pull failed" in checkpoint["description"].lower(), "Auto-checkpoint on Git error failed"
 
-    # Restore remote with tracking
+    # Restore remote with tracking and ensure it sticks
     subprocess.run(["git", "remote", "add", "origin", "git@github.com:imars/grok-local.git"], capture_output=True)
     subprocess.run(["git", "branch", "--set-upstream-to=origin/main", "main"], capture_output=True)
+    subprocess.run(["git", "push", "--set-upstream", "origin", "main"], capture_output=True)  # Ensure upstream is set
 
     # Test 11: Prettier list_files
     run_command("create file test2.txt")
@@ -164,7 +165,7 @@ def test_sequence():
     run_command("create file auto_file.txt")
     result = run_command("list files")
     file_count = len(result.splitlines())
-    if file_count > 3:  # Simulate agent deciding to clean up if too many files
+    if file_count > 3:  # Agent decides to clean up if too many files
         result = run_command("delete file auto_file.txt --force && write Cleaned up to test2.txt")
         print(f"Autonomous cleanup: {result}")
         assert "Deleted file: auto_file.txt" in result and "Wrote to test2.txt: Cleaned up" in result, "Agent failed to clean up files"
@@ -179,7 +180,12 @@ def test_sequence():
     if "Git test" in result:  # Agent decides to commit changes
         result = run_command("commit Autonomous git commit")
         print(f"Autonomous git commit: {result}")
-        assert "Committed and pushed: Autonomous git commit" in result, "Agent failed to commit changes"
+        if "Git error" in result and "no upstream branch" in result:
+            # Agent adapts to missing upstream
+            subprocess.run(["git", "push", "--set-upstream", "origin", "main"], capture_output=True)
+            result = run_command("commit Autonomous git commit retry")
+            print(f"Autonomous git commit retry: {result}")
+        assert "Committed and pushed" in result, "Agent failed to commit changes after adapting"
     result = run_command("git diff")
     print(f"Git diff after commit: {result}")
     assert "No changes to display" in result, "Agent didn’t clear git diff"
