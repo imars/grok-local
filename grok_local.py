@@ -89,71 +89,124 @@ def ask_local(request, debug=False):
         logger.debug(f"Debug processing: {request}")
     
     if "&&" in request:
-        return process_multi_command(request)
+        result = process_multi_command(request)
+        if any(r.startswith("Error") or r.startswith("Git error") for r in result.split("\n")):
+            save_checkpoint(f"Multi-command failed: {request}")
+        return result
     
     req_lower = request.lower()
     if req_lower in ["what time is it", "ask what time is it"]:
-        return report_to_grok(what_time_is_it())
+        result = report_to_grok(what_time_is_it())
+        return result
     elif req_lower == "list files":
-        return report_to_grok(list_files())
+        result = report_to_grok(list_files())
+        return result
     elif req_lower.startswith("commit "):
         message = request[7:].strip() or "Automated commit"
-        return report_to_grok(git_commit_and_push(message))
+        result = report_to_grok(git_commit_and_push(message))
+        if result.startswith("Git error"):
+            save_checkpoint(f"Commit failed: {result}")
+        return result
     elif req_lower == "git status":
-        return report_to_grok(git_status())
+        result = report_to_grok(git_status())
+        return result
     elif req_lower == "git pull":
-        return report_to_grok(git_pull())
+        result = report_to_grok(git_pull())
+        if result.startswith("Git error"):
+            save_checkpoint(f"Git pull failed: {result}")
+        return result
     elif req_lower.startswith("git log"):
         count = request[7:].strip()
         count = int(count) if count.isdigit() else 1
-        return report_to_grok(git_log(count))
+        result = report_to_grok(git_log(count))
+        if result.startswith("Git error"):
+            save_checkpoint(f"Git log failed: {result}")
+        return result
     elif req_lower == "git branch":
-        return report_to_grok(git_branch())
+        result = report_to_grok(git_branch())
+        if result.startswith("Git error"):
+            save_checkpoint(f"Git branch failed: {result}")
+        return result
     elif req_lower.startswith("git checkout "):
         branch = request[12:].strip()
-        return report_to_grok(git_checkout(branch))
+        result = report_to_grok(git_checkout(branch))
+        if result.startswith("Git error"):
+            save_checkpoint(f"Git checkout failed: {result}")
+        return result
     elif req_lower.startswith("git rm "):
         filename = request[6:].strip()
-        return report_to_grok(git_rm(filename))
+        result = report_to_grok(git_rm(filename))
+        if result.startswith("Git error"):
+            save_checkpoint(f"Git rm failed: {result}")
+        return result
     elif req_lower.startswith("create file "):
         filename = request[11:].strip()
-        return report_to_grok(create_file(filename))
+        result = report_to_grok(create_file(filename))
+        if result.startswith("Error"):
+            save_checkpoint(f"Create file failed: {result}")
+        return result
     elif req_lower.startswith("delete file "):
         parts = request[11:].strip().split(" --force")
         filename = parts[0].strip().replace("safe/", "")
         force = len(parts) > 1 and "--force" in request.lower()
-        return report_to_grok(delete_file(filename, force))
+        result = report_to_grok(delete_file(filename, force))
+        if result.startswith("Error"):
+            save_checkpoint(f"Delete file failed: {result}")
+        return result
     elif req_lower.startswith("move file "):
         parts = request[9:].strip().split(" to ")
         if len(parts) != 2:
             logger.error("Invalid move command format")
-            return "Error: Invalid move command format. Use 'move file <src> to <dst>'"
+            result = "Error: Invalid move command format. Use 'move file <src> to <dst>'"
+            save_checkpoint(f"Move file failed: {result}")
+            return result
         src, dst = parts
-        return report_to_grok(move_file(src.strip().replace("safe/", ""), dst.strip().replace("safe/", "")))
+        result = report_to_grok(move_file(src.strip().replace("safe/", ""), dst.strip().replace("safe/", "")))
+        if result.startswith("Error"):
+            save_checkpoint(f"Move file failed: {result}")
+        return result
     elif req_lower.startswith("copy file "):
         parts = request[9:].strip().split(" to ")
         if len(parts) != 2:
             logger.error("Invalid copy command format")
-            return "Error: Invalid copy command format. Use 'copy file <src> to <dst>'"
+            result = "Error: Invalid copy command format. Use 'copy file <src> to <dst>'"
+            save_checkpoint(f"Copy file failed: {result}")
+            return result
         src, dst = parts
-        return report_to_grok(copy_file(src.strip().replace("safe/", ""), dst.strip().replace("safe/", "")))
+        result = report_to_grok(copy_file(src.strip().replace("safe/", ""), dst.strip().replace("safe/", "")))
+        if result.startswith("Error"):
+            save_checkpoint(f"Copy file failed: {result}")
+        return result
     elif req_lower.startswith("rename file "):
         parts = request[11:].strip().split(" to ")
         if len(parts) != 2:
             logger.error("Invalid rename command format")
-            return "Error: Invalid rename command format. Use 'rename file <old> to <new>'"
+            result = "Error: Invalid rename command format. Use 'rename file <old> to <new>'"
+            save_checkpoint(f"Rename file failed: {result}")
+            return result
         src, dst = parts
-        return report_to_grok(rename_file(src.strip().replace("safe/", ""), dst.strip().replace("safe/", "")))
+        result = report_to_grok(rename_file(src.strip().replace("safe/", ""), dst.strip().replace("safe/", "")))
+        if result.startswith("Error"):
+            save_checkpoint(f"Rename file failed: {result}")
+        return result
     elif req_lower.startswith("read file "):
         filename = request[9:].strip().replace("safe/", "")
-        return report_to_grok(read_file(filename))
+        result = report_to_grok(read_file(filename))
+        if result.startswith("Error"):
+            save_checkpoint(f"Read file failed: {result}")
+        return result
     elif req_lower.startswith("write "):
         parts = request[5:].strip().split(" to ")
         if len(parts) != 2:
             logger.error("Invalid write command format")
-            return "Error: Invalid write command format. Use 'write <content> to <filename>'"
+            result = "Error: Invalid write command format. Use 'write <content> to <filename>'"
+            save_checkpoint(f"Write file failed: {result}")
+            return result
         content, filename = parts
-        return report_to_grok(write_file(filename.strip().replace("safe/", ""), content.strip()))
+        result = report_to_grok(write_file(filename.strip().replace("safe/", ""), content.strip()))
+        if result.startswith("Error"):
+            save_checkpoint(f"Write file failed: {result}")
+        return result
     elif req_lower.startswith("checkpoint "):
         description = request[10:].strip()
         if not description:
@@ -161,7 +214,9 @@ def ask_local(request, debug=False):
         return save_checkpoint(description)
     else:
         logger.warning(f"Unknown command received: {request}")
-        return f"Unknown command: {request}"
+        result = f"Unknown command: {request}"
+        save_checkpoint(f"Unknown command: {request}")
+        return result
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Local Grok Agent")
