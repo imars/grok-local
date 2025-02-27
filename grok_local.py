@@ -100,6 +100,25 @@ def move_file(src, dst):
         logger.error(f"Error moving file {src} to {dst}: {e}")
         return f"Error moving file: {e}"
 
+def copy_file(src, dst):
+    ensure_safe_dir()
+    src = sanitize_filename(src)
+    dst = sanitize_filename(dst)
+    if not (src and dst):
+        return "Error: Invalid or protected filename"
+    src_path = os.path.join(SAFE_DIR, src)
+    dst_path = os.path.join(SAFE_DIR, dst)
+    if not os.path.exists(src_path):
+        logger.warning(f"Source file not found: {src}")
+        return f"Source file not found: {src}"
+    try:
+        shutil.copy(src_path, dst_path)
+        logger.info(f"Copied {src} to {dst}")
+        return f"Copied {src} to {dst}"
+    except Exception as e:
+        logger.error(f"Error copying file {src} to {dst}: {e}")
+        return f"Error copying file: {e}"
+
 def read_file(filename):
     ensure_safe_dir()
     filename = sanitize_filename(filename)
@@ -270,6 +289,13 @@ def ask_local(request, debug=False):
             return "Error: Invalid move command format. Use 'move file <src> to <dst>'"
         src, dst = parts
         return report_to_grok(move_file(src.strip(), dst.strip()))
+    elif req_lower.startswith("copy file "):
+        parts = request[9:].strip().split(" to ")
+        if len(parts) != 2:
+            logger.error("Invalid copy command format")
+            return "Error: Invalid copy command format. Use 'copy file <src> to <dst>'"
+        src, dst = parts
+        return report_to_grok(copy_file(src.strip(), dst.strip()))
     elif req_lower.startswith("read file "):
         filename = request[9:].strip()
         return report_to_grok(read_file(filename))
