@@ -71,7 +71,7 @@ def test_sequence():
     assert "test2.txt" in checkpoint["safe_files"], "Checkpoint missing safe files"
 
     # Test 8: Empty safe directory
-    shutil.rmtree(safe_dir)  # Clear safe/
+    shutil.rmtree(safe_dir)
     result = run_command("list files")
     print(f"List empty safe/: {result}")
     assert "No files in safe directory" in result, "Empty safe/ list failed"
@@ -132,9 +132,71 @@ def test_sequence():
     result = run_command("git diff")
     print(f"Git diff output: {result}")
     assert "Grok has evolved!" in result, "Git diff failed to show changes"
-    # Reset grok.txt to avoid lingering changes
     with open(os.path.join(PROJECT_DIR, "grok.txt"), "w") as f:
         f.write("I am Grok, master of the repo")
+
+    # Test 14: Restore from specific file
+    shutil.copy(os.path.join(PROJECT_DIR, "checkpoint.json"), os.path.join(PROJECT_DIR, "checkpoint_backup.json"))
+    run_command("write New content to test2.txt")
+    run_command("create file test4.txt")
+    result = run_command("checkpoint Modified state")
+    print(f"Checkpoint modified state: {result}")
+    result = run_command("restore --file checkpoint_backup.json")
+    print(f"Restore from backup: {result}")
+    assert "test2.txt" in result and "test3.txt" in result and "test4.txt" not in result, "Restore --file didn’t reload correct safe files"
+    result = run_command("read file test2.txt")
+    assert "Restored content" in result and "New content" not in result, "Restore --file didn’t revert content"
+    result = run_command("restore --all --file checkpoint_backup.json")
+    print(f"Restore all from backup: {result}")
+    assert "grok.txt" in result and "test2.txt" in result, "Restore --all --file didn’t reload all files"
+
+    # Test 15: Checkpoint with specific file
+    run_command("write Custom content to test3.txt")
+    result = run_command("checkpoint Custom backup --file custom_backup.json")
+    print(f"Checkpoint with file: {result}")
+    assert "Checkpoint saved: Custom backup to custom_backup.json" in result, "Checkpoint --file failed to save to specified file"
+    with open(os.path.join(PROJECT_DIR, "custom_backup.json"), "r") as f:
+        checkpoint = json.load(f)
+    assert checkpoint["description"] == "Custom backup", "Checkpoint --file saved wrong description"
+    assert "test3.txt" in checkpoint["safe_files"] and checkpoint["safe_files"]["test3.txt"] == "Custom content", "Checkpoint --file didn’t save correct safe file content"
+
+    # Test 16: Autonomous file management
+    run_command("create file auto_file.txt")
+    result = run_command("list files")
+    file_count = len(result.splitlines())
+    if file_count > 3:  # Simulate agent deciding to clean up if too many files
+        result = run_command("delete file auto_file.txt --force && write Cleaned up to test2.txt")
+        print(f"Autonomous cleanup: {result}")
+        assert "Deleted file: auto_file.txt" in result and "Wrote to test2.txt: Cleaned up" in result, "Agent failed to clean up files"
+    else:
+        result = run_command("write Keeping files to test2.txt")
+        print(f"Autonomous keep: {result}")
+        assert "Wrote to test2.txt: Keeping files" in result, "Agent failed to write decision"
+
+    # Test 17: Git workflow
+    run_command("write Git test to test3.txt")
+    result = run_command("git diff")
+    if "Git test" in result:  # Agent decides to commit changes
+        result = run_command("commit Autonomous git commit")
+        print(f"Autonomous git commit: {result}")
+        assert "Committed and pushed: Autonomous git commit" in result, "Agent failed to commit changes"
+    result = run_command("git diff")
+    print(f"Git diff after commit: {result}")
+    assert "No changes to display" in result, "Agent didn’t clear git diff"
+
+    # Test 18: Checkpoint management
+    run_command("checkpoint Initial state --file initial.json")
+    run_command("write New state to test2.txt")
+    result = run_command("list checkpoints")
+    print(f"List checkpoints: {result}")
+    if "initial.json" in result:  # Agent decides to restore if backup exists
+        result = run_command("restore --file initial.json")
+        print(f"Autonomous restore: {result}")
+        assert "test2.txt" in result and "New state" not in run_command("read file test2.txt"), "Agent failed to restore checkpoint"
+    else:
+        result = run_command("checkpoint No backups found")
+        print(f"Autonomous checkpoint: {result}")
+        assert "Checkpoint saved: No backups found" in result, "Agent didn’t save fallback checkpoint"
 
     print("All tests passed!")
 
