@@ -11,7 +11,7 @@ CRITICAL_FILES = {"grok_local.py", "x_poller.py", ".gitignore"}
 
 def sanitize_filename(filename):
     """Ensure filename is safe and within SAFE_DIR."""
-    filename = re.sub(r'[<>:"/\\|?*]', '', filename.strip())
+    filename = re.sub(r'[<>:"/\|?*]', '', filename.strip())
     full_path = os.path.join(SAFE_DIR, filename)
     if not full_path.startswith(SAFE_DIR + os.sep):
         logger.error(f"Invalid filename attempt: {filename}")
@@ -41,7 +41,7 @@ def create_file(filename):
         logger.error(f"Error creating file {filename}: {e}")
         return f"Error creating file: {e}"
 
-def delete_file(filename):
+def delete_file(filename, force=False):
     ensure_safe_dir()
     filename = sanitize_filename(filename)
     if not filename:
@@ -50,7 +50,7 @@ def delete_file(filename):
     if not os.path.exists(full_path):
         logger.warning(f"File not found for deletion: {filename}")
         return f"File not found: {filename}"
-    if "y" != input(f"Confirm deletion of {filename}? (y/n): ").lower():
+    if not force and "y" != input(f"Confirm deletion of {filename}? (y/n): ").lower():
         logger.info(f"Deletion of {filename} cancelled")
         return f"Deletion cancelled: {filename}"
     try:
