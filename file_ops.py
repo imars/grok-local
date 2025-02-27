@@ -99,6 +99,9 @@ def copy_file(src, dst):
         logger.error(f"Error copying file {src} to {dst}: {e}")
         return f"Error copying file: {e}"
 
+def rename_file(src, dst):
+    return move_file(src, dst)  # Alias move for clarity
+
 def read_file(filename):
     ensure_safe_dir()
     filename = sanitize_filename(filename)

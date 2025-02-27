@@ -4,7 +4,7 @@ import argparse
 import datetime
 import logging
 from logging.handlers import RotatingFileHandler
-from file_ops import create_file, delete_file, move_file, copy_file, read_file, write_file, list_files
+from file_ops import create_file, delete_file, move_file, copy_file, read_file, write_file, list_files, rename_file
 from git_ops import git_status, git_pull, git_log, git_branch, git_checkout, git_commit_and_push, git_rm
 
 PROJECT_DIR = os.getcwd()
@@ -92,6 +92,13 @@ def ask_local(request, debug=False):
             return "Error: Invalid copy command format. Use 'copy file <src> to <dst>'"
         src, dst = parts
         return report_to_grok(copy_file(src.strip().replace("safe/", ""), dst.strip().replace("safe/", "")))
+    elif req_lower.startswith("rename file "):
+        parts = request[11:].strip().split(" to ")
+        if len(parts) != 2:
+            logger.error("Invalid rename command format")
+            return "Error: Invalid rename command format. Use 'rename file <old> to <new>'"
+        src, dst = parts
+        return report_to_grok(rename_file(src.strip().replace("safe/", ""), dst.strip().replace("safe/", "")))
     elif req_lower.startswith("read file "):
         filename = request[9:].strip().replace("safe/", "")
         return report_to_grok(read_file(filename))
