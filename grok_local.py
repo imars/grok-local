@@ -123,49 +123,50 @@ def process_multi_command(request):
     return "\n".join(results)
 
 def ask_local(request, debug=False):
-    request = request.strip()
+    request = request.strip().rstrip("?")  # Remove trailing question mark
     if debug:
         print(f"Processing: {request}")
     
     if "&&" in request:
         return process_multi_command(request)
     
-    if request.lower() == "what time is it?" or request.lower() == "ask what time is it":
+    req_lower = request.lower()
+    if req_lower in ["what time is it", "ask what time is it"]:
         return report_to_grok(what_time_is_it())
-    elif request.lower() == "list files":
+    elif req_lower == "list files":
         return report_to_grok(list_files())
-    elif request.lower().startswith("commit "):
+    elif req_lower.startswith("commit "):
         message = request[7:].strip() or "Automated commit"
         return report_to_grok(git_commit_and_push(message))
-    elif request.lower() == "git status":
+    elif req_lower == "git status":
         return report_to_grok(git_status())
-    elif request.lower() == "git pull":
+    elif req_lower == "git pull":
         return report_to_grok(git_pull())
-    elif request.lower().startswith("git log"):
+    elif req_lower.startswith("git log"):
         count = request[7:].strip()
         count = int(count) if count.isdigit() else 1
         return report_to_grok(git_log(count))
-    elif request.lower() == "git branch":
+    elif req_lower == "git branch":
         return report_to_grok(git_branch())
-    elif request.lower().startswith("git checkout "):
+    elif req_lower.startswith("git checkout "):
         branch = request[12:].strip()
         return report_to_grok(git_checkout(branch))
-    elif request.lower().startswith("create file "):
+    elif req_lower.startswith("create file "):
         filename = request[11:].strip()
         return report_to_grok(create_file(filename))
-    elif request.lower().startswith("delete file "):
+    elif req_lower.startswith("delete file "):
         filename = request[11:].strip()
         return report_to_grok(delete_file(filename))
-    elif request.lower().startswith("move file "):
+    elif req_lower.startswith("move file "):
         parts = request[9:].strip().split(" to ")
         if len(parts) != 2:
             return "Error: Invalid move command format. Use 'move file <src> to <dst>'"
         src, dst = parts
         return report_to_grok(move_file(src.strip(), dst.strip()))
-    elif request.lower().startswith("read file "):
+    elif req_lower.startswith("read file "):
         filename = request[9:].strip()
         return report_to_grok(read_file(filename))
-    elif request.lower().startswith("write "):
+    elif req_lower.startswith("write "):
         parts = request[5:].strip().split(" to ")
         if len(parts) != 2:
             return "Error: Invalid write command format. Use 'write <content> to <filename>'"
