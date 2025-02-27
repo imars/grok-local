@@ -93,7 +93,7 @@ def test_sequence():
     # Restore remote with tracking and ensure it sticks
     subprocess.run(["git", "remote", "add", "origin", "git@github.com:imars/grok-local.git"], capture_output=True)
     subprocess.run(["git", "branch", "--set-upstream-to=origin/main", "main"], capture_output=True)
-    subprocess.run(["git", "push", "--set-upstream", "origin", "main"], capture_output=True)  # Ensure upstream is set
+    subprocess.run(["git", "push", "--set-upstream", "origin", "main"], capture_output=True)
 
     # Test 11: Prettier list_files
     run_command("create file test2.txt")
@@ -165,7 +165,7 @@ def test_sequence():
     run_command("create file auto_file.txt")
     result = run_command("list files")
     file_count = len(result.splitlines())
-    if file_count > 3:  # Agent decides to clean up if too many files
+    if file_count > 3:
         result = run_command("delete file auto_file.txt --force && write Cleaned up to test2.txt")
         print(f"Autonomous cleanup: {result}")
         assert "Deleted file: auto_file.txt" in result and "Wrote to test2.txt: Cleaned up" in result, "Agent failed to clean up files"
@@ -177,11 +177,10 @@ def test_sequence():
     # Test 17: Git workflow
     run_command("write Git test to test3.txt")
     result = run_command("git diff")
-    if "Git test" in result:  # Agent decides to commit changes
+    if "Git test" in result:
         result = run_command("commit Autonomous git commit")
         print(f"Autonomous git commit: {result}")
         if "Git error" in result and "no upstream branch" in result:
-            # Agent adapts to missing upstream
             subprocess.run(["git", "push", "--set-upstream", "origin", "main"], capture_output=True)
             result = run_command("commit Autonomous git commit retry")
             print(f"Autonomous git commit retry: {result}")
@@ -195,7 +194,7 @@ def test_sequence():
     run_command("write New state to test2.txt")
     result = run_command("list checkpoints")
     print(f"List checkpoints: {result}")
-    if "initial.json" in result:  # Agent decides to restore if backup exists
+    if "initial.json" in result:
         result = run_command("restore --file initial.json")
         print(f"Autonomous restore: {result}")
         assert "test2.txt" in result and "New state" not in run_command("read file test2.txt"), "Agent failed to restore checkpoint"
@@ -203,6 +202,20 @@ def test_sequence():
         result = run_command("checkpoint No backups found")
         print(f"Autonomous checkpoint: {result}")
         assert "Checkpoint saved: No backups found" in result, "Agent didn’t save fallback checkpoint"
+
+    # Test 19: Clean safe command
+    run_command("create file temp1.txt")
+    run_command("create file temp2.txt")
+    run_command("create file keep_me.txt")
+    result = run_command("list files")
+    print(f"List files before clean: {result}")
+    assert "temp1.txt" in result and "temp2.txt" in result and "keep_me.txt" in result, "Setup for clean safe failed"
+    result = run_command("clean safe --keep keep_me.txt")
+    print(f"Clean safe: {result}")
+    assert "temp1.txt" in result and "temp2.txt" in result and "keep_me.txt" not in result, "Clean safe didn’t delete correct files"
+    result = run_command("list files")
+    print(f"List files after clean: {result}")
+    assert "keep_me.txt" in result and "temp1.txt" not in result and "temp2.txt" not in result, "Clean safe didn’t preserve kept files"
 
     print("All tests passed!")
 
