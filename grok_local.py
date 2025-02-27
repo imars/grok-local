@@ -45,19 +45,19 @@ def save_checkpoint(description, filename=None):
         "files": {},
         "safe_files": {}
     }
-    for filename in CRITICAL_FILES:
-        file_path = os.path.join(PROJECT_DIR, filename)
+    for fname in CRITICAL_FILES:
+        file_path = os.path.join(PROJECT_DIR, fname)
         if os.path.exists(file_path):
             with open(file_path, "r") as f:
-                checkpoint["files"][filename] = f.read()
+                checkpoint["files"][fname] = f.read()
         else:
-            checkpoint["files"][filename] = "File not found"
+            checkpoint["files"][fname] = "File not found"
     if os.path.exists(SAFE_DIR):
-        for filename in os.listdir(SAFE_DIR):
-            file_path = os.path.join(SAFE_DIR, filename)
+        for fname in os.listdir(SAFE_DIR):
+            file_path = os.path.join(SAFE_DIR, fname)
             if os.path.isfile(file_path):
                 with open(file_path, "r") as f:
-                    checkpoint["safe_files"][filename] = f.read()
+                    checkpoint["safe_files"][fname] = f.read()
     checkpoint_file = filename if filename else CHECKPOINT_FILE
     with open(checkpoint_file, "w") as f:
         json.dump(checkpoint, f, indent=4)
@@ -74,24 +74,24 @@ def restore_checkpoint(all_files=False, filename=None):
         return "No files to restore in checkpoint"
     restored = []
     ensure_safe_dir()  # Ensure safe/ exists before restoring
-    for filename, content in safe_files.items():
-        file_path = os.path.join(SAFE_DIR, filename)
+    for fname, content in safe_files.items():
+        file_path = os.path.join(SAFE_DIR, fname)
         if os.path.exists(file_path):
             os.remove(file_path)  # Overwrite existing files
         with open(file_path, "w") as f:
             f.write(content)
-        logger.debug(f"Restored safe file: {filename}")
-        restored.append(filename)
+        logger.debug(f"Restored safe file: {fname}")
+        restored.append(fname)
     if all_files:
-        for filename, content in critical_files.items():
+        for fname, content in critical_files.items():
             if content != "File not found":
-                file_path = os.path.join(PROJECT_DIR, filename)
+                file_path = os.path.join(PROJECT_DIR, fname)
                 if os.path.exists(file_path):
                     os.remove(file_path)  # Ensure overwrite
                 with open(file_path, "w") as f:
                     f.write(content)
-                logger.debug(f"Restored critical file: {filename}")
-                restored.append(filename)
+                logger.debug(f"Restored critical file: {fname}")
+                restored.append(fname)
     logger.info(f"Restored files from checkpoint: {restored}")
     return f"Restored files from checkpoint: {', '.join(restored)}"
 
@@ -243,14 +243,16 @@ def ask_local(request, debug=False):
     elif req_lower.startswith("checkpoint "):
         parts = request.split()
         description_idx = 1 if parts[0].lower() == "checkpoint" else 0
-        description = " ".join(parts[description_idx:parts.index("--file")]) if "--file" in parts else " ".join(parts[description_idx:])
-        filename = None
         if "--file" in parts:
             try:
-                file_idx = parts.index("--file") + 1
-                filename = parts[file_idx] if file_idx < len(parts) else None
-            except ValueError:
-                return "Error: --file requires a filename"
+                file_idx = parts.index("--file")
+                filename = parts[file_idx + 1] if file_idx + 1 < len(parts) else None
+                description = " ".join(parts[description_idx:file_idx])
+            except (ValueError, IndexError):
+                return "Error: --file requires a valid filename"
+        else:
+            filename = None
+            description = " ".join(parts[description_idx:])
         if not description:
             return "Error: Checkpoint requires a description"
         return save_checkpoint(description, filename)
@@ -285,7 +287,7 @@ if __name__ == "__main__":
         if checkpoint:
             desc = checkpoint.get("description", "No description")
             time = checkpoint.get("timestamp", "Unknown")
-            files = checkpoint.get("files", {})
+            files = checkpoint["files"]
             safe_files = checkpoint.get("safe_files", {})
             print(f"Last Checkpoint:\n- Description: {desc}\n- Timestamp: {time}\n- Files tracked: {', '.join(files.keys())}")
             if safe_files:
