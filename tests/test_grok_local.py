@@ -102,17 +102,15 @@ def test_sequence():
     assert "1. test2.txt" in result and "2. test3.txt" in result, "Pretty list_files failed"
 
     # Test 12: Restore command
-    # Save a checkpoint with a known state
     run_command("write Restored content to test2.txt")
-    # Reset grok.txt to original state before checkpoint
     with open(os.path.join(PROJECT_DIR, "grok.txt"), "w") as f:
         f.write("I am Grok, master of the repo")
-    run_command("checkpoint Before restore test")
-    # Clear safe/ and modify a critical file
+    result = run_command("checkpoint Before restore test")
+    print(f"Checkpoint before restore: {result}")
+    assert "Checkpoint saved: Before restore test" in result, "Checkpoint before restore failed"
     shutil.rmtree(safe_dir)
     with open(os.path.join(PROJECT_DIR, "grok.txt"), "w") as f:
         f.write("Modified Grok text")
-    # Restore safe_files only
     result = run_command("restore")
     print(f"Restore safe files: {result}")
     assert "Restored files from checkpoint: test2.txt, test3.txt" in result, "Restore safe files failed"
@@ -120,12 +118,23 @@ def test_sequence():
     assert "Restored content" in result, "Restore didn’t reload safe file content"
     with open(os.path.join(PROJECT_DIR, "grok.txt"), "r") as f:
         assert f.read() == "Modified Grok text", "Restore shouldn’t affect critical files without --all"
-    # Restore all files
     result = run_command("restore --all")
     print(f"Restore all files: {result}")
     assert "grok.txt" in result and "test2.txt" in result, "Restore --all didn’t reload all files"
     with open(os.path.join(PROJECT_DIR, "grok.txt"), "r") as f:
-        assert f.read() == "I am Grok, master of the repo", "Restore --all didn’t reload critical file"
+        content = f.read()
+        print(f"grok.txt content after restore --all: '{content}'")
+        assert content == "I am Grok, master of the repo", "Restore --all didn’t reload critical file"
+
+    # Test 13: Git diff
+    with open(os.path.join(PROJECT_DIR, "grok.txt"), "w") as f:
+        f.write("Grok has evolved!")
+    result = run_command("git diff")
+    print(f"Git diff output: {result}")
+    assert "Grok has evolved!" in result, "Git diff failed to show changes"
+    # Reset grok.txt to avoid lingering changes
+    with open(os.path.join(PROJECT_DIR, "grok.txt"), "w") as f:
+        f.write("I am Grok, master of the repo")
 
     print("All tests passed!")
 
