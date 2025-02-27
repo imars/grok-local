@@ -69,7 +69,7 @@ def delete_file(filename):
     if not os.path.exists(full_path):
         logger.warning(f"File not found for deletion: {filename}")
         return f"File not found: {filename}"
-    # Confirmation for remote agents (CLI simulation)
+    # Confirmation for destructive actions
     if "y" != input(f"Confirm deletion of {filename}? (y/n): ").lower():
         logger.info(f"Deletion of {filename} cancelled")
         return f"Deletion cancelled: {filename}"
