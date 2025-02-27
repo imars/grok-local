@@ -15,13 +15,14 @@ commands = [
 ]
 
 def run_grok_test():
-    # Start grok_local.py in interactive mode
+    # Start grok_local.py in interactive mode with unbuffered output
     process = subprocess.Popen(
-        ["python", "grok_local.py"],
+        ["python", "-u", "grok_local.py"],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True
+        text=True,
+        bufsize=1  # Line-buffered
     )
 
     # Feed commands and capture full output
@@ -30,11 +31,13 @@ def run_grok_test():
     for cmd in commands:
         process.stdin.write(cmd + "\n")
         process.stdin.flush()
-        time.sleep(1)  # Wait for output
+        time.sleep(1)  # Wait for command to process
         cmd_output = ""
-        while True:
+        # Read until we hit the next Command: prompt or timeout
+        start_time = time.time()
+        while time.time() - start_time < 2:  # 2-second timeout
             line = process.stdout.readline().strip()
-            if not line or "Command:" in line:  # Stop at next prompt or empty line
+            if not line or "Command:" in line:
                 break
             cmd_output += line + "\n"
         cmd_output = cmd_output.strip()
@@ -47,7 +50,8 @@ def run_grok_test():
             process.stdin.flush()
             time.sleep(1)
             commit_output = ""
-            while True:
+            start_time = time.time()
+            while time.time() - start_time < 2:
                 line = process.stdout.readline().strip()
                 if not line or "Command:" in line:
                     break
@@ -60,6 +64,7 @@ def run_grok_test():
     # Exit interactive mode
     process.stdin.write("exit\n")
     process.stdin.flush()
+    time.sleep(1)
 
     # Wait for process to finish and get remaining output
     stdout, stderr = process.communicate()
