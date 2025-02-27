@@ -9,7 +9,6 @@ commands = [
     "write Updated project plan v1 to plan_v1.txt",
     "rename file plan.txt to plan_original.txt",
     "what time is it",
-    # We'll capture the time output to use in the commit message
     "commit Project plan versioned at {time}",
     "list files",
     "git status"
@@ -29,13 +28,13 @@ def run_grok_test():
     output = []
     commit_time = None
     for cmd in commands:
+        process.stdin.write(cmd + "\n")
+        process.stdin.flush()
+        time.sleep(1)  # Wait for output
+        cmd_output = process.stdout.readline().strip()
         if "what time is it" in cmd:
-            process.stdin.write(cmd + "\n")
-            process.stdin.flush()
-            time.sleep(1)  # Wait for output
-            time_output = process.stdout.readline().strip()
-            output.append(f"{cmd}: {time_output}")
-            commit_time = time_output
+            commit_time = cmd_output
+            output.append(f"{cmd}: {cmd_output}")
         elif "commit" in cmd and "{time}" in cmd:
             full_cmd = cmd.format(time=commit_time)
             process.stdin.write(full_cmd + "\n")
@@ -44,10 +43,6 @@ def run_grok_test():
             commit_output = process.stdout.readline().strip()
             output.append(f"{full_cmd}: {commit_output}")
         else:
-            process.stdin.write(cmd + "\n")
-            process.stdin.flush()
-            time.sleep(1)
-            cmd_output = process.stdout.readline().strip()
             output.append(f"{cmd}: {cmd_output}")
 
     # Exit interactive mode
