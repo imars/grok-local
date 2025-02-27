@@ -22,7 +22,7 @@ def run_grok_test():
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        bufsize=1  # Line-buffered
+        bufsize=1
     )
 
     # Feed commands and capture full output
@@ -33,9 +33,7 @@ def run_grok_test():
         process.stdin.flush()
         time.sleep(1)  # Wait for command to process
         cmd_output = ""
-        # Read until we hit the next Command: prompt or timeout
-        start_time = time.time()
-        while time.time() - start_time < 2:  # 2-second timeout
+        while True:
             line = process.stdout.readline().strip()
             if not line or "Command:" in line:
                 break
@@ -43,23 +41,20 @@ def run_grok_test():
         cmd_output = cmd_output.strip()
         if "what time is it" in cmd:
             commit_time = cmd_output
-            output.append(f"{cmd}: {cmd_output}")
-        elif "commit" in cmd and "{time}" in cmd:
+        elif "commit" in cmd and "{time}" in cmd and commit_time:
             full_cmd = cmd.format(time=commit_time)
             process.stdin.write(full_cmd + "\n")
             process.stdin.flush()
-            time.sleep(1)
+            time.sleep(2)  # Extra time for commit
             commit_output = ""
-            start_time = time.time()
-            while time.time() - start_time < 2:
+            while True:
                 line = process.stdout.readline().strip()
                 if not line or "Command:" in line:
                     break
                 commit_output += line + "\n"
-            commit_output = commit_output.strip()
-            output.append(f"{full_cmd}: {commit_output}")
-        else:
-            output.append(f"{cmd}: {cmd_output}")
+            cmd_output = commit_output.strip()
+            cmd = full_cmd
+        output.append(f"{cmd}: {cmd_output}")
 
     # Exit interactive mode
     process.stdin.write("exit\n")
