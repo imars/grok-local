@@ -122,4 +122,8 @@ if __name__ == "__main__":
     if args.ask:
         print(ask_local(args.ask, args.debug))
     else:
-        print("Please provide a command with --ask")
+        while True:
+            cmd = input("Command: ")
+            if cmd.lower() == "exit":
+                break
+            print(ask_local(cmd, args.debug))
