@@ -13,7 +13,6 @@ LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
 CHECKPOINT_FILE = os.path.join(PROJECT_DIR, "checkpoint.json")
 SAFE_DIR = os.path.join(PROJECT_DIR, "safe")
 
-# Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -27,21 +26,18 @@ CRITICAL_FILES = [
 ]
 
 def load_checkpoint():
-    """Load the last checkpoint from file."""
     if os.path.exists(CHECKPOINT_FILE):
         with open(CHECKPOINT_FILE, "r") as f:
             return json.load(f)
     return {}
 
 def save_checkpoint(description):
-    """Save a checkpoint with description, critical file contents, and safe/ files."""
     checkpoint = {
         "description": description,
         "timestamp": datetime.datetime.now().isoformat(),
         "files": {},
         "safe_files": {}
     }
-    # Critical files
     for filename in CRITICAL_FILES:
         file_path = os.path.join(PROJECT_DIR, filename)
         if os.path.exists(file_path):
@@ -49,7 +45,6 @@ def save_checkpoint(description):
                 checkpoint["files"][filename] = f.read()
         else:
             checkpoint["files"][filename] = "File not found"
-    # Safe directory files
     if os.path.exists(SAFE_DIR):
         for filename in os.listdir(SAFE_DIR):
             file_path = os.path.join(SAFE_DIR, filename)
@@ -84,13 +79,9 @@ def process_multi_command(request):
 
 def ask_local(request, debug=False):
     request = request.strip().rstrip("?")
-    if debug:
-        print(f"Processing: {request}")
-        logger.debug(f"Debug processing: {request}")
-    
     if "&&" in request:
         result = process_multi_command(request)
-        if any(r.startswith("Error") or r.startswith("Git error") for r in result.split("\n")):
+        if any(r.startswith("Error") or r.startswith("Git") for r in result.split("\n")):
             save_checkpoint(f"Multi-command failed: {request}")
         return result
     
@@ -112,7 +103,7 @@ def ask_local(request, debug=False):
         return result
     elif req_lower == "git pull":
         result = report_to_grok(git_pull())
-        if result.startswith("Git error"):
+        if "error" in result.lower():  # Broader check for any error
             save_checkpoint(f"Git pull failed: {result}")
         return result
     elif req_lower.startswith("git log"):
@@ -153,7 +144,7 @@ def ask_local(request, debug=False):
         if result.startswith("Error"):
             save_checkpoint(f"Delete file failed: {result}")
         return result
-    elif req_lower.startswith("move file "):
+    elif req_lower.startswith("move file"):
         parts = request[9:].strip().split(" to ")
         if len(parts) != 2:
             logger.error("Invalid move command format")
@@ -169,7 +160,7 @@ def ask_local(request, debug=False):
         parts = request[9:].strip().split(" to ")
         if len(parts) != 2:
             logger.error("Invalid copy command format")
-            result = "Error: Invalid copy command format. Use 'copy file <src> to <dst>'"
+            result = "Error: Invalid copy command format. Use 'move file <src> to <dst>'"
             save_checkpoint(f"Copy file failed: {result}")
             return result
         src, dst = parts

@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import json
+import shutil
 
 # Ensure we're in the project root
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -23,7 +24,12 @@ def run_command(cmd, use_subprocess=False):
 
 def test_sequence():
     print("Starting test sequence...")
-    
+    safe_dir = os.path.join(PROJECT_DIR, "safe")
+
+    # Clean slate
+    if os.path.exists(safe_dir):
+        shutil.rmtree(safe_dir)
+
     # Test 1: Create a file
     result = run_command("create file test1.txt")
     print(f"Create file: {result}")
@@ -64,14 +70,37 @@ def test_sequence():
     assert "grok_local.py" in checkpoint["files"], "Checkpoint missing critical files"
     assert "test2.txt" in checkpoint["safe_files"], "Checkpoint missing safe files"
 
+    # Test 8: Empty safe directory
+    shutil.rmtree(safe_dir)  # Clear safe/
+    result = run_command("list files")
+    print(f"List empty safe/: {result}")
+    assert "No files in safe directory" in result, "Empty safe/ list failed"
+
+    # Test 9: Invalid file name
+    result = run_command("create file grok_local.py")
+    print(f"Invalid file name: {result}")
+    assert "Error: Invalid or protected filename" in result, "Invalid file name check failed"
+
+    # Test 10: Auto-checkpoint on Git error (simulate no remote)
+    subprocess.run(["git", "remote", "remove", "origin"], capture_output=True)
+    result = run_command("git pull", use_subprocess=True)
+    print(f"Git pull error: '{result}'")
+    assert "git pull error" in result.lower(), "Git pull error not triggered"
+    with open(os.path.join(PROJECT_DIR, "checkpoint.json"), "r") as f:
+        checkpoint = json.load(f)
+    assert "git pull failed" in checkpoint["description"].lower(), "Auto-checkpoint on Git error failed"
+
+    # Restore remote
+    subprocess.run(["git", "remote", "add", "origin", "git@github.com:imars/grok-local.git"], capture_output=True)
+
+    # Test 11: Prettier list_files
+    run_command("create file test2.txt")  # Recreate test2.txt
+    run_command("create file test3.txt")
+    result = run_command("list files")
+    print(f"Pretty list files: {result}")
+    assert "1. test2.txt" in result and "2. test3.txt" in result, "Pretty list_files failed"
+
     print("All tests passed!")
 
 if __name__ == "__main__":
-    # Clean up any previous test files
-    safe_dir = os.path.join(PROJECT_DIR, "safe")
-    for file in ["test1.txt", "test2.txt"]:
-        file_path = os.path.join(safe_dir, file)
-        if os.path.exists(file_path):
-            os.remove(file_path)
-    
     test_sequence()

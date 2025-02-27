@@ -11,8 +11,11 @@ def start_session(command=None, resume=False):
     if resume:
         args.append("--resume")
     elif command:
-        args.extend(["--ask", command])
-    
+        if command.startswith("--ask "):
+            args.append("--ask")
+            args.append(command[6:].strip())
+        else:
+            args.append(command)
     result = subprocess.run(
         args,
         capture_output=True,
@@ -27,6 +30,7 @@ if __name__ == "__main__":
         if "--resume" in sys.argv:
             start_session(resume=True)
         else:
-            start_session(" ".join(sys.argv[1:]))
+            command = " ".join(sys.argv[1:])
+            start_session(command=command)
     else:
         start_session()

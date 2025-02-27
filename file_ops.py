@@ -140,7 +140,9 @@ def list_files():
     try:
         files = os.listdir(SAFE_DIR)
         logger.info("Listed files in safe directory")
-        return "\n".join(files) if files else "No files in safe directory"
+        if not files:
+            return "No files in safe directory"
+        return "\n".join(f"{i+1}. {file}" for i, file in enumerate(files))
     except Exception as e:
         logger.error(f"Error listing files: {e}")
         return f"Error listing files: {e}"
