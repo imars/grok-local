@@ -56,6 +56,24 @@ def save_checkpoint(description):
     logger.info(f"Saved checkpoint with description: {description}")
     return f"Checkpoint saved: {description}"
 
+def restore_checkpoint():
+    checkpoint = load_checkpoint()
+    if not checkpoint:
+        return "No checkpoint found to restore"
+    safe_files = checkpoint.get("safe_files", {})
+    if not safe_files:
+        return "No safe files to restore in checkpoint"
+    restored = []
+    for filename, content in safe_files.items():
+        file_path = os.path.join(SAFE_DIR, filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)  # Overwrite existing files
+        with open(file_path, "w") as f:
+            f.write(content)
+        restored.append(filename)
+    logger.info(f"Restored safe files from checkpoint: {restored}")
+    return f"Restored safe files from checkpoint: {', '.join(restored)}"
+
 def report_to_grok(response):
     return response
 
@@ -103,7 +121,7 @@ def ask_local(request, debug=False):
         return result
     elif req_lower == "git pull":
         result = report_to_grok(git_pull())
-        if "error" in result.lower():  # Broader check for any error
+        if "error" in result.lower():
             save_checkpoint(f"Git pull failed: {result}")
         return result
     elif req_lower.startswith("git log"):
@@ -203,6 +221,8 @@ def ask_local(request, debug=False):
         if not description:
             return "Error: Checkpoint requires a description"
         return save_checkpoint(description)
+    elif req_lower == "restore":
+        return restore_checkpoint()
     else:
         logger.warning(f"Unknown command received: {request}")
         result = f"Unknown command: {request}"
