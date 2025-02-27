@@ -31,13 +31,14 @@ def ensure_safe_dir():
         os.makedirs(SAFE_DIR)
         logger.info(f"Created safe directory: {SAFE_DIR}")
 
-def load_checkpoint():
-    if os.path.exists(CHECKPOINT_FILE):
-        with open(CHECKPOINT_FILE, "r") as f:
+def load_checkpoint(filename=None):
+    checkpoint_file = filename if filename else CHECKPOINT_FILE
+    if os.path.exists(checkpoint_file):
+        with open(checkpoint_file, "r") as f:
             return json.load(f)
     return {}
 
-def save_checkpoint(description):
+def save_checkpoint(description, filename=None):
     checkpoint = {
         "description": description,
         "timestamp": datetime.datetime.now().isoformat(),
@@ -57,15 +58,16 @@ def save_checkpoint(description):
             if os.path.isfile(file_path):
                 with open(file_path, "r") as f:
                     checkpoint["safe_files"][filename] = f.read()
-    with open(CHECKPOINT_FILE, "w") as f:
+    checkpoint_file = filename if filename else CHECKPOINT_FILE
+    with open(checkpoint_file, "w") as f:
         json.dump(checkpoint, f, indent=4)
-    logger.info(f"Saved checkpoint with description: {description}")
-    return f"Checkpoint saved: {description}"
+    logger.info(f"Saved checkpoint with description: {description} to {checkpoint_file}")
+    return f"Checkpoint saved: {description} to {checkpoint_file}"
 
-def restore_checkpoint(all_files=False):
-    checkpoint = load_checkpoint()
+def restore_checkpoint(all_files=False, filename=None):
+    checkpoint = load_checkpoint(filename)
     if not checkpoint:
-        return "No checkpoint found to restore"
+        return f"No checkpoint found to restore at {filename or CHECKPOINT_FILE}"
     safe_files = checkpoint.get("safe_files", {})
     critical_files = checkpoint.get("files", {}) if all_files else {}
     if not (safe_files or critical_files):
@@ -239,13 +241,30 @@ def ask_local(request, debug=False):
             save_checkpoint(f"Write file failed: {result}")
         return result
     elif req_lower.startswith("checkpoint "):
-        description = request[10:].strip()
+        parts = request.split()
+        description_idx = 1 if parts[0].lower() == "checkpoint" else 0
+        description = " ".join(parts[description_idx:parts.index("--file")]) if "--file" in parts else " ".join(parts[description_idx:])
+        filename = None
+        if "--file" in parts:
+            try:
+                file_idx = parts.index("--file") + 1
+                filename = parts[file_idx] if file_idx < len(parts) else None
+            except ValueError:
+                return "Error: --file requires a filename"
         if not description:
             return "Error: Checkpoint requires a description"
-        return save_checkpoint(description)
+        return save_checkpoint(description, filename)
     elif req_lower.startswith("restore"):
-        all_files = "--all" in request.lower()
-        return restore_checkpoint(all_files)
+        parts = request.split()
+        all_files = "--all" in parts
+        filename = None
+        if "--file" in parts:
+            try:
+                file_idx = parts.index("--file") + 1
+                filename = parts[file_idx] if file_idx < len(parts) else None
+            except ValueError:
+                return "Error: --file requires a filename"
+        return restore_checkpoint(all_files, filename)
     else:
         logger.warning(f"Unknown command received: {request}")
         result = f"Unknown command: {request}"
@@ -258,6 +277,7 @@ if __name__ == "__main__":
     parser.add_argument("--resume", action="store_true", help="Display last checkpoint")
     parser.add_argument("--debug", action="store_true", help="Enable debug output")
     parser.add_argument("--all", action="store_true", help="Restore all files from checkpoint (including critical)")
+    parser.add_argument("--file", type=str, help="Specify checkpoint file to save/restore from")
     args = parser.parse_args()
 
     if args.resume:
