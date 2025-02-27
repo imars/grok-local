@@ -73,11 +73,11 @@ def restore_checkpoint(all_files=False, filename=None):
     if not (safe_files or critical_files):
         return "No files to restore in checkpoint"
     restored = []
-    ensure_safe_dir()  # Ensure safe/ exists before restoring
+    ensure_safe_dir()
     for fname, content in safe_files.items():
         file_path = os.path.join(SAFE_DIR, fname)
         if os.path.exists(file_path):
-            os.remove(file_path)  # Overwrite existing files
+            os.remove(file_path)
         with open(file_path, "w") as f:
             f.write(content)
         logger.debug(f"Restored safe file: {fname}")
@@ -87,13 +87,31 @@ def restore_checkpoint(all_files=False, filename=None):
             if content != "File not found":
                 file_path = os.path.join(PROJECT_DIR, fname)
                 if os.path.exists(file_path):
-                    os.remove(file_path)  # Ensure overwrite
+                    os.remove(file_path)
                 with open(file_path, "w") as f:
                     f.write(content)
                 logger.debug(f"Restored critical file: {fname}")
                 restored.append(fname)
     logger.info(f"Restored files from checkpoint: {restored}")
     return f"Restored files from checkpoint: {', '.join(restored)}"
+
+def list_checkpoints():
+    checkpoints = []
+    for fname in os.listdir(PROJECT_DIR):
+        if fname.endswith(".json"):
+            file_path = os.path.join(PROJECT_DIR, fname)
+            try:
+                with open(file_path, "r") as f:
+                    checkpoint = json.load(f)
+                    desc = checkpoint.get("description", "No description")
+                    time = checkpoint.get("timestamp", "Unknown")
+                    checkpoints.append(f"{fname}: {desc} ({time})")
+            except json.JSONDecodeError:
+                continue
+    if not checkpoints:
+        return "No checkpoints found"
+    logger.info("Listed available checkpoints")
+    return "\n".join(checkpoints)
 
 def report_to_grok(response):
     return response
@@ -171,6 +189,9 @@ def ask_local(request, debug=False):
         return result
     elif req_lower == "git diff":
         result = report_to_grok(git_diff())
+        return result
+    elif req_lower == "list checkpoints":
+        result = report_to_grok(list_checkpoints())
         return result
     elif req_lower.startswith("create file "):
         filename = request[11:].strip()
@@ -287,7 +308,7 @@ if __name__ == "__main__":
         if checkpoint:
             desc = checkpoint.get("description", "No description")
             time = checkpoint.get("timestamp", "Unknown")
-            files = checkpoint["files"]
+            files = checkpoint.get("files", {})
             safe_files = checkpoint.get("safe_files", {})
             print(f"Last Checkpoint:\n- Description: {desc}\n- Timestamp: {time}\n- Files tracked: {', '.join(files.keys())}")
             if safe_files:
