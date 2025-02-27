@@ -14,10 +14,11 @@ from logging.handlers import RotatingFileHandler
 import argparse
 
 PROJECT_DIR = os.getcwd()
-GROK_URL = "https://x.com/i/grok?conversation=1894839609827512811"  # Hardcoded to this chat
+GROK_URL = "https://x.com/i/grok?conversation=1894887152712056958"  # New chat
 COOKIE_FILE = os.path.join(PROJECT_DIR, "cookies.pkl")
 CODE_BLOCK_DIR = os.path.join(PROJECT_DIR, "code_blocks")
 DEBUG_DIR = os.path.join(PROJECT_DIR, "debug")
+LAST_CMD_FILE = os.path.join(PROJECT_DIR, "last_processed.txt")
 
 for directory in [CODE_BLOCK_DIR, DEBUG_DIR]:
     if not os.path.exists(directory):
@@ -130,19 +131,23 @@ def perform_headless_login(driver, wait):
 def scan_chat(driver, wait):
     driver.get(GROK_URL)
     time.sleep(10)
-    last_height = driver.execute_script("return document.body.scrollHeight")
-    for _ in range(15):  # More scrolls to ensure bottom
+    last_height = 0
+    for _ in range(30):
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
+        time.sleep(1)
         new_height = driver.execute_script("return document.body.scrollHeight")
         if new_height == last_height:
             break
         last_height = new_height
+    time.sleep(5)
     logging.info(f"Scanning chat at: {driver.current_url}")
-    elements = driver.find_elements(By.TAG_NAME, "span")
+    with open(os.path.join(DEBUG_DIR, "chat_page.html"), "w") as f:
+        f.write(driver.page_source)
+    elements = driver.find_elements(By.XPATH, "//span")
     chat_content = [elem.get_attribute("textContent").strip() for elem in elements if elem.get_attribute("textContent").strip()]
-    logging.info(f"Chat content (last 5): {' | '.join(chat_content[-5:])}... ({len(chat_content)} total lines)")
-    return chat_content  # Return content directly
+    logging.info(f"Chat content (last 10): {' | '.join(chat_content[-10:])}... ({len(chat_content)} total lines)")
+    logging.info(f"Full chat content: {chat_content}")
+    return chat_content
 
 def ask_grok(prompt, fetch=False, headless=False):
     chrome_options = Options()
@@ -163,7 +168,7 @@ def ask_grok(prompt, fetch=False, headless=False):
         else:
             logging.info("Cookies invalid or not loaded, attempting login")
             if headless and not perform_headless_login(driver, wait):
-                return "Headless login failed"
+                return "Headless login failed"  # Return as error, not command
             driver.get(GROK_URL)
             time.sleep(5)
             handle_cookie_consent(driver, wait)
@@ -179,7 +184,7 @@ def process_grok_interaction(driver, wait, prompt, fetch):
     if fetch:
         chat_content = scan_chat(driver, wait)
         commands = []
-        for text in chat_content:
+        for text in reversed(chat_content):
             if "GROK_LOCAL:" in text.upper() and "GROK_LOCAL_RESULT:" not in text.upper():
                 cmd = text.replace("GROK_LOCAL:", "").strip()
                 valid_commands = ["what time is it?", "ask what time is it", "list files", "system info", "commit", "whoami", "scan chat"]
@@ -191,12 +196,12 @@ def process_grok_interaction(driver, wait, prompt, fetch):
             logging.info("No GROK_LOCAL commands found")
             return "No GROK_LOCAL found after full scan"
         
-        # Take the very last command
-        last_command = commands[-1]
+        logging.info(f"All commands found (in reverse order): {commands}")
+        last_command = commands[0]  # First in reverse = last in chat
         logging.info(f"Selected last command: {last_command}")
         return last_command
     else:
-        prompt_box = wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "r-30o5oe")))
+        prompt_box = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "r-30o5oe")))
         prompt_box.clear()
         prompt_box.send_keys(prompt[:500])
         submit_button = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "css-175oi2r")))
@@ -206,11 +211,16 @@ def process_grok_interaction(driver, wait, prompt, fetch):
 
 def poll_x(headless):
     logging.info("Starting polling loop")
-    last_processed = None  # Track last command to avoid repeats
+    last_processed = None
+    if os.path.exists(LAST_CMD_FILE):
+        with open(LAST_CMD_FILE, "r") as f:
+            last_processed = f.read().strip()
+    logging.info(f"Last processed command from file: {last_processed}")
+
     while True:
         cmd = ask_grok("Polling for Grok 3...", fetch=True, headless=headless)
-        if cmd and isinstance(cmd, str) and "Error" not in cmd and "found" not in cmd.lower():
-            if cmd != last_processed:  # Only process if new
+        if cmd and isinstance(cmd, str) and "Error" not in cmd and "login failed" not in cmd.lower():
+            if cmd != last_processed:
                 print(f"Received: {cmd}")
                 logging.info(f"Executing command: {cmd}")
                 result = subprocess.run(
@@ -223,13 +233,17 @@ def poll_x(headless):
                 try:
                     ask_grok(f"GROK_LOCAL_RESULT: {output}", headless=headless)
                     logging.info(f"Posted result for {cmd}")
-                    last_processed = cmd  # Update last processed
+                    with open(LAST_CMD_FILE, "w") as f:
+                        f.write(cmd)
+                    last_processed = cmd
                 except Exception as e:
                     logging.error(f"Failed to post result for {cmd}: {e}")
+            else:
+                logging.info(f"Skipping already processed command: {cmd}")
         else:
             print(f"Poll result: {cmd}")
             logging.info(f"Poll result: {cmd}")
-        time.sleep(15)  # Faster loop
+        time.sleep(15)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Poll X for Grok 3 commands")
