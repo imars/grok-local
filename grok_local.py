@@ -124,6 +124,6 @@ if __name__ == "__main__":
     else:
         while True:
             cmd = input("Command: ")
-            if cmd.lower() == "exit":
+            if cmd.lower() in ["exit", "quit"]:
                 break
             print(ask_local(cmd, args.debug))
