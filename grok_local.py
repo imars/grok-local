@@ -73,7 +73,7 @@ def ask_local(request, debug=False):
         filename = request[11:].strip()
         return report_to_grok(create_file(filename))
     elif req_lower.startswith("delete file "):
-        filename = request[11:].strip()
+        filename = request[11:].strip().replace("safe/", "")  # Strip safe/ prefix
         return report_to_grok(delete_file(filename))
     elif req_lower.startswith("move file "):
         parts = request[9:].strip().split(" to ")
@@ -81,16 +81,16 @@ def ask_local(request, debug=False):
             logger.error("Invalid move command format")
             return "Error: Invalid move command format. Use 'move file <src> to <dst>'"
         src, dst = parts
-        return report_to_grok(move_file(src.strip(), dst.strip()))
+        return report_to_grok(move_file(src.strip().replace("safe/", ""), dst.strip().replace("safe/", "")))
     elif req_lower.startswith("copy file "):
         parts = request[9:].strip().split(" to ")
         if len(parts) != 2:
             logger.error("Invalid copy command format")
             return "Error: Invalid copy command format. Use 'copy file <src> to <dst>'"
         src, dst = parts
-        return report_to_grok(copy_file(src.strip(), dst.strip()))
+        return report_to_grok(copy_file(src.strip().replace("safe/", ""), dst.strip().replace("safe/", "")))
     elif req_lower.startswith("read file "):
-        filename = request[9:].strip()
+        filename = request[9:].strip().replace("safe/", "")
         return report_to_grok(read_file(filename))
     elif req_lower.startswith("write "):
         parts = request[5:].strip().split(" to ")
@@ -98,7 +98,7 @@ def ask_local(request, debug=False):
             logger.error("Invalid write command format")
             return "Error: Invalid write command format. Use 'write <content> to <filename>'"
         content, filename = parts
-        return report_to_grok(write_file(filename.strip(), content.strip()))
+        return report_to_grok(write_file(filename.strip().replace("safe/", ""), content.strip()))
     else:
         logger.warning(f"Unknown command received: {request}")
         return f"Unknown command: {request}"
