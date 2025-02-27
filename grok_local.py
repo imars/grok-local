@@ -6,7 +6,7 @@ import logging
 import json
 from logging.handlers import RotatingFileHandler
 from file_ops import create_file, delete_file, move_file, copy_file, read_file, write_file, list_files, rename_file
-from git_ops import git_status, git_pull, git_log, git_branch, git_checkout, git_commit_and_push, git_rm
+from git_ops import git_status, git_pull, git_log, git_branch, git_checkout, git_commit_and_push, git_rm, git_diff
 
 PROJECT_DIR = os.getcwd()
 LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
@@ -166,6 +166,9 @@ def ask_local(request, debug=False):
         result = report_to_grok(git_rm(filename))
         if result.startswith("Git error"):
             save_checkpoint(f"Git rm failed: {result}")
+        return result
+    elif req_lower == "git diff":
+        result = report_to_grok(git_diff())
         return result
     elif req_lower.startswith("create file "):
         filename = request[11:].strip()

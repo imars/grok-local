@@ -81,3 +81,16 @@ def git_rm(filename):
     except git.GitCommandError as e:
         logger.error(f"Git rm error for {filename}: {e}")
         return f"Git rm error: {str(e)}"
+
+def git_diff():
+    try:
+        repo = Repo(PROJECT_DIR)
+        diff = repo.git.diff()
+        if not diff:
+            logger.info("No changes to display in git diff")
+            return "No changes to display"
+        logger.info("Retrieved git diff")
+        return diff
+    except Exception as e:
+        logger.error(f"Git diff error: {e}")
+        return f"Git diff error: {e}"
