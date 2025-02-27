@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 CRITICAL_FILES = [
     "grok_local.py", "file_ops.py", "git_ops.py", "grok_checkpoint.py",
-    ".gitignore", "grok.txt", "tests/test_grok_local.py"
+    ".gitignore", "grok.txt", "tests/test_grok_local.py", "README.md"
 ]
 
 def load_checkpoint():
