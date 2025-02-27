@@ -113,6 +113,23 @@ def list_checkpoints():
     logger.info("Listed available checkpoints")
     return "\n".join(checkpoints)
 
+def clean_safe(keep=None):
+    """Clean safe/ directory, optionally keeping specified files."""
+    if not os.path.exists(SAFE_DIR):
+        return "Safe directory is already empty"
+    deleted = []
+    keep_files = set(keep.split(",")) if keep else set()
+    for fname in os.listdir(SAFE_DIR):
+        if fname in keep_files:
+            continue
+        file_path = os.path.join(SAFE_DIR, fname)
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+            deleted.append(fname)
+            logger.debug(f"Deleted file from safe/: {fname}")
+    logger.info(f"Cleaned safe/, deleted: {deleted}")
+    return f"Cleaned safe/, deleted: {', '.join(deleted) if deleted else 'nothing'}"
+
 def report_to_grok(response):
     return response
 
@@ -192,6 +209,12 @@ def ask_local(request, debug=False):
         return result
     elif req_lower == "list checkpoints":
         result = report_to_grok(list_checkpoints())
+        return result
+    elif req_lower.startswith("clean safe"):
+        parts = request.split(maxsplit=2)
+        keep = parts[2] if len(parts) > 2 and parts[2].startswith("--keep ") else None
+        keep = keep[len("--keep "):] if keep else None
+        result = report_to_grok(clean_safe(keep))
         return result
     elif req_lower.startswith("create file "):
         filename = request[11:].strip()
