@@ -3,10 +3,10 @@ import sys
 import argparse
 import datetime
 import logging
-import json
 from logging.handlers import RotatingFileHandler
 from file_ops import create_file, delete_file, move_file, copy_file, read_file, write_file, list_files, rename_file, clean_cruft
 from git_ops import git_status, git_pull, git_log, git_branch, git_checkout, git_commit_and_push, git_rm, git_clean_repo
+from grok_checkpoint import list_checkpoints, save_checkpoint
 
 PROJECT_DIR = os.getcwd()
 LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
@@ -55,31 +55,6 @@ def process_multi_command(request):
         results.append(result)
     logger.info(f"Processed multi-command: {request}")
     return "\n".join(results)
-
-def list_checkpoints():
-    """List available checkpoint files in the project directory."""
-    checkpoint_files = [f for f in os.listdir(PROJECT_DIR) if f.endswith('.json') and 'checkpoint' in f.lower()]
-    if not checkpoint_files:
-        logger.info("No checkpoint files found")
-        return "No checkpoint files found"
-    logger.info(f"Found checkpoint files: {checkpoint_files}")
-    return "\n".join(checkpoint_files)
-
-def save_checkpoint(description, filename="checkpoint.json"):
-    """Save a simple checkpoint with description to a JSON file."""
-    checkpoint_data = {
-        "description": description,
-        "timestamp": datetime.datetime.now().isoformat(),
-        "files": []  # Placeholder; could expand to include tracked files
-    }
-    try:
-        with open(os.path.join(PROJECT_DIR, filename), "w") as f:
-            json.dump(checkpoint_data, f, indent=4)
-        logger.info(f"Checkpoint saved: {description} to {filename}")
-        return f"Checkpoint saved: {description} to {filename}"
-    except Exception as e:
-        logger.error(f"Failed to save checkpoint: {e}")
-        return f"Error saving checkpoint: {e}"
 
 def ask_local(request, debug=False):
     request = request.strip().rstrip("?")
@@ -203,7 +178,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Grok-Local: Manage local files, Git repos, and delegate tasks to Grok 3.\n\n"
                     "This script provides a CLI for file operations (create, delete, move, etc.), "
-                    "Git commands (status, commit, pull, etc.), checkpoint management (save/list), "
+                    "Git commands (status, commit, pull, etc.), checkpoint management (save/list via grok_checkpoint.py), "
                     "and delegation to Grok 3 for complex tasks. Supports interactive mode or single commands via --ask. "
                     "Use && to chain commands.",
         epilog="Supported Commands:\n"
