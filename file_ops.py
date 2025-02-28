@@ -12,9 +12,13 @@ BAK_DIR = os.path.join(PROJECT_DIR, "bak")
 logger = logging.getLogger(__name__)
 
 CRITICAL_FILES = {
-    "grok_local.py", "x_poller.py", ".gitignore", "file_ops.py", "git_ops.py", 
-    "grok.txt", "requirements.txt", "bootstrap.py", "test/run_grok_test.py"
+    "grok_local.py", "x_poller.py", ".gitignore", "file_ops.py", "git_ops.py",
+    "grok.txt", "requirements.txt", "bootstrap.py", "run_grok_test.py",
+    "README.md", "start_grok_local_session.py", "grok_checkpoint.py"
 }
+
+# Auto-move these file patterns as cruft without prompting
+CRUFT_PATTERNS = {".log", ".pyc", ".json"}
 
 def sanitize_filename(filename):
     """Ensure filename is safe and within SAFE_DIR."""
@@ -160,7 +164,7 @@ def list_files():
         return f"Error listing files: {e}"
 
 def clean_cruft():
-    """Move all non-critical files (excluding SAFE_DIR, BAK_DIR, .git) to bak/, with confirmation for tracked files."""
+    """Move non-critical files to bak/, auto-moving cruft patterns and prompting for others."""
     ensure_bak_dir()
     moved_files = []
     try:
@@ -172,28 +176,37 @@ def clean_cruft():
             for item in files:
                 item_path = os.path.join(root, item)
                 rel_path = os.path.relpath(item_path, PROJECT_DIR)
-                # Skip if it’s a critical file
-                if os.path.basename(item) in CRITICAL_FILES or rel_path in CRITICAL_FILES:
+                # Skip if it’s a critical file (full path match)
+                if rel_path in CRITICAL_FILES:
+                    logger.info(f"Keeping critical file: {rel_path}")
                     continue
                 # Skip if in safe/, bak/, or .git
                 if (item_path.startswith(SAFE_DIR + os.sep) or 
                     item_path.startswith(BAK_DIR + os.sep) or 
                     item_path.startswith(os.path.join(PROJECT_DIR, ".git") + os.sep)):
+                    logger.info(f"Skipping protected dir file: {rel_path}")
                     continue
-                # Check if tracked
-                is_tracked = rel_path in tracked_files
-                if is_tracked and sys.stdin.isatty():
+                # Auto-move obvious cruft
+                if any(item.endswith(pattern) for pattern in CRUFT_PATTERNS):
+                    decision = "y"
+                    logger.info(f"Auto-moving cruft: {rel_path}")
+                # Check if tracked and prompt if not auto-moved
+                elif rel_path in tracked_files and sys.stdin.isatty():
                     confirm = input(f"Move tracked file {rel_path} to bak/? (y/n): ").lower()
-                    if confirm != "y":
-                        logger.info(f"Skipped tracked file: {rel_path}")
-                        continue
-                dst_path = os.path.join(BAK_DIR, rel_path)
-                os.makedirs(os.path.dirname(dst_path), exist_ok=True)
-                if os.path.exists(dst_path):
-                    os.remove(dst_path)
-                shutil.move(item_path, dst_path)
-                moved_files.append(rel_path)
-                logger.info(f"Moved cruft to bak/: {rel_path}")
+                    decision = confirm if confirm in ["y", "n"] else "n"
+                else:
+                    decision = "y"  # Untracked non-critical files auto-move
+                if decision == "y":
+                    dst_path = os.path.join(BAK_DIR, rel_path)
+                    os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+                    if os.path.exists(dst_path):
+                        os.remove(dst_path)
+                        logger.info(f"Removed existing file at: {dst_path}")
+                    shutil.move(item_path, dst_path)
+                    moved_files.append(rel_path)
+                    logger.info(f"Moved to bak/: {rel_path} (from {item_path} to {dst_path})")
+                else:
+                    logger.info(f"Kept file: {rel_path}")
         return f"Cleaned cruft: {', '.join(moved_files) if moved_files else 'No cruft found'}"
     except Exception as e:
         logger.error(f"Error cleaning cruft: {e}")

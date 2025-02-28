@@ -65,9 +65,14 @@ def git_commit_and_push(message="Automated commit"):
             logger.info("Nothing to commit")
             return "Nothing to commit"
         repo.git.commit(m=message)
-        repo.git.push()
-        logger.info(f"Committed and pushed: {message}")
-        return f"Committed and pushed: {message}"
+        logger.info(f"Committed: {message}")
+        try:
+            repo.git.push()
+            logger.info(f"Pushed: {message}")
+            return f"Committed and pushed: {message}"
+        except git.GitCommandError as e:
+            logger.warning(f"Push failed: {e}")
+            return f"Committed locally but push failed: {str(e)}"
     except git.GitCommandError as e:
         logger.error(f"Git error: {e}")
         return f"Git error: {str(e)}"
@@ -82,15 +87,25 @@ def git_rm(filename):
         logger.error(f"Git rm error for {filename}: {e}")
         return f"Git rm error: {str(e)}"
 
-def git_diff():
+def git_clean_repo():
+    """Clean the repo by resetting changes and syncing with remote."""
+    repo = Repo(PROJECT_DIR)
     try:
-        repo = Repo(PROJECT_DIR)
-        diff = repo.git.diff()
-        if not diff:
-            logger.info("No changes to display in git diff")
-            return "No changes to display"
-        logger.info("Retrieved git diff")
-        return diff
-    except Exception as e:
-        logger.error(f"Git diff error: {e}")
-        return f"Git diff error: {e}"
+        # Pull latest from remote to avoid conflicts
+        repo.git.pull()
+        # Reset uncommitted changes (safe since cruft is already moved)
+        repo.git.reset("--hard")
+        repo.git.clean("-fd")  # Remove untracked files/directories
+        logger.info("Repo cleaned and reset to match remote")
+        # Check if there’s anything to commit (shouldn’t be after reset)
+        status = repo.git.status()
+        if "nothing to commit" not in status:
+            repo.git.add(A=True)
+            repo.git.commit(m="Housekeeping: cleaned repo")
+            repo.git.push()
+            logger.info("Pushed cleaned repo state")
+            return "Repo cleaned and pushed"
+        return "Repo cleaned, no changes to push"
+    except git.GitCommandError as e:
+        logger.error(f"Git clean error: {e}")
+        return f"Git clean error: {str(e)}"
