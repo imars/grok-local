@@ -165,7 +165,7 @@ def list_files():
         return f"Error listing files: {e}"
 
 def clean_cruft():
-    """Move non-critical files to bak/, auto-moving cruft patterns and prompting for others."""
+    """Move non-critical files to bak/, untracking them to prevent git restore."""
     ensure_bak_dir()
     moved_files = []
     try:
@@ -181,10 +181,8 @@ def clean_cruft():
                 if rel_path in CRITICAL_FILES:
                     logger.info(f"Keeping critical file: {rel_path}")
                     continue
-                # Skip if in safe/, bak/, or .git using startswith with normalized paths
-                if (item_path.startswith(os.path.normpath(SAFE_DIR) + os.sep) or 
-                    item_path.startswith(os.path.normpath(BAK_DIR) + os.sep) or 
-                    item_path.startswith(os.path.normpath(os.path.join(PROJECT_DIR, ".git")) + os.sep)):
+                # Skip if in safe/, bak/, or .git using stricter path check
+                if rel_path.startswith(("safe/", "bak/", ".git/")):
                     logger.info(f"Skipping protected dir file: {rel_path}")
                     continue
                 # Auto-move obvious cruft
@@ -207,7 +205,12 @@ def clean_cruft():
                     if os.path.exists(dst_path):
                         os.remove(dst_path)
                         logger.info(f"Removed existing file at: {dst_path}")
+                    # Move the file
                     shutil.move(item_path, dst_path)
+                    # If tracked, untrack it to prevent git restore
+                    if rel_path in tracked_files:
+                        repo.git.rm("-r", "--cached", rel_path)
+                        logger.info(f"Untracked from git: {rel_path}")
                     if os.path.exists(dst_path) and not os.path.exists(item_path):
                         moved_files.append(rel_path)
                         logger.info(f"Successfully moved to bak/: {rel_path} (from {item_path} to {dst_path})")
