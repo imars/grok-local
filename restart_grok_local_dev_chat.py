@@ -9,10 +9,10 @@ from logging.handlers import RotatingFileHandler
 # This document must not be deleted.
 #
 # This document represents a brief breakdown of the state of our project (grok-local)
-# as of February 28, 2025, updated post-Grok 3 collaboration on X login stub. It provides
-# a solid starting point for any agent restarting a dev chat, mitigating session corruption
-# in long Grok 3 beta chats by transferring project context to a new session. Outputs critical
-# file contents when run (use --dump to see), avoiding attach button issues—see Git for versioning.
+# as of February 28, 2025, updated post-Grok 3 collaboration on X login stub and efficiency focus.
+# It provides a solid starting point for any agent restarting a dev chat, mitigating session corruption
+# in long Grok 3 beta chats by transferring project context to a new session. Outputs critical file
+# contents when run (use --dump to see), avoiding attach button issues—see Git for versioning.
 #
 # Meta-Description for Updates:
 # Update this script when: (1) chat sessions slow down noticeably (e.g., response lag > 5s),
@@ -22,7 +22,9 @@ from logging.handlers import RotatingFileHandler
 # Project Breakdown and Critical Files State sections with latest details from README.md
 # and git log, (d) test with --chat to ensure output is agent-friendly, (e) commit changes
 # with git commit -m "Updated restart script for <reason>". Example trigger: Feb 28, 2025,
-# updated for X login stub, docs/, and path handling fixes.
+# updated for X login stub, docs/, path handling fixes, and efficiency focus on batching steps
+# via scripts (e.g., debug_x_poller.sh) and parameterizing with defaults (e.g., poll_interval)
+# to reduce code rewrites—key lessons from chat optimization.
 #
 # Mission Statement:
 # The project's long-term goal is to build a fully capable local agent that can
@@ -33,19 +35,22 @@ from logging.handlers import RotatingFileHandler
 # Started as a CLI agent managing safe/ sandboxed files and Git. Post-beta, shifted to
 # local/ workspace, added delegation to Grok 3 (e.g., spaceship_fuel.py, x_login_stub.py),
 # fixed input bugs, clarified x_poller.py’s X polling role, and enhanced file ops to work
-# outside safe/ (e.g., docs/). Now outputs file contents for session restarts—non-interactive
-# mode added for scripting. CRITICAL: All file operations MUST output in `cat << 'EOF' > local/<file>`
-# format for easy copy-pasting into terminals—non-negotiable for usability.
+# outside safe/ (e.g., docs/). Added parameterized polling (e.g., --poll-interval) and
+# debug scripts (e.g., debug_x_poller.sh) for efficient testing and minimal rewrites.
+# Now outputs file contents for session restarts—non-interactive mode added for scripting.
+# CRITICAL: All file operations MUST output in `cat << 'EOF' > local/<file>` format for
+# easy copy-pasting into terminals—non-negotiable for usability.
 #
 # Project Breakdown:
 # - grok-local (git@github.com:imars/grok-local.git): Local agent leveraging Deepseek-R1
 #   or Llama3.2, manages GitHub repo, files, and comms with Grok 3 (project lead).
 # - Modularized into:
 #   - grok_local.py: Core logic, interactive/non-interactive modes, delegates to Grok 3, X comms,
-#     now handles arbitrary file paths.
+#     handles arbitrary file paths.
 #   - file_ops.py: File ops (create, delete, etc.), supports paths beyond safe/, skips safe/ in cruft.
 #   - git_ops.py: Git ops (status, commit, etc.), stable.
-#   - x_poller.py: Polls X with Selenium, offline since Feb 27, 2025; stubbed with x_login_stub.py.
+#   - x_poller.py: Polls X with stubbed workflow, parameterized polling (--poll-interval), debug mode.
+#   - debug_x_poller.sh: Script for efficient multi-step testing of x_poller.py.
 # - Supports: File commands (anywhere), Git commands, utilities, delegation with Grok 3.
 #
 # Current Workflow:
@@ -56,34 +61,38 @@ from logging.handlers import RotatingFileHandler
 # - Outputs: File operations MUST use `cat << 'EOF' > local/<file>.py` format—mandatory for
 #   copy-paste simplicity (e.g., delegated scripts like x_login_stub.py).
 # - Git: Regular commits and pushes are EXPECTED—update repo frequently!
-# - x_poller.py polls X (offline), grok_local delegates to Grok 3, this file restarts chats.
+# - x_poller.py polls X (stubbed), grok_local delegates to Grok 3, this file restarts chats.
 #
 # Critical Files State (Feb 28, 2025):
 # - grok_local.py: Core, supports --ask, delegates to Grok 3, uses x_poller, writes anywhere.
 # - file_ops.py: File ops, defaults to local/, supports any path, skips safe/ in cruft.
 # - git_ops.py: Git utilities, unchanged, stable.
-# - x_poller.py: X polling with Selenium, offline since Feb 27, 00:48 GMT (login blocks).
+# - x_poller.py: X polling with stubbed login/scan, --poll-interval (default 5s), --debug clears last_processed.
 # - .gitignore: Excludes safe/, logs, etc., unchanged.
 # - grok.txt: Memento, purpose unclear, unchanged.
-# - requirements.txt: Dependencies (Selenium, etc.), unchanged recently.
+# - requirements.txt: Dependencies (gitpython), unchanged recently.
 # - bootstrap.py: Setup script, unchanged.
 # - run_grok_test.py: Test runner, unchanged.
-# - README.md: Project doc, needs update for docs/ and path handling.
+# - README.md: Project doc, professionalized Feb 28, 2025.
 # - restart_grok_local_dev_chat.py: This file, restarts chats, outputs file contents.
 # - grok_checkpoint.py: Checkpointing, unchanged.
 # - tests/test_grok_local.py: Unit tests, unchanged.
 # - docs/timeline.md: Timeline and goals, added Feb 28, 2025.
+# - docs/usage.md: Usage guide, added Feb 28, 2025.
+# - docs/installation.md: Install guide, added Feb 28, 2025.
 # - local/x_login_stub.py: X login simulation stub, added Feb 28, 2025.
-# - Root: These files + safe/ (e.g., test2.txt), bak/ (.json), local/ (x_login_stub.py, spaceship_fuel.py), docs/ (timeline.md, .placeholder), __pycache__, tests/.
+# - debug_x_poller.sh: Debug script for x_poller.py, added Feb 28, 2025.
+# - Root: These files + safe/ (e.g., test2.txt), bak/ (.json), local/ (x_login_stub.py, spaceship_fuel.py), docs/, __pycache__, tests/.
 #
 # Next Steps:
-# - Integrate x_login_stub.py into x_poller.py for safe testing.
-# - Add --force to delete_file in file_ops.py.
+# - Implement tricky login scenario for grok_local to solve autonomously.
 # - Harden git_commit_and_push for robust Git updates—commit and push often!
-# - Boost multi-agent comms (X polling + Grok 3 delegation).
+# - Boost multi-agent comms (X polling + Grok 3 delegation with real X integration).
 #
 # Insights: Chat stalls forced output-based restarts—attach button’s down! Non-interactive mode
-# aids scripting. x_poller.py’s Selenium needs headless fixes. Path handling bugs fixed—test handoffs early.
+# aids scripting. Efficiency improved via batching steps in scripts (e.g., debug_x_poller.sh)
+# and parameterizing with defaults (e.g., poll_interval) to reduce rewrites—key lessons from
+# chat optimization. Test handoffs early to catch hangs.
 
 PROJECT_DIR = os.getcwd()
 LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
@@ -103,8 +112,8 @@ CRITICAL_FILES = {
     "grok_local.py", "file_ops.py", "git_ops.py", "x_poller.py", ".gitignore",
     "grok.txt", "requirements.txt", "bootstrap.py", "run_grok_test.py", "README.md",
     "restart_grok_local_dev_chat.py", "grok_checkpoint.py", "tests/test_grok_local.py",
-    "docs/timeline.md", "local/x_login_stub.py"
-    # Excluding start_grok_local_session.py if present
+    "docs/timeline.md", "docs/usage.md", "docs/installation.md", "local/x_login_stub.py",
+    "debug_x_poller.sh"
 }
 
 def dump_critical_files(chat_mode=False):
@@ -113,7 +122,7 @@ def dump_critical_files(chat_mode=False):
         print("Please analyse the following and use it to take the lead on this project.\n")
     print("=== Critical File Contents (Feb 28, 2025) ===\n")
     for filename in sorted(CRITICAL_FILES):
-        filepath = os.path.join(PROJECT_DIR, filename) if filename not in {"tests/test_grok_local.py", "docs/timeline.md", "local/x_login_stub.py"} else os.path.join(PROJECT_DIR, *filename.split("/"))
+        filepath = os.path.join(PROJECT_DIR, filename) if filename not in {"tests/test_grok_local.py", "docs/timeline.md", "docs/usage.md", "docs/installation.md", "local/x_login_stub.py"} else os.path.join(PROJECT_DIR, *filename.split("/"))
         print(f"--- {filename} ---")
         try:
             with open(filepath, "r") as f:
