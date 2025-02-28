@@ -78,7 +78,7 @@ def perform_headless_login(driver, wait):
     username = os.getenv("X_USERNAME")
     password = os.getenv("X_PASSWORD")
     verify = os.getenv("X_VERIFY")
-    
+
     if not all([username, password, verify]):
         logging.error("Missing credentials in environment variables")
         return False
@@ -88,7 +88,7 @@ def perform_headless_login(driver, wait):
     try:
         with open(os.path.join(DEBUG_DIR, "login_page.html"), "w") as f:
             f.write(driver.page_source)
-        
+
         username_input = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@autocomplete='username']")))
         username_input.send_keys(username)
         logging.info("Entered username")
@@ -191,11 +191,11 @@ def process_grok_interaction(driver, wait, prompt, fetch):
                 if cmd.lower().startswith("commit ") or cmd.lower() in valid_commands:
                     commands.append(cmd)
                     logging.info(f"Found command: {cmd}")
-        
+
         if not commands:
             logging.info("No GROK_LOCAL commands found")
             return "No GROK_LOCAL found after full scan"
-        
+
         logging.info(f"All commands found (in reverse order): {commands}")
         last_command = commands[0]  # First in reverse = last in chat
         logging.info(f"Selected last command: {last_command}")
@@ -246,7 +246,11 @@ def poll_x(headless):
         time.sleep(15)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Poll X for Grok 3 commands")
-    parser.add_argument("--headless", action="store_true")
+    parser = argparse.ArgumentParser(
+        description="X Poller: Poll X for Grok 3 commands and execute them via grok_local.",
+        epilog="Requires X_USERNAME, X_PASSWORD, X_VERIFY env vars. Example: 'python x_poller.py --headless'"
+    )
+    parser.add_argument("--headless", action="store_true", help="Run Chrome in headless mode")
+    parser.add_argument("-h", "--help", action="help", help="Show this help message and exit")
     args = parser.parse_args()
     poll_x(args.headless)

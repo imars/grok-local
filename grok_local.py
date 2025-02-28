@@ -61,10 +61,10 @@ def ask_local(request, debug=False):
     if debug:
         print(f"Processing: {request}")
         logger.debug(f"Debug processing: {request}")
-    
+
     if "&&" in request:
         return process_multi_command(request)
-    
+
     req_lower = request.lower()
     if req_lower in ["what time is it", "ask what time is it"]:
         return report_to_grok(what_time_is_it())
@@ -147,8 +147,11 @@ def ask_local(request, debug=False):
         return f"Unknown command: {request}"
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Local Grok Agent")
-    parser.add_argument("--ask", type=str, help="Command to execute")
+    parser = argparse.ArgumentParser(
+        description="Local Grok Agent: Manage files, Git, and checkpoints.",
+        epilog="Examples: 'python grok_local.py --ask \"list files\"' or 'python grok_local.py' for interactive mode."
+    )
+    parser.add_argument("--ask", type=str, help="Execute a single command and exit")
     parser.add_argument("--debug", action="store_true", help="Enable debug output")
     args = parser.parse_args()
 
