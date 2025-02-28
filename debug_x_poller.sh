@@ -23,22 +23,28 @@ trap cleanup INT TERM EXIT
 chmod +x debug_x_poller.sh
 echo "Set debug_x_poller.sh as executable"
 
-# Verify environment variables are set (without overwriting)
+# Verify environment variables are set
 if [ -z "$X_USERNAME" ] || [ -z "$X_PASSWORD" ] || [ -z "$X_VERIFY" ]; then
     echo "Error: X_USERNAME, X_PASSWORD, and X_VERIFY must be set in the environment"
     exit 1
 fi
 
-# Run x_poller.py with --debug to clear last_processed.txt and ensure output (default 5s polling) for 15 seconds
+# Clear log file to start fresh
+rm -f x_poller.log
+echo "Cleared x_poller.log for fresh start"
+
+# Run x_poller.py with --debug (default 5s polling) for 20 seconds
 echo "Running x_poller.py with --headless --debug (default 5s polling)"
 python x_poller.py --headless --debug &
 PID1=$!
-sleep 15  # 15s to catch ~3 cycles at 5s each
+sleep 20  # 20s to catch ~4 cycles at 5s each
 kill $PID1
 wait $PID1 2>/dev/null
-echo "Stopped x_poller.py after 15 seconds (debug mode, silent default)"
+echo "Stopped x_poller.py after 20 seconds (debug mode)"
+echo "Log after debug run:"
+tail -n 10 x_poller.log || echo "No log output"
 
-# Run x_poller.py with --info mode and default 5s polling for 15 seconds
+# Run x_poller.py with --info (default 5s polling) for 15 seconds
 echo "Running x_poller.py with --headless --info (default 5s polling)"
 python x_poller.py --headless --info &
 PID2=$!
@@ -46,20 +52,24 @@ sleep 15  # 15s to catch ~3 cycles at 5s each
 kill $PID2
 wait $PID2 2>/dev/null
 echo "Stopped x_poller.py after 15 seconds (info mode)"
+echo "Log after info run:"
+tail -n 10 x_poller.log || echo "No log output"
 
-# Run x_poller.py with --debug mode and 1s polling for 10 seconds
-echo "Running x_poller.py with --headless --debug --poll-interval 1"
-python x_poller.py --headless --debug --poll-interval 1 &
+# Run x_poller.py without flags (default 5s polling, silent) for 15 seconds
+echo "Running x_poller.py with --headless (default 5s polling, silent)"
+python x_poller.py --headless &
 PID3=$!
-sleep 10  # 10s to catch ~10 cycles at 1s each
+sleep 15  # 15s to catch ~3 cycles at 5s each
 kill $PID3
 wait $PID3 2>/dev/null
-echo "Stopped x_poller.py after 10 seconds (debug mode, 1s polling)"
+echo "Stopped x_poller.py after 15 seconds (silent mode)"
+echo "Log after silent run:"
+tail -n 10 x_poller.log || echo "No log output"
 
-# Display logs
-echo "Displaying last 20 lines of x_poller.log"
-tail -n 20 x_poller.log
+# Display full logs
+echo "Displaying last 20 lines of x_poller.log (all runs)"
+tail -n 20 x_poller.log || echo "No log output"
 echo "Displaying last 20 lines of x_login_stub.log"
-tail -n 20 x_login_stub.log
+tail -n 20 x_login_stub.log || echo "No log output"
 
 echo "Debug script completed"

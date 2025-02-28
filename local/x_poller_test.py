@@ -9,7 +9,7 @@ LAST_CMD_FILE = os.path.join(PROJECT_DIR, "last_processed.txt")
 LOG_FILE = os.path.join(PROJECT_DIR, "x_poller.log")
 
 # Setup logging globally with basic handlers
-logger = logging.getLogger('x_poller_main')
+logger = logging.getLogger('x_poller_test')
 logger.handlers.clear()
 logger.propagate = False
 file_handler = logging.FileHandler(LOG_FILE)
@@ -46,7 +46,7 @@ def ask_grok(prompt, fetch=False, headless=False, use_stub=True):
     logger.debug(f"Entering ask_grok with prompt: {prompt}, fetch: {fetch}, headless: {headless}, use_stub: {use_stub}")
     if use_stub:
         logger.debug("Using stubbed workflow")
-        if x_login():
+        if x_login():  # Integrated from x_login_stub.py
             logger.info("Stubbed login successful")
             if fetch:
                 chat_content = simulate_chat_scan()
@@ -130,11 +130,11 @@ def poll_x(headless, debug=False, info=False, poll_interval=5):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="X Poller: Poll X for Grok 3 commands and execute them via grok_local.",
-        epilog="Requires X_USERNAME, X_PASSWORD, X_VERIFY env vars. Example: 'python x_poller.py --headless'"
+        description="X Poller Test: Poll X for Grok 3 commands and execute them via grok_local (testing version).",
+        epilog="Requires X_USERNAME, X_PASSWORD, X_VERIFY env vars. Example: 'python local/x_poller_test.py --headless'"
     )
     parser.add_argument("--headless", action="store_true", help="Run Chrome in headless mode")
-    parser.add_argument("--debug", "-d", action="store_true", help="Enable debug logging and clear last_processed.txt")
+    parser.add_argument("--debug", "-d", action="store_true", help="Enable debug logging")
     parser.add_argument("--info", "-i", action="store_true", help="Enable info logging (default is silent)")
     parser.add_argument("--poll-interval", type=float, default=5, help="Set polling interval in seconds (default: 5)")
     args = parser.parse_args()
@@ -143,16 +143,16 @@ if __name__ == "__main__":
         logger.setLevel(logging.DEBUG)
         file_handler.setLevel(logging.DEBUG)
         console_handler.setLevel(logging.DEBUG)
-        logger.debug("Starting x_poller.py with debug mode")
+        logger.debug("Starting x_poller_test.py with debug mode")
     elif args.info:
         logger.setLevel(logging.INFO)
         file_handler.setLevel(logging.INFO)
         console_handler.setLevel(logging.INFO)
-        logger.info("Starting x_poller.py with info mode")
+        logger.info("Starting x_poller_test.py with info mode")
     else:
         logger.setLevel(logging.WARNING)
         file_handler.setLevel(logging.WARNING)
         console_handler.setLevel(logging.WARNING)
-        logger.info("Starting x_poller.py in silent mode")
+        logger.info("Starting x_poller_test.py in silent mode")
 
     poll_x(args.headless, debug=args.debug, info=args.info, poll_interval=args.poll_interval)

@@ -9,10 +9,11 @@ from logging.handlers import RotatingFileHandler
 # This document must not be deleted.
 #
 # This document represents a brief breakdown of the state of our project (grok-local)
-# as of February 28, 2025, updated post-Grok 3 collaboration on X login stub and efficiency focus.
-# It provides a solid starting point for any agent restarting a dev chat, mitigating session corruption
-# in long Grok 3 beta chats by transferring project context to a new session. Outputs critical file
-# contents when run (use --dump to see), avoiding attach button issues—see Git for versioning.
+# as of February 28, 2025, updated post-Grok 3 collaboration on X login stub, efficiency focus,
+# and resolving x_poller.py logging/hang issues. It provides a solid starting point for any
+# agent restarting a dev chat, mitigating session corruption in long Grok 3 beta chats by
+# transferring project context to a new session. Outputs critical file contents when run
+# (use --dump to see), avoiding attach button issues—see Git for versioning.
 #
 # Meta-Description for Updates:
 # Update this script when: (1) chat sessions slow down noticeably (e.g., response lag > 5s),
@@ -22,9 +23,9 @@ from logging.handlers import RotatingFileHandler
 # Project Breakdown and Critical Files State sections with latest details from README.md
 # and git log, (d) test with --chat to ensure output is agent-friendly, (e) commit changes
 # with git commit -m "Updated restart script for <reason>". Example trigger: Feb 28, 2025,
-# updated for X login stub, docs/, path handling fixes, and efficiency focus on batching steps
-# via scripts (e.g., debug_x_poller.sh) and parameterizing with defaults (e.g., poll_interval)
-# to reduce code rewrites—key lessons from chat optimization.
+# updated for X login stub, docs/, path handling fixes, efficiency focus on batching steps
+# via scripts (e.g., debug_x_poller.sh), parameterizing with defaults (e.g., poll_interval),
+# and fixing x_poller.py logging/hang issues—key lessons from chat optimization.
 #
 # Mission Statement:
 # The project's long-term goal is to build a fully capable local agent that can
@@ -34,12 +35,14 @@ from logging.handlers import RotatingFileHandler
 # Digest of Work So Far:
 # Started as a CLI agent managing safe/ sandboxed files and Git. Post-beta, shifted to
 # local/ workspace, added delegation to Grok 3 (e.g., spaceship_fuel.py, x_login_stub.py),
-# fixed input bugs, clarified x_poller.py’s X polling role, and enhanced file ops to work
-# outside safe/ (e.g., docs/). Added parameterized polling (e.g., --poll-interval) and
-# debug scripts (e.g., debug_x_poller.sh) for efficient testing and minimal rewrites.
-# Now outputs file contents for session restarts—non-interactive mode added for scripting.
-# CRITICAL: All file operations MUST output in `cat << 'EOF' > local/<file>` format for
-# easy copy-pasting into terminals—non-negotiable for usability.
+# fixed input bugs, clarified x_poller.py’s X polling role with parameterized polling
+# (--poll-interval, default 5s), and enhanced file ops to work outside safe/ (e.g., docs/).
+# Added debug scripts (e.g., debug_x_poller.sh) for efficient testing and minimal rewrites.
+# Recent focus: fixed x_poller.py silent default (no debug logs without --debug), resolved
+# logging-to-file issues (switched to FileHandler, added flush), and tackled hangs with
+# diagnostics and timeouts. Now outputs file contents for session restarts—non-interactive
+# mode added for scripting. CRITICAL: All file operations MUST output in `cat << 'EOF' > local/<file>`
+# format for easy copy-pasting into terminals—non-negotiable for usability.
 #
 # Project Breakdown:
 # - grok-local (git@github.com:imars/grok-local.git): Local agent leveraging Deepseek-R1
@@ -49,7 +52,8 @@ from logging.handlers import RotatingFileHandler
 #     handles arbitrary file paths.
 #   - file_ops.py: File ops (create, delete, etc.), supports paths beyond safe/, skips safe/ in cruft.
 #   - git_ops.py: Git ops (status, commit, etc.), stable.
-#   - x_poller.py: Polls X with stubbed workflow, parameterized polling (--poll-interval), debug mode.
+#   - x_poller.py: Polls X with stubbed workflow, parameterized polling (--poll-interval, default 5s),
+#     debug mode clears last_processed.txt, fixed silent default and logging issues (Feb 28, 2025).
 #   - debug_x_poller.sh: Script for efficient multi-step testing of x_poller.py.
 # - Supports: File commands (anywhere), Git commands, utilities, delegation with Grok 3.
 #
@@ -59,7 +63,7 @@ from logging.handlers import RotatingFileHandler
 # - Dump Contents: python restart_grok_local_dev_chat.py --dump (prints critical file contents)
 # - File ops in local/ (e.g., x_login_stub.py), safe/ for sandbox, docs/ for docs, Git manages repo.
 # - Outputs: File operations MUST use `cat << 'EOF' > local/<file>.py` format—mandatory for
-#   copy-paste simplicity (e.g., delegated scripts like x_login_stub.py).
+#   copy-paste simplicity (e.g., delegated scripts like x_poller.py).
 # - Git: Regular commits and pushes are EXPECTED—update repo frequently!
 # - x_poller.py polls X (stubbed), grok_local delegates to Grok 3, this file restarts chats.
 #
@@ -67,14 +71,16 @@ from logging.handlers import RotatingFileHandler
 # - grok_local.py: Core, supports --ask, delegates to Grok 3, uses x_poller, writes anywhere.
 # - file_ops.py: File ops, defaults to local/, supports any path, skips safe/ in cruft.
 # - git_ops.py: Git utilities, unchanged, stable.
-# - x_poller.py: X polling with stubbed login/scan, --poll-interval (default 5s), --debug clears last_processed.
+# - x_poller.py: X polling with stubbed login/scan, --poll-interval (default 5s), --debug clears
+#   last_processed.txt, fixed silent default (no debug logs without --debug), logging writes to
+#   x_poller.log with FileHandler and flush (Feb 28, 2025).
 # - .gitignore: Excludes safe/, logs, etc., unchanged.
 # - grok.txt: Memento, purpose unclear, unchanged.
 # - requirements.txt: Dependencies (gitpython), unchanged recently.
 # - bootstrap.py: Setup script, unchanged.
 # - run_grok_test.py: Test runner, unchanged.
 # - README.md: Project doc, professionalized Feb 28, 2025.
-# - restart_grok_local_dev_chat.py: This file, restarts chats, outputs file contents.
+# - restart_grok_local_dev_chat.py: This file, restarts chats, outputs file contents, updated Feb 28, 2025.
 # - grok_checkpoint.py: Checkpointing, unchanged.
 # - tests/test_grok_local.py: Unit tests, unchanged.
 # - docs/timeline.md: Timeline and goals, added Feb 28, 2025.
@@ -85,14 +91,16 @@ from logging.handlers import RotatingFileHandler
 # - Root: These files + safe/ (e.g., test2.txt), bak/ (.json), local/ (x_login_stub.py, spaceship_fuel.py), docs/, __pycache__, tests/.
 #
 # Next Steps:
-# - Implement tricky login scenario for grok_local to solve autonomously.
+# - Implement tricky login scenario for grok_local to solve autonomously (mock server rejects 3 attempts,
+#   then accepts incremented password).
 # - Harden git_commit_and_push for robust Git updates—commit and push often!
 # - Boost multi-agent comms (X polling + Grok 3 delegation with real X integration).
 #
-# Insights: Chat stalls forced output-based restarts—attach button’s down! Non-interactive mode
-# aids scripting. Efficiency improved via batching steps in scripts (e.g., debug_x_poller.sh)
-# and parameterizing with defaults (e.g., poll_interval) to reduce rewrites—key lessons from
-# chat optimization. Test handoffs early to catch hangs.
+# Insights: Chat stalls forced output-based restarts—attach button’s down! Non-interactive mode aids
+# scripting. Efficiency improved via batching steps in scripts (e.g., debug_x_poller.sh) and
+# parameterizing with defaults (e.g., poll_interval) to reduce rewrites. x_poller.py logging/hang fixes
+# required persistent diagnostics (prints, timeouts) and handler tweaks (FileHandler, flush)—key lessons
+# from chat optimization. Test handoffs early to catch hangs.
 
 PROJECT_DIR = os.getcwd()
 LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
