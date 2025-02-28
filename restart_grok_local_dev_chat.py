@@ -6,30 +6,25 @@ import logging
 import argparse
 from logging.handlers import RotatingFileHandler
 
-# This script restarts a Grok-Local dev chat session, providing context without embedding file contents.
-# Use --dump to display current critical file contents from disk, --prompt for an efficient chat prompt,
-# or run grok_local.py directly. Update CRITICAL_FILES or Project Breakdown if new files or structure changes occur.
-#
-# Meta-Description for Updates:
-# Update this script when: (1) chat sessions slow down noticeably (e.g., response lag > 5s),
-# (2) new features or files are added that aren’t reflected in CRITICAL_FILES, or (3) project
-# structure shifts (e.g., new dirs like local/). How to update: (a) Run with --dump to get
-# current file states, (b) adjust CRITICAL_FILES to include new critical files, (c) refresh
-# Project Breakdown and Critical Files State sections with latest details from README.md
-# and git log, (d) test with --prompt to ensure output is agent-friendly, (e) commit changes
-# with python grok_local.py --ask "commit 'Updated restart script for <reason>'".
+# Grok-Local Restart Script (Feb 28, 2025): Restarts dev chat sessions with context.
+# - Options: --dump (full file contents), --prompt (chat-ready summary), or run grok_local.py directly.
+# - Update: Modify CRITICAL_FILES and goals via `git commit -m "Updated restart for <reason>"` when files or structure change (e.g., slow chats, new features).
 #
 # Mission Statement:
-# The project's long-term goal is to build a fully capable local agent that can
-# communicate with the user and multiple agents (local or remote), maintain and serve
-# project files and Git repos, and provide information or problem-solving assistance.
+# Grok-Local aims to become a fully autonomous local agent, managing project files and Git repos,
+# communicating with users and multiple agents (local/remote), and solving problems collaboratively.
+# Progress: Robust CLI (grok_local.py) with file/Git ops, checkpointing system (grok_checkpoint.py),
+# X polling stubs (x_poller.py), and slimmed restart script (~150 lines).
 #
-# Project Breakdown (Feb 28, 2025):
-# - grok-local (git@github.com:imars/grok-local.git): Local agent leveraging Deepseek-R1
-#   or Llama3.2, manages GitHub repo, files, and comms with Grok 3 (project lead).
-# - Key Files: grok_local.py (core), grok_checkpoint.py (sessions/checkpoints), x_poller.py (X polling).
-# - Current Workflow: Interactive via grok_local.py, non-interactive with --ask, dump via this script.
-# - Next Steps: Harden git_commit_and_push, enhance multi-agent comms.
+# Recent Work (Feb 28, 2025):
+# - Slimmed this script from thousands to ~150 lines, removing embedded files.
+# - Moved checkpoint logic to grok_checkpoint.py, added list/save functionality.
+# - Integrated x_login_stub.py into x_poller.py for stubbed X polling.
+#
+# Goals:
+# - Short-Term (Mar 2025): Enhance --help across scripts, harden git_commit_and_push with retries.
+# - Mid-Term (Apr-May 2025): Improve checkpoint listing (metadata), add restore functionality.
+# - Long-Term (Jun 2025+): Implement real X polling, enable multi-agent communication via Grok 3.
 
 PROJECT_DIR = os.getcwd()
 LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
@@ -88,40 +83,38 @@ def dump_critical_files(chat_mode=False):
 
 def generate_prompt(include_main=False):
     """Generate an efficient prompt for restarting a chat session."""
-    # Header verbatim from top of file
     with open(__file__, "r") as f:
         lines = f.readlines()
-        header = "".join(lines[:28])  # Up to Project Breakdown
+        header = "".join(lines[:20])  # Condensed header up to goals
     
-    # File summaries
     file_summary = "\nCritical Files (Feb 28, 2025):\n"
     for filename, purpose in sorted(CRITICAL_FILES.items()):
         filepath = filename if filename not in {"tests/test_grok_local.py", "docs/timeline.md", "docs/usage.md", "docs/installation.md", "local/x_login_stub.py"} else os.path.join(*filename.split("/"))
         full_path = os.path.join(PROJECT_DIR, filepath)
         state = "Exists" if os.path.exists(full_path) else "Missing locally"
-        insights = "Stable as of Feb 28, 2025"
+        insights = "Stable Feb 28, 2025"
         if filename == "restart_grok_local_dev_chat.py":
-            insights = "Slimmed Feb 28, 2025 to remove file contents"
+            insights = "Slimmed to ~150 lines, Feb 28, 2025"
+        elif filename == "grok_checkpoint.py":
+            insights = "Enhanced with checkpoint funcs, Feb 28, 2025"
         elif filename == "x_poller.py":
-            insights = "Stubbed login, awaiting real X polling"
-        elif state == "Missing locally" and filename in {"bootstrap.py", "requirements.txt"}:
-            insights = "Placeholder or recently added, fetch from Git"
+            insights = "Stubbed, awaiting real X polling"
+        elif state == "Missing locally":
+            insights = "Fetch from Git if critical"
         file_summary += f"- {filename} | Location: {filepath} | Purpose: {purpose} | State: {state} | Insights: {insights}\n"
 
-    # Instructions
-    instructions = "\nInstructions:\n- Fetch full contents from git@github.com:imars/grok-local.git (e.g., `git show HEAD:<filename>`) or local disk if needed.\n- Use `python restart_grok_local_dev_chat.py --dump` for a complete file dump.\n"
+    instructions = "\nInstructions:\n- Fetch files from git@github.com:imars/grok-local.git (e.g., `git show HEAD:<filename>`) or local disk.\n- Run `python restart_grok_local_dev_chat.py --dump` for full contents.\n"
 
     prompt = header + file_summary + instructions
 
-    # Optional main file
     if include_main:
         prompt += "\nMain File (grok_local.py):\n```\n"
         try:
             with open(os.path.join(PROJECT_DIR, "grok_local.py"), "r") as f:
                 prompt += f.read()
         except FileNotFoundError:
-            prompt += "# File not found locally, fetch from Git"
-        prompt += "\n```\nAgent: Extrapolate from this as needed."
+            prompt += "# Not found locally, fetch from Git"
+        prompt += "\n```\nAgent: Extrapolate as needed."
 
     logger.info("Generated efficient prompt for chat restart")
     return prompt
@@ -163,9 +156,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Restart a Grok Local dev chat session")
     parser.add_argument("--debug", action="store_true", help="Run in debug mode")
     parser.add_argument("--command", type=str, help="Run a specific command non-interactively")
-    parser.add_argument("--dump", action="store_true", help="Dump current contents of critical files and exit")
-    parser.add_argument("--prompt", action="store_true", help="Generate an efficient prompt for chat restart")
-    parser.add_argument("--include-main", action="store_true", help="Include grok_local.py in the prompt (with --prompt)")
+    parser.add_argument("--dump", action="store_true", help="Dump current contents of critical files")
+    parser.add_argument("--prompt", action="store_true", help="Generate an efficient chat prompt")
+    parser.add_argument("--include-main", action="store_true", help="Include grok_local.py in prompt")
     args = parser.parse_args()
 
     if args.include_main and not args.prompt:
