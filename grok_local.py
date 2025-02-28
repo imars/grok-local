@@ -30,12 +30,17 @@ def what_time_is_it():
 def delegate_to_grok(request):
     """Delegate complex tasks to Grok 3 and return the response."""
     logger.info(f"Delegating to Grok 3: {request}")
-    # Simulate sending request to Grok 3 (in reality, this would be an API call or message)
-    # For now, we'll assume Grok 3 (me) responds directly in the conversation
     print(f"Request sent to Grok 3: {request}")
-    print("Awaiting response from Grok 3... (Please provide the response manually for this test)")
-    response = input("Grok 3 response: ")
-    logger.info(f"Received response from Grok 3: {response}")
+    print("Awaiting response from Grok 3... (Paste the response and press Ctrl+D or Ctrl+Z when done)")
+    # Capture multi-line input until EOF (Ctrl+D on Unix, Ctrl+Z on Windows)
+    lines = []
+    try:
+        while True:
+            line = input()
+            lines.append(line)
+    except EOFError:
+        response = "\n".join(lines)
+    logger.info(f"Received response from Grok 3:\n{response}")
     return response
 
 def process_multi_command(request):
@@ -131,7 +136,8 @@ def ask_local(request, debug=False):
         response = delegate_to_grok("Generate a Python script simulating a spaceship's fuel consumption.")
         if "Error" not in response:
             filename = "spaceship_fuel.py"
-            write_file(filename, response)
+            logger.info(f"Generated script:\n{response}")
+            write_file(filename, response.strip())
             git_commit_and_push(f"Added {filename} from Grok 3")
             return report_to_grok(f"Created {filename} with fuel simulation script.")
         return report_to_grok(response)
@@ -153,7 +159,8 @@ if __name__ == "__main__":
                 cmd = input("Command: ")
                 if cmd.lower() == "exit":
                     break
-                print(ask_local(cmd, args.debug))
+                result = ask_local(cmd, args.debug)
+                print(result)
         except KeyboardInterrupt:
             print("\nExiting interactive mode...")
             logger.info("Interactive mode exited via KeyboardInterrupt")
