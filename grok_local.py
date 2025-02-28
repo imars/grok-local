@@ -137,9 +137,9 @@ def ask_local(request, debug=False):
         if "Error" not in response:
             filename = "spaceship_fuel.py"
             logger.info(f"Generated script:\n{response}")
-            write_file(filename, response.strip())
+            write_file(filename, response.strip(), path=PROJECT_DIR)  # Write to root
             git_commit_and_push(f"Added {filename} from Grok 3")
-            return report_to_grok(f"Created {filename} with fuel simulation script.")
+            return report_to_grok(f"Created {filename} with fuel simulation script in root directory.")
         return report_to_grok(response)
     else:
         logger.warning(f"Unknown command received: {request}")

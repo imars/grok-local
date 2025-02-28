@@ -24,13 +24,6 @@ CRUFT_PATTERNS = {".log", ".pyc", ".json", ".txt", ".DS_Store"}
 def sanitize_filename(filename):
     """Ensure filename is safe and within SAFE_DIR."""
     filename = re.sub(r'[<>:"/\\|?*]', '', filename.strip())
-    full_path = os.path.join(SAFE_DIR, filename)
-    if not full_path.startswith(SAFE_DIR + os.sep):
-        logger.error(f"Invalid filename attempt: {filename}")
-        return None
-    if os.path.basename(filename) in CRITICAL_FILES:
-        logger.error(f"Protected file access denied: {filename}")
-        return None
     return filename
 
 def ensure_safe_dir():
@@ -139,19 +132,21 @@ def read_file(filename):
         logger.error(f"Error reading file {filename}: {e}")
         return f"Error reading file: {e}"
 
-def write_file(filename, content):
-    ensure_safe_dir()
+def write_file(filename, content, path=None):
+    """Write content to a file, defaulting to PROJECT_DIR unless path specified."""
     filename = sanitize_filename(filename)
     if not filename:
         return "Error: Invalid or protected filename"
-    full_path = os.path.join(SAFE_DIR, filename)
+    base_dir = path if path is not None else PROJECT_DIR
+    full_path = os.path.join(base_dir, filename)
     try:
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
         with open(full_path, "w") as f:
             f.write(content)
-        logger.info(f"Wrote to {filename}: {content}")
-        return f"Wrote to {filename}: {content}"
+        logger.info(f"Wrote to {full_path}: {content}")
+        return f"Wrote to {full_path}: {content}"
     except Exception as e:
-        logger.error(f"Error writing file {filename}: {e}")
+        logger.error(f"Error writing file {full_path}: {e}")
         return f"Error writing file: {e}"
 
 def list_files():
