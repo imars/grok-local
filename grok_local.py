@@ -9,6 +9,7 @@ from git_ops import git_status, git_pull, git_log, git_branch, git_checkout, git
 
 PROJECT_DIR = os.getcwd()
 LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
+LOCAL_DIR = os.path.join(PROJECT_DIR, "local")
 
 # Setup logging
 logging.basicConfig(
@@ -137,9 +138,9 @@ def ask_local(request, debug=False):
         if "Error" not in response:
             filename = "spaceship_fuel.py"
             logger.info(f"Generated script:\n{response}")
-            write_file(filename, response.strip(), path=PROJECT_DIR)  # Write to root
-            git_commit_and_push(f"Added {filename} from Grok 3")
-            return report_to_grok(f"Created {filename} with fuel simulation script in root directory.")
+            write_file(filename, response.strip(), path=LOCAL_DIR)  # Write to local/
+            git_commit_and_push(f"Added {filename} from Grok 3 in local/")
+            return report_to_grok(f"Created {filename} with fuel simulation script in local/ directory.")
         return report_to_grok(response)
     else:
         logger.warning(f"Unknown command received: {request}")

@@ -9,6 +9,7 @@ from git import Repo
 PROJECT_DIR = os.getcwd()
 SAFE_DIR = os.path.join(PROJECT_DIR, "safe")
 BAK_DIR = os.path.join(PROJECT_DIR, "bak")
+LOCAL_DIR = os.path.join(PROJECT_DIR, "local")
 logger = logging.getLogger(__name__)
 
 CRITICAL_FILES = {
@@ -22,7 +23,7 @@ CRITICAL_FILES = {
 CRUFT_PATTERNS = {".log", ".pyc", ".json", ".txt", ".DS_Store"}
 
 def sanitize_filename(filename):
-    """Ensure filename is safe and within SAFE_DIR."""
+    """Ensure filename is safe."""
     filename = re.sub(r'[<>:"/\\|?*]', '', filename.strip())
     return filename
 
@@ -37,6 +38,12 @@ def ensure_bak_dir():
     if not os.path.exists(BAK_DIR):
         os.makedirs(BAK_DIR)
         logger.info(f"Created backup directory: {BAK_DIR}")
+
+def ensure_local_dir():
+    """Create LOCAL_DIR if it doesn’t exist."""
+    if not os.path.exists(LOCAL_DIR):
+        os.makedirs(LOCAL_DIR)
+        logger.info(f"Created local directory: {LOCAL_DIR}")
 
 def create_file(filename):
     ensure_safe_dir()
@@ -133,11 +140,12 @@ def read_file(filename):
         return f"Error reading file: {e}"
 
 def write_file(filename, content, path=None):
-    """Write content to a file, defaulting to PROJECT_DIR unless path specified."""
+    """Write content to a file, defaulting to LOCAL_DIR unless path specified."""
     filename = sanitize_filename(filename)
     if not filename:
         return "Error: Invalid or protected filename"
-    base_dir = path if path is not None else PROJECT_DIR
+    base_dir = path if path is not None else LOCAL_DIR
+    ensure_local_dir()  # Ensure LOCAL_DIR exists
     full_path = os.path.join(base_dir, filename)
     try:
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
