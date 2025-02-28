@@ -130,8 +130,19 @@ def poll_x(headless, debug=False, info=False, poll_interval=5):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="X Poller: Poll X for Grok 3 commands and execute them via grok_local.",
-        epilog="Requires X_USERNAME, X_PASSWORD, X_VERIFY env vars. Example: 'python x_poller.py --headless'"
+        description="X Poller: Poll X for Grok 3 commands and execute them via grok_local.\n\n"
+                    "This script polls an X chat for GROK_LOCAL commands (e.g., 'GROK_LOCAL: git status'), "
+                    "executes them using grok_local.py, and posts results back as 'GROK_LOCAL_RESULT: <output>'. "
+                    "Currently uses a stubbed login and chat scan; real X integration is planned.",
+        epilog="Environment Variables:\n"
+               "  X_USERNAME: X account username\n"
+               "  X_PASSWORD: X account password\n"
+               "  X_VERIFY: X verification code\n\n"
+               "Examples:\n"
+               "  python x_poller.py --headless          # Run silently\n"
+               "  python x_poller.py --headless --info   # Show info logs\n"
+               "  python x_poller.py --headless --debug  # Show debug logs",
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--headless", action="store_true", help="Run Chrome in headless mode")
     parser.add_argument("--debug", "-d", action="store_true", help="Enable debug logging and clear last_processed.txt")
