@@ -96,7 +96,6 @@ def ask_local(request, debug=False):
         return report_to_grok(git_rm(filename))
     elif req_lower.startswith("create file "):
         filename = request[11:].strip()
-        # Handle paths like "docs/.placeholder"
         path, fname = os.path.split(filename)
         path = os.path.join(PROJECT_DIR, path) if path else None
         return report_to_grok(create_file(fname, path=path))
@@ -146,6 +145,16 @@ def ask_local(request, debug=False):
             write_file(filename, response.strip(), path=LOCAL_DIR)
             git_commit_and_push(f"Added {filename} from Grok 3 in local/")
             return report_to_grok(f"Created {filename} with fuel simulation script in local/ directory.")
+        return report_to_grok(response)
+    elif req_lower.startswith("create x login stub"):
+        response = delegate_to_grok("Generate a Python script that simulates an X login process as a stub for x_poller.py. The script should: - Take username, password, and verify code as env vars (X_USERNAME, X_PASSWORD, X_VERIFY). - Simulate a login attempt with a 2-second delay to mimic network lag. - Return True for success if all vars are present, False otherwise. - Log each step (attempt, success/failure) to a file 'x_login_stub.log' with timestamps. - Save the script as 'local/x_login_stub.py' and commit it with the message 'Added X login stub for testing'.")
+        if "Error" not in response:
+            filename = "local/x_login_stub.py"
+            logger.info(f"Generated X login stub:\n{response}")
+            write_file(filename, response.strip(), path=None)  # Write to project root, then move
+            move_file("x_login_stub.py", "x_login_stub.py", src_path=PROJECT_DIR, dst_path=LOCAL_DIR)
+            git_commit_and_push("Added X login stub for testing")
+            return report_to_grok(f"Created {filename} with X login stub and committed.")
         return report_to_grok(response)
     else:
         logger.warning(f"Unknown command received: {request}")
