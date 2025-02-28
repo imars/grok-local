@@ -74,6 +74,29 @@ def load_cookies(driver):
     logging.info(f"Loaded {len(cookies)} cookies")
     return True
 
+def simulate_x_login():
+    """Simulate an X login process using environment variables (stubbed for testing)."""
+    # Imported from x_login_stub.py logic
+    stub_log_file = os.path.join(PROJECT_DIR, "x_login_stub.log")
+    stub_logger = logging.getLogger("x_login_stub")
+    stub_handler = RotatingFileHandler(stub_log_file, maxBytes=1*1024*1024, backupCount=3)
+    stub_handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
+    stub_logger.addHandler(stub_handler)
+    stub_logger.setLevel(logging.INFO)
+    
+    stub_logger.info("Attempting X login simulation")
+    time.sleep(2)  # Simulate network delay
+    username = os.getenv("X_USERNAME")
+    password = os.getenv("X_PASSWORD")
+    verify = os.getenv("X_VERIFY")
+    
+    if all([username, password, verify]):
+        stub_logger.info("Login simulation successful")
+        return True
+    else:
+        stub_logger.info("Login simulation failed: missing credentials")
+        return False
+
 def perform_headless_login(driver, wait):
     username = os.getenv("X_USERNAME")
     password = os.getenv("X_PASSWORD")
@@ -149,7 +172,7 @@ def scan_chat(driver, wait):
     logging.info(f"Full chat content: {chat_content}")
     return chat_content
 
-def ask_grok(prompt, fetch=False, headless=False):
+def ask_grok(prompt, fetch=False, headless=False, use_stub=True):
     chrome_options = Options()
     if headless:
         chrome_options.add_argument("--headless")
@@ -167,8 +190,15 @@ def ask_grok(prompt, fetch=False, headless=False):
             time.sleep(5)
         else:
             logging.info("Cookies invalid or not loaded, attempting login")
-            if headless and not perform_headless_login(driver, wait):
-                return "Headless login failed"  # Return as error, not command
+            if use_stub:
+                if simulate_x_login():
+                    logging.info("Stubbed login successful, proceeding with cached state")
+                    driver.get(GROK_URL)
+                    time.sleep(5)
+                else:
+                    return "Stubbed login failed"
+            elif headless and not perform_headless_login(driver, wait):
+                return "Headless login failed"
             driver.get(GROK_URL)
             time.sleep(5)
             handle_cookie_consent(driver, wait)
