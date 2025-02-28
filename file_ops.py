@@ -14,11 +14,12 @@ logger = logging.getLogger(__name__)
 CRITICAL_FILES = {
     "grok_local.py", "x_poller.py", ".gitignore", "file_ops.py", "git_ops.py",
     "grok.txt", "requirements.txt", "bootstrap.py", "run_grok_test.py",
-    "README.md", "start_grok_local_session.py", "grok_checkpoint.py"
+    "README.md", "start_grok_local_session.py", "grok_checkpoint.py",
+    "tests/test_grok_local.py"
 }
 
 # Auto-move these file patterns as cruft without prompting
-CRUFT_PATTERNS = {".log", ".pyc", ".json"}
+CRUFT_PATTERNS = {".log", ".pyc", ".json", ".txt"}
 
 def sanitize_filename(filename):
     """Ensure filename is safe and within SAFE_DIR."""
@@ -180,14 +181,14 @@ def clean_cruft():
                 if rel_path in CRITICAL_FILES:
                     logger.info(f"Keeping critical file: {rel_path}")
                     continue
-                # Skip if in safe/, bak/, or .git
-                if (item_path.startswith(SAFE_DIR + os.sep) or 
-                    item_path.startswith(BAK_DIR + os.sep) or 
-                    item_path.startswith(os.path.join(PROJECT_DIR, ".git") + os.sep)):
+                # Skip if in safe/, bak/, or .git using startswith with normalized paths
+                if (item_path.startswith(os.path.normpath(SAFE_DIR) + os.sep) or 
+                    item_path.startswith(os.path.normpath(BAK_DIR) + os.sep) or 
+                    item_path.startswith(os.path.normpath(os.path.join(PROJECT_DIR, ".git")) + os.sep)):
                     logger.info(f"Skipping protected dir file: {rel_path}")
                     continue
                 # Auto-move obvious cruft
-                if any(item.endswith(pattern) for pattern in CRUFT_PATTERNS):
+                if any(item.endswith(pattern) for pattern in CRUFT_PATTERNS) or "__pycache__" in rel_path:
                     decision = "y"
                     logger.info(f"Auto-moving cruft: {rel_path}")
                 # Check if tracked and prompt if not auto-moved
@@ -198,13 +199,20 @@ def clean_cruft():
                     decision = "y"  # Untracked non-critical files auto-move
                 if decision == "y":
                     dst_path = os.path.join(BAK_DIR, rel_path)
+                    logger.debug(f"Attempting move: {item_path} -> {dst_path}")
+                    if not os.path.exists(item_path):
+                        logger.error(f"Source file does not exist: {item_path}")
+                        continue
                     os.makedirs(os.path.dirname(dst_path), exist_ok=True)
                     if os.path.exists(dst_path):
                         os.remove(dst_path)
                         logger.info(f"Removed existing file at: {dst_path}")
                     shutil.move(item_path, dst_path)
-                    moved_files.append(rel_path)
-                    logger.info(f"Moved to bak/: {rel_path} (from {item_path} to {dst_path})")
+                    if os.path.exists(dst_path) and not os.path.exists(item_path):
+                        moved_files.append(rel_path)
+                        logger.info(f"Successfully moved to bak/: {rel_path} (from {item_path} to {dst_path})")
+                    else:
+                        logger.error(f"Move failed: {rel_path} still at {item_path} or not at {dst_path}")
                 else:
                     logger.info(f"Kept file: {rel_path}")
         return f"Cleaned cruft: {', '.join(moved_files) if moved_files else 'No cruft found'}"

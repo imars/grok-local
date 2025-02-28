@@ -88,24 +88,22 @@ def git_rm(filename):
         return f"Git rm error: {str(e)}"
 
 def git_clean_repo():
-    """Clean the repo by resetting changes and syncing with remote."""
+    """Clean the repo by syncing with remote, preserving bak/ moves."""
     repo = Repo(PROJECT_DIR)
     try:
         # Pull latest from remote to avoid conflicts
         repo.git.pull()
-        # Reset uncommitted changes (safe since cruft is already moved)
-        repo.git.reset("--hard")
-        repo.git.clean("-fd")  # Remove untracked files/directories
-        logger.info("Repo cleaned and reset to match remote")
-        # Check if there’s anything to commit (shouldn’t be after reset)
+        # Clean untracked files only, not resetting tracked changes
+        repo.git.clean("-fd")
+        logger.info("Repo cleaned of untracked files")
         status = repo.git.status()
-        if "nothing to commit" not in status:
-            repo.git.add(A=True)
-            repo.git.commit(m="Housekeeping: cleaned repo")
-            repo.git.push()
-            logger.info("Pushed cleaned repo state")
-            return "Repo cleaned and pushed"
-        return "Repo cleaned, no changes to push"
+        if "nothing to commit" in status:
+            return "Repo cleaned, no changes to push"
+        repo.git.add(A=True)
+        repo.git.commit(m="Housekeeping: cleaned repo")
+        repo.git.push()
+        logger.info("Pushed cleaned repo state")
+        return "Repo cleaned and pushed"
     except git.GitCommandError as e:
         logger.error(f"Git clean error: {e}")
         return f"Git clean error: {str(e)}"
