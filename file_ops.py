@@ -18,7 +18,7 @@ CRITICAL_FILES = {
     "tests/test_grok_local.py"
 }
 
-# Auto-move these file patterns as cruft without prompting
+# Auto-move these file patterns as cruft without prompting (if untracked)
 CRUFT_PATTERNS = {".log", ".pyc", ".json", ".txt"}
 
 def sanitize_filename(filename):
@@ -177,24 +177,24 @@ def clean_cruft():
             for item in files:
                 item_path = os.path.join(root, item)
                 rel_path = os.path.relpath(item_path, PROJECT_DIR)
-                # Skip if it’s a critical file (full path match)
-                if rel_path in CRITICAL_FILES:
-                    logger.info(f"Keeping critical file: {rel_path}")
-                    continue
                 # Skip if in safe/, bak/, or .git using stricter path check
                 if rel_path.startswith(("safe/", "bak/", ".git/")):
                     logger.info(f"Skipping protected dir file: {rel_path}")
                     continue
-                # Auto-move obvious cruft
+                # Skip if it’s a critical file (full path match)
+                if rel_path in CRITICAL_FILES:
+                    logger.info(f"Keeping critical file: {rel_path}")
+                    continue
+                # Decision logic
                 if any(item.endswith(pattern) for pattern in CRUFT_PATTERNS) or "__pycache__" in rel_path:
-                    decision = "y"
+                    decision = "y"  # Auto-move cruft patterns
                     logger.info(f"Auto-moving cruft: {rel_path}")
-                # Check if tracked and prompt if not auto-moved
                 elif rel_path in tracked_files and sys.stdin.isatty():
                     confirm = input(f"Move tracked file {rel_path} to bak/? (y/n): ").lower()
                     decision = confirm if confirm in ["y", "n"] else "n"
                 else:
                     decision = "y"  # Untracked non-critical files auto-move
+                    logger.info(f"Auto-moving untracked: {rel_path}")
                 if decision == "y":
                     dst_path = os.path.join(BAK_DIR, rel_path)
                     logger.debug(f"Attempting move: {item_path} -> {dst_path}")
@@ -205,9 +205,7 @@ def clean_cruft():
                     if os.path.exists(dst_path):
                         os.remove(dst_path)
                         logger.info(f"Removed existing file at: {dst_path}")
-                    # Move the file
                     shutil.move(item_path, dst_path)
-                    # If tracked, untrack it to prevent git restore
                     if rel_path in tracked_files:
                         repo.git.rm("-r", "--cached", rel_path)
                         logger.info(f"Untracked from git: {rel_path}")
