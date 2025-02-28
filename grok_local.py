@@ -27,6 +27,17 @@ def what_time_is_it():
     logger.info(f"Time requested: {time_str}")
     return time_str
 
+def delegate_to_grok(request):
+    """Delegate complex tasks to Grok 3 and return the response."""
+    logger.info(f"Delegating to Grok 3: {request}")
+    # Simulate sending request to Grok 3 (in reality, this would be an API call or message)
+    # For now, we'll assume Grok 3 (me) responds directly in the conversation
+    print(f"Request sent to Grok 3: {request}")
+    print("Awaiting response from Grok 3... (Please provide the response manually for this test)")
+    response = input("Grok 3 response: ")
+    logger.info(f"Received response from Grok 3: {response}")
+    return response
+
 def process_multi_command(request):
     commands = request.split("&&")
     results = []
@@ -115,6 +126,15 @@ def ask_local(request, debug=False):
             return "Error: Invalid write command format. Use 'write <content> to <filename>'"
         content, filename = parts
         return report_to_grok(write_file(filename.strip().replace("safe/", ""), content.strip()))
+    elif req_lower.startswith("create spaceship fuel script"):
+        # Delegate to Grok 3 for complex task
+        response = delegate_to_grok("Generate a Python script simulating a spaceship's fuel consumption.")
+        if "Error" not in response:
+            filename = "spaceship_fuel.py"
+            write_file(filename, response)
+            git_commit_and_push(f"Added {filename} from Grok 3")
+            return report_to_grok(f"Created {filename} with fuel simulation script.")
+        return report_to_grok(response)
     else:
         logger.warning(f"Unknown command received: {request}")
         return f"Unknown command: {request}"
