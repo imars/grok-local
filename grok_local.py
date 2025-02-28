@@ -55,6 +55,15 @@ def process_multi_command(request):
     logger.info(f"Processed multi-command: {request}")
     return "\n".join(results)
 
+def list_checkpoints():
+    """List available checkpoint files in the project directory."""
+    checkpoint_files = [f for f in os.listdir(PROJECT_DIR) if f.endswith('.json') and 'checkpoint' in f.lower()]
+    if not checkpoint_files:
+        logger.info("No checkpoint files found")
+        return "No checkpoint files found"
+    logger.info(f"Found checkpoint files: {checkpoint_files}")
+    return "\n".join(checkpoint_files)
+
 def ask_local(request, debug=False):
     request = request.strip().rstrip("?")
     if debug:
@@ -75,6 +84,8 @@ def ask_local(request, debug=False):
         return report_to_grok(f"{cruft_result}\n{git_result}")
     elif req_lower == "list files":
         return report_to_grok(list_files())
+    elif req_lower == "list checkpoints":
+        return report_to_grok(list_checkpoints())
     elif req_lower.startswith("commit "):
         message = request[7:].strip() or "Automated commit"
         return report_to_grok(git_commit_and_push(message))
@@ -164,19 +175,22 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Grok-Local: Manage local files, Git repos, and delegate tasks to Grok 3.\n\n"
                     "This script provides a CLI for file operations (create, delete, move, etc.), "
-                    "Git commands (status, commit, pull, etc.), and delegation to Grok 3 for complex tasks. "
-                    "Supports interactive mode or single commands via --ask. Use && to chain commands.",
+                    "Git commands (status, commit, pull, etc.), checkpoint management (list checkpoints), "
+                    "and delegation to Grok 3 for complex tasks. Supports interactive mode or single commands via --ask. "
+                    "Use && to chain commands.",
         epilog="Supported Commands:\n"
                "  FILE OPS: create file <path>, delete file <filename>, move file <src> to <dst>, "
                "copy file <src> to <dst>, rename file <old> to <new>, read file <filename>, "
                "write '<content>' to <filename>, list files\n"
                "  GIT OPS: git status, git pull, git log [count], git branch, git checkout <branch>, "
                "commit '<message>', git rm <filename>, clean repo\n"
+               "  CHECKPOINT: list checkpoints\n"
                "  UTILITY: what time is it, version\n"
                "  DELEGATION: create spaceship fuel script, create x login stub\n\n"
                "Examples:\n"
                "  python grok_local.py                    # Start interactive mode\n"
                "  python grok_local.py --ask 'list files' # List files in safe/\n"
+               "  python grok_local.py --ask 'list checkpoints' # List checkpoint files\n"
                "  python grok_local.py --ask 'create file docs/note.txt && write \"Hello\" to docs/note.txt' # Chain commands\n"
                "  python grok_local.py --debug            # Interactive mode with debug output",
         formatter_class=argparse.RawDescriptionHelpFormatter
