@@ -173,17 +173,15 @@ def clean_cruft():
         tracked_files = set(repo.git.ls_files().splitlines())  # Get all tracked files
         logger.info(f"Tracked files: {tracked_files}")
         for root, dirs, files in os.walk(PROJECT_DIR, topdown=True):
-            # Skip .git, safe, and bak directories by filtering dirs
+            # Skip .git, safe, and bak directories
             dirs[:] = [d for d in dirs if os.path.join(root, d) not in {SAFE_DIR, BAK_DIR, os.path.join(PROJECT_DIR, ".git")}]
             for item in files:
                 item_path = os.path.join(root, item)
                 rel_path = os.path.relpath(item_path, PROJECT_DIR)
                 logger.debug(f"Processing file: {rel_path} at {item_path}")
-                # Additional check for safe/, bak/, .git (redundant but ensures skip)
-                if (os.path.commonpath([item_path, SAFE_DIR]) == os.path.normpath(SAFE_DIR) or 
-                    os.path.commonpath([item_path, BAK_DIR]) == os.path.normpath(BAK_DIR) or 
-                    os.path.commonpath([item_path, os.path.join(PROJECT_DIR, ".git")]) == os.path.normpath(os.path.join(PROJECT_DIR, ".git"))):
-                    logger.info(f"Skipping protected dir file: {rel_path}")
+                # Skip if path includes 'safe/' anywhere (root or bak)
+                if 'safe/' in rel_path:
+                    logger.info(f"Skipping safe-related file: {rel_path}")
                     continue
                 # Skip if it’s a critical file (full path match)
                 if rel_path in CRITICAL_FILES:
