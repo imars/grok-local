@@ -32,7 +32,7 @@ def delegate_to_grok(request):
     """Delegate complex tasks to Grok 3 and return the response."""
     logger.info(f"Delegating to Grok 3: {request}")
     print(f"Request sent to Grok 3: {request}")
-    print("Awaiting response from Grok 3... (Paste the response and press Ctrl+D or Ctrl+Z when done)")
+    print("Awaiting response from Grok 3... (Paste the response and press Ctrl+D or Ctrl+Z then Enter when done)")
     # Capture multi-line input until EOF (Ctrl+D on Unix, Ctrl+Z on Windows)
     lines = []
     try:
@@ -40,7 +40,7 @@ def delegate_to_grok(request):
             line = input()
             lines.append(line)
     except EOFError:
-        response = "\n".join(lines)
+        response = "\n".join(lines).strip()
     logger.info(f"Received response from Grok 3:\n{response}")
     return response
 
