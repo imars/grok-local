@@ -33,7 +33,6 @@ def delegate_to_grok(request):
     logger.info(f"Delegating to Grok 3: {request}")
     print(f"Request sent to Grok 3: {request}")
     print("Awaiting response from Grok 3... (Paste the response and press Ctrl+D or Ctrl+Z then Enter when done)")
-    # Capture multi-line input until EOF (Ctrl+D on Unix, Ctrl+Z on Windows)
     lines = []
     try:
         while True:
@@ -97,7 +96,10 @@ def ask_local(request, debug=False):
         return report_to_grok(git_rm(filename))
     elif req_lower.startswith("create file "):
         filename = request[11:].strip()
-        return report_to_grok(create_file(filename))
+        # Handle paths like "docs/.placeholder"
+        path, fname = os.path.split(filename)
+        path = os.path.join(PROJECT_DIR, path) if path else None
+        return report_to_grok(create_file(fname, path=path))
     elif req_lower.startswith("delete file "):
         filename = request[11:].strip().replace("safe/", "")
         return report_to_grok(delete_file(filename))
@@ -107,7 +109,11 @@ def ask_local(request, debug=False):
             logger.error("Invalid move command format")
             return "Error: Invalid move command format. Use 'move file <src> to <dst>'"
         src, dst = parts
-        return report_to_grok(move_file(src.strip().replace("safe/", ""), dst.strip().replace("safe/", "")))
+        src_path, src_fname = os.path.split(src.strip())
+        dst_path, dst_fname = os.path.split(dst.strip())
+        src_path = os.path.join(PROJECT_DIR, src_path) if src_path else None
+        dst_path = os.path.join(PROJECT_DIR, dst_path) if dst_path else None
+        return report_to_grok(move_file(src_fname, dst_fname, src_path=src_path, dst_path=dst_path))
     elif req_lower.startswith("copy file "):
         parts = request[9:].strip().split(" to ")
         if len(parts) != 2:
@@ -133,12 +139,11 @@ def ask_local(request, debug=False):
         content, filename = parts
         return report_to_grok(write_file(filename.strip().replace("safe/", ""), content.strip()))
     elif req_lower.startswith("create spaceship fuel script"):
-        # Delegate to Grok 3 for complex task
         response = delegate_to_grok("Generate a Python script simulating a spaceship's fuel consumption.")
         if "Error" not in response:
             filename = "spaceship_fuel.py"
             logger.info(f"Generated script:\n{response}")
-            write_file(filename, response.strip(), path=LOCAL_DIR)  # Write to local/
+            write_file(filename, response.strip(), path=LOCAL_DIR)
             git_commit_and_push(f"Added {filename} from Grok 3 in local/")
             return report_to_grok(f"Created {filename} with fuel simulation script in local/ directory.")
         return report_to_grok(response)

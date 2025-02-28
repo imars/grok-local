@@ -45,18 +45,23 @@ def ensure_local_dir():
         os.makedirs(LOCAL_DIR)
         logger.info(f"Created local directory: {LOCAL_DIR}")
 
-def create_file(filename):
-    ensure_safe_dir()
+def create_file(filename, path=None):
+    """Create a file at the specified path, defaulting to SAFE_DIR."""
+    base_dir = path if path is not None else SAFE_DIR
+    if not os.path.exists(base_dir):
+        os.makedirs(base_dir, exist_ok=True)
+        logger.info(f"Created directory: {base_dir}")
     filename = sanitize_filename(filename)
-    if not filename:
+    if not filename or filename in CRITICAL_FILES:
         return "Error: Invalid or protected filename"
     try:
-        with open(os.path.join(SAFE_DIR, filename), "w") as f:
+        full_path = os.path.join(base_dir, filename)
+        with open(full_path, "w") as f:
             f.write("")
-        logger.info(f"Created file: {filename}")
-        return f"Created file: {filename}"
+        logger.info(f"Created file: {full_path}")
+        return f"Created file: {full_path}"
     except Exception as e:
-        logger.error(f"Error creating file {filename}: {e}")
+        logger.error(f"Error creating file {full_path}: {e}")
         return f"Error creating file: {e}"
 
 def delete_file(filename):
@@ -80,23 +85,28 @@ def delete_file(filename):
         logger.error(f"Error deleting file {filename}: {e}")
         return f"Error deleting file: {e}"
 
-def move_file(src, dst):
-    ensure_safe_dir()
+def move_file(src, dst, src_path=None, dst_path=None):
+    """Move a file from src_path (default SAFE_DIR) to dst_path (default SAFE_DIR)."""
+    src_base = src_path if src_path is not None else SAFE_DIR
+    dst_base = dst_path if dst_path is not None else SAFE_DIR
     src = sanitize_filename(src)
     dst = sanitize_filename(dst)
     if not (src and dst):
         return "Error: Invalid or protected filename"
-    src_path = os.path.join(SAFE_DIR, src)
-    dst_path = os.path.join(SAFE_DIR, dst)
-    if not os.path.exists(src_path):
-        logger.warning(f"Source file not found: {src}")
-        return f"Source file not found: {src}"
+    src_full = os.path.join(src_base, src)
+    dst_full = os.path.join(dst_base, dst)
+    if not os.path.exists(src_full):
+        logger.warning(f"Source file not found: {src_full}")
+        return f"Source file not found: {src_full}"
+    if not os.path.exists(dst_base):
+        os.makedirs(dst_base, exist_ok=True)
+        logger.info(f"Created directory: {dst_base}")
     try:
-        shutil.move(src_path, dst_path)
-        logger.info(f"Moved {src} to {dst}")
-        return f"Moved {src} to {dst}"
+        shutil.move(src_full, dst_full)
+        logger.info(f"Moved {src_full} to {dst_full}")
+        return f"Moved {src_full} to {dst_full}"
     except Exception as e:
-        logger.error(f"Error moving file {src} to {dst}: {e}")
+        logger.error(f"Error moving file {src_full} to {dst_full}: {e}")
         return f"Error moving file: {e}"
 
 def copy_file(src, dst):
