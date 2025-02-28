@@ -162,11 +162,27 @@ def ask_local(request, debug=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Local Grok Agent: Manage files, Git, and checkpoints.",
-        epilog="Examples: 'python grok_local.py --ask \"list files\"' or 'python grok_local.py' for interactive mode."
+        description="Grok-Local: Manage local files, Git repos, and delegate tasks to Grok 3.\n\n"
+                    "This script provides a CLI for file operations (create, delete, move, etc.), "
+                    "Git commands (status, commit, pull, etc.), and delegation to Grok 3 for complex tasks. "
+                    "Supports interactive mode or single commands via --ask. Use && to chain commands.",
+        epilog="Supported Commands:\n"
+               "  FILE OPS: create file <path>, delete file <filename>, move file <src> to <dst>, "
+               "copy file <src> to <dst>, rename file <old> to <new>, read file <filename>, "
+               "write '<content>' to <filename>, list files\n"
+               "  GIT OPS: git status, git pull, git log [count], git branch, git checkout <branch>, "
+               "commit '<message>', git rm <filename>, clean repo\n"
+               "  UTILITY: what time is it, version\n"
+               "  DELEGATION: create spaceship fuel script, create x login stub\n\n"
+               "Examples:\n"
+               "  python grok_local.py                    # Start interactive mode\n"
+               "  python grok_local.py --ask 'list files' # List files in safe/\n"
+               "  python grok_local.py --ask 'create file docs/note.txt && write \"Hello\" to docs/note.txt' # Chain commands\n"
+               "  python grok_local.py --debug            # Interactive mode with debug output",
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("--ask", type=str, help="Execute a single command and exit")
-    parser.add_argument("--debug", action="store_true", help="Enable debug output")
+    parser.add_argument("--ask", type=str, help="Execute a single command and exit (e.g., 'git status')")
+    parser.add_argument("--debug", action="store_true", help="Enable debug output for commands")
     args = parser.parse_args()
 
     if args.ask:
