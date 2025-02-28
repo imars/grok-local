@@ -171,6 +171,7 @@ def clean_cruft():
     try:
         repo = Repo(PROJECT_DIR)
         tracked_files = set(repo.git.ls_files().splitlines())  # Get all tracked files
+        logger.debug(f"Tracked files: {tracked_files}")
         for root, dirs, files in os.walk(PROJECT_DIR, topdown=True):
             # Skip .git, safe, and bak directories
             dirs[:] = [d for d in dirs if os.path.join(root, d) not in {SAFE_DIR, BAK_DIR} and d != ".git"]
@@ -178,8 +179,8 @@ def clean_cruft():
                 item_path = os.path.join(root, item)
                 rel_path = os.path.relpath(item_path, PROJECT_DIR)
                 logger.debug(f"Processing file: {rel_path} at {item_path}")
-                # Skip if in safe/, bak/, or .git using stricter path check
-                if rel_path.startswith(("safe/", "bak/", ".git/")):
+                # Skip if in safe/, bak/, or .git using item_path
+                if item_path.startswith((os.path.normpath(SAFE_DIR), os.path.normpath(BAK_DIR), os.path.normpath(os.path.join(PROJECT_DIR, ".git")))):
                     logger.info(f"Skipping protected dir file: {rel_path}")
                     continue
                 # Skip if it’s a critical file (full path match)
@@ -187,14 +188,13 @@ def clean_cruft():
                     logger.info(f"Keeping critical file: {rel_path}")
                     continue
                 # Check if tracked
-                is_tracked = rel_path in tracked_files
-                is_cruft = any(item.endswith(pattern) for pattern in CRUFT_PATTERNS) or "__pycache__" in rel_path
-                if is_tracked and sys.stdin.isatty():
+                if rel_path in tracked_files and sys.stdin.isatty():
                     confirm = input(f"Move tracked file {rel_path} to bak/? (y/n): ").lower()
                     decision = confirm if confirm in ["y", "n"] else "n"
                     logger.info(f"Tracked file decision for {rel_path}: {decision}")
-                elif is_cruft:
-                    decision = "y"  # Auto-move cruft patterns
+                # Then check cruft patterns or untracked status
+                elif any(item.endswith(pattern) for pattern in CRUFT_PATTERNS) or "__pycache__" in rel_path:
+                    decision = "y"
                     logger.info(f"Auto-moving cruft: {rel_path}")
                 else:
                     decision = "y"  # Untracked non-critical files auto-move
@@ -210,7 +210,7 @@ def clean_cruft():
                         os.remove(dst_path)
                         logger.info(f"Removed existing file at: {dst_path}")
                     shutil.move(item_path, dst_path)
-                    if is_tracked:
+                    if rel_path in tracked_files:
                         repo.git.rm("-r", "--cached", rel_path)
                         logger.info(f"Untracked from git: {rel_path}")
                     if os.path.exists(dst_path) and not os.path.exists(item_path):
