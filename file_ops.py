@@ -19,7 +19,7 @@ CRITICAL_FILES = {
 }
 
 # Auto-move these file patterns as cruft without prompting (if untracked)
-CRUFT_PATTERNS = {".log", ".pyc", ".json", ".txt"}
+CRUFT_PATTERNS = {".log", ".pyc", ".json", ".txt", ".DS_Store"}
 
 def sanitize_filename(filename):
     """Ensure filename is safe and within SAFE_DIR."""
@@ -149,7 +149,7 @@ def write_file(filename, content):
         with open(full_path, "w") as f:
             f.write(content)
         logger.info(f"Wrote to {filename}: {content}")
-        return f"Wrote to {filename}: {content}"
+        return f"Wrote to {filename}: {content}")
     except Exception as e:
         logger.error(f"Error writing file {filename}: {e}")
         return f"Error writing file: {e}"
@@ -165,13 +165,13 @@ def list_files():
         return f"Error listing files: {e}"
 
 def clean_cruft():
-    """Move non-critical files to bak/, untracking them to prevent git restore."""
+    """Move non-critical files to bak/, untracking and committing to preserve moves."""
     ensure_bak_dir()
     moved_files = []
     try:
         repo = Repo(PROJECT_DIR)
         tracked_files = set(repo.git.ls_files().splitlines())  # Get all tracked files
-        logger.debug(f"Tracked files: {tracked_files}")
+        logger.info(f"Tracked files: {tracked_files}")
         for root, dirs, files in os.walk(PROJECT_DIR, topdown=True):
             # Skip .git, safe, and bak directories
             dirs[:] = [d for d in dirs if os.path.join(root, d) not in {SAFE_DIR, BAK_DIR} and d != ".git"]
@@ -180,39 +180,47 @@ def clean_cruft():
                 rel_path = os.path.relpath(item_path, PROJECT_DIR)
                 logger.debug(f"Processing file: {rel_path} at {item_path}")
                 # Skip if in safe/, bak/, or .git using item_path
-                if item_path.startswith((os.path.normpath(SAFE_DIR), os.path.normpath(BAK_DIR), os.path.normpath(os.path.join(PROJECT_DIR, ".git")))):
+                safe_prefix = os.path.normpath(SAFE_DIR) + os.sep
+                bak_prefix = os.path.normpath(BAK_DIR) + os.sep
+                git_prefix = os.path.normpath(os.path.join(PROJECT_DIR, ".git")) + os.sep
+                if (item_path.startswith(safe_prefix) or 
+                    item_path.startswith(bak_prefix) or 
+                    item_path.startswith(git_prefix)):
                     logger.info(f"Skipping protected dir file: {rel_path}")
                     continue
                 # Skip if it’s a critical file (full path match)
                 if rel_path in CRITICAL_FILES:
                     logger.info(f"Keeping critical file: {rel_path}")
                     continue
-                # Check if tracked
-                if rel_path in tracked_files and sys.stdin.isatty():
+                # Check filesystem presence and tracking
+                exists = os.path.exists(item_path)
+                is_tracked = rel_path in tracked_files
+                if exists and is_tracked and sys.stdin.isatty():
                     confirm = input(f"Move tracked file {rel_path} to bak/? (y/n): ").lower()
                     decision = confirm if confirm in ["y", "n"] else "n"
                     logger.info(f"Tracked file decision for {rel_path}: {decision}")
-                # Then check cruft patterns or untracked status
-                elif any(item.endswith(pattern) for pattern in CRUFT_PATTERNS) or "__pycache__" in rel_path:
+                elif exists and (any(item.endswith(pattern) for pattern in CRUFT_PATTERNS) or "__pycache__" in rel_path):
                     decision = "y"
                     logger.info(f"Auto-moving cruft: {rel_path}")
-                else:
+                elif exists:
                     decision = "y"  # Untracked non-critical files auto-move
                     logger.info(f"Auto-moving untracked: {rel_path}")
+                else:
+                    logger.debug(f"File not found on filesystem: {rel_path}")
+                    continue
                 if decision == "y":
                     dst_path = os.path.join(BAK_DIR, rel_path)
                     logger.debug(f"Attempting move: {item_path} -> {dst_path}")
-                    if not os.path.exists(item_path):
-                        logger.error(f"Source file does not exist: {item_path}")
-                        continue
                     os.makedirs(os.path.dirname(dst_path), exist_ok=True)
                     if os.path.exists(dst_path):
                         os.remove(dst_path)
                         logger.info(f"Removed existing file at: {dst_path}")
                     shutil.move(item_path, dst_path)
-                    if rel_path in tracked_files:
+                    if is_tracked:
                         repo.git.rm("-r", "--cached", rel_path)
-                        logger.info(f"Untracked from git: {rel_path}")
+                        repo.git.add(dst_path)  # Track in bak/
+                        repo.git.commit(m=f"Moved {rel_path} to bak/ and untracked")
+                        logger.info(f"Untracked and committed move: {rel_path}")
                     if os.path.exists(dst_path) and not os.path.exists(item_path):
                         moved_files.append(rel_path)
                         logger.info(f"Successfully moved to bak/: {rel_path} (from {item_path} to {dst_path})")
