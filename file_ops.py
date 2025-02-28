@@ -149,7 +149,7 @@ def write_file(filename, content):
         with open(full_path, "w") as f:
             f.write(content)
         logger.info(f"Wrote to {filename}: {content}")
-        return f"Wrote to {filename}: {content}")
+        return f"Wrote to {filename}: {content}"
     except Exception as e:
         logger.error(f"Error writing file {filename}: {e}")
         return f"Error writing file: {e}"
