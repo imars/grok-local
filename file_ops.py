@@ -177,6 +177,7 @@ def clean_cruft():
             for item in files:
                 item_path = os.path.join(root, item)
                 rel_path = os.path.relpath(item_path, PROJECT_DIR)
+                logger.debug(f"Processing file: {rel_path} at {item_path}")
                 # Skip if in safe/, bak/, or .git using stricter path check
                 if rel_path.startswith(("safe/", "bak/", ".git/")):
                     logger.info(f"Skipping protected dir file: {rel_path}")
@@ -185,13 +186,16 @@ def clean_cruft():
                 if rel_path in CRITICAL_FILES:
                     logger.info(f"Keeping critical file: {rel_path}")
                     continue
-                # Decision logic
-                if any(item.endswith(pattern) for pattern in CRUFT_PATTERNS) or "__pycache__" in rel_path:
-                    decision = "y"  # Auto-move cruft patterns
-                    logger.info(f"Auto-moving cruft: {rel_path}")
-                elif rel_path in tracked_files and sys.stdin.isatty():
+                # Check if tracked
+                is_tracked = rel_path in tracked_files
+                is_cruft = any(item.endswith(pattern) for pattern in CRUFT_PATTERNS) or "__pycache__" in rel_path
+                if is_tracked and sys.stdin.isatty():
                     confirm = input(f"Move tracked file {rel_path} to bak/? (y/n): ").lower()
                     decision = confirm if confirm in ["y", "n"] else "n"
+                    logger.info(f"Tracked file decision for {rel_path}: {decision}")
+                elif is_cruft:
+                    decision = "y"  # Auto-move cruft patterns
+                    logger.info(f"Auto-moving cruft: {rel_path}")
                 else:
                     decision = "y"  # Untracked non-critical files auto-move
                     logger.info(f"Auto-moving untracked: {rel_path}")
@@ -206,7 +210,7 @@ def clean_cruft():
                         os.remove(dst_path)
                         logger.info(f"Removed existing file at: {dst_path}")
                     shutil.move(item_path, dst_path)
-                    if rel_path in tracked_files:
+                    if is_tracked:
                         repo.git.rm("-r", "--cached", rel_path)
                         logger.info(f"Untracked from git: {rel_path}")
                     if os.path.exists(dst_path) and not os.path.exists(item_path):
