@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import argparse
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(PROJECT_DIR)
@@ -27,12 +28,19 @@ def start_session(command=None, resume=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Grok Checkpoint: Start or resume a grok-local session with checkpointing.",
-        epilog="Examples: 'python grok_checkpoint.py --resume' or 'python grok_checkpoint.py --ask \"checkpoint My backup\"'"
+        description="Grok Checkpoint: Manage Grok-Local sessions with checkpointing.\n\n"
+                    "This script starts or resumes a Grok-Local session, passing commands to grok_local.py. "
+                    "Use --ask for non-interactive commands or --resume to view the last checkpoint. "
+                    "Checkpoints save/restore project state (files and safe/ contents).",
+        epilog="Examples:\n"
+               "  python grok_checkpoint.py                    # Start interactive Grok-Local session\n"
+               "  python grok_checkpoint.py --ask 'list files' # Execute a single command\n"
+               "  python grok_checkpoint.py --resume           # View last checkpoint\n"
+               "  python grok_checkpoint.py --ask 'checkpoint \"Backup state\"' # Save a checkpoint",
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--resume", action="store_true", help="Resume from the last checkpoint")
-    parser.add_argument("--ask", type=str, help="Run a specific command and exit")
-    parser.add_argument("-h", "--help", action="help", help="Show this help message and exit")
+    parser.add_argument("--ask", type=str, help="Run a specific command and exit (e.g., 'git status')")
     args = parser.parse_args()
 
     if args.resume:
