@@ -88,6 +88,8 @@ def generate_prompt(include_main=False):
         lines = f.readlines()
         header = "".join(lines[:20])  # Condensed header up to goals
     
+    workflow = "\nCurrent Workflow Details:\n- CLI Development: Grok uses `cat << 'EOF' > <filename>` to output code for easy terminal application (e.g., `cat << 'EOF' > git_ops.py`). Copy-paste into your shell.\n- Interaction: Use grok_local.py interactively (`python grok_local.py`) or with `--ask` for single commands.\n- Debugging: Append `--debug` for verbose logs in grok_local.log.\n"
+
     file_summary = "\nCritical Files (Feb 28, 2025):\n"
     for filename, purpose in sorted(CRITICAL_FILES.items()):
         filepath = filename if filename not in {"tests/test_grok_local.py", "docs/timeline.md", "docs/usage.md", "docs/installation.md", "local/x_login_stub.py"} else os.path.join(*filename.split("/"))
@@ -106,7 +108,7 @@ def generate_prompt(include_main=False):
 
     instructions = "\nInstructions:\n- Fetch files from git@github.com:imars/grok-local.git (e.g., `git show HEAD:<filename>`) or local disk.\n- Run `python grok_bootstrap.py --dump` for full contents.\n"
 
-    prompt = preamble + header + file_summary + instructions
+    prompt = preamble + header + workflow + file_summary + instructions
 
     if include_main:
         prompt += "\nMain File (grok_local.py):\n```\n"
