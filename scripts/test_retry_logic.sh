@@ -5,7 +5,7 @@
 SCRIPT_DIR="$(dirname "$0")"
 REPO_DIR="$(realpath "$SCRIPT_DIR/..")"
 
-# Set venv path (one level up from repo root)
+# Set venv path
 VENV_DIR="/Users/ian/dev/projects/agents/local/grok/venv"
 
 # Ensure venv is active
@@ -23,22 +23,25 @@ if [ ! -f "$REPO_DIR/grok_local.py" ]; then
     exit 1
 fi
 
-# Create a test file to commit
-echo "Test retry logic" > "$REPO_DIR/test_file.txt"
+# Create a test file for first commit
+echo "Test retry logic - first commit" > "$REPO_DIR/test_file.txt"
 
-# Commit and push with retry logic
+# First commit and push
 echo "Running first commit..."
-python "$REPO_DIR/grok_local.py" --ask "commit 'Test retry logic commit'"
+python "$REPO_DIR/grok_local.py" --ask "commit 'Test retry logic commit 1'"
 
-# Simulate a network failure by committing again (manual interruption optional)
-echo "Simulating push with potential retry..."
-python "$REPO_DIR/grok_local.py" --ask "commit 'Test retry logic again'"
+# Modify the test file for second commit
+echo "Test retry logic - second commit" >> "$REPO_DIR/test_file.txt"
+
+# Second commit and push (test retry logic)
+echo "Running second commit (potential retry)..."
+python "$REPO_DIR/grok_local.py" --ask "commit 'Test retry logic commit 2'"
 
 # Check logs for retry attempts
 LOG_FILE="$REPO_DIR/grok_local.log"
 if [ -f "$LOG_FILE" ]; then
-    echo "Checking $LOG_FILE for retry attempts..."
-    grep "Push attempt" "$LOG_FILE" || echo "No retry attempts found in log"
+    echo "Checking $LOG_FILE for retry attempts from this run..."
+    grep "Push attempt.*Test retry logic commit" "$LOG_FILE" || echo "No retry attempts found in log for these commits"
 else
     echo "Warning: $LOG_FILE not found. No retry logs available."
 fi
