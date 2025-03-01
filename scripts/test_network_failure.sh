@@ -26,18 +26,26 @@ fi
 # Create a test file to commit
 echo "Test network failure" > "$REPO_DIR/network_test.txt"
 
-# macOS: Use pfctl to block GitHub SSH (port 22)
+# macOS: Use pfctl to block GitHub SSH (port 22 to ssh.github.com)
 echo "Blocking GitHub SSH (port 22) for test..."
-sudo bash -c "echo 'block drop out on en0 to 140.82.121.4 port 22' > /tmp/pf.conf"
-sudo pfctl -f /tmp/pf.conf -E 2>/dev/null
-echo "Network block active. Running commit..."
+echo "Checking active network interface..."
+ACTIVE_IF=$(ifconfig | grep -B1 "status: active" | grep -o "^en[0-9]")
+if [ -z "$ACTIVE_IF" ]; then
+    echo "Error: Could not determine active network interface. Using en0 as default."
+    ACTIVE_IF="en0"
+fi
+echo "Using interface: $ACTIVE_IF"
+sudo bash -c "echo 'block drop out on $ACTIVE_IF to any port 22' > /tmp/pf.conf"
+sudo pfctl -e 2>/dev/null  # Enable pf if not already
+sudo pfctl -f /tmp/pf.conf
+echo "Network block active (port 22 blocked). Running commit..."
 
 # Attempt commit (should trigger retries due to network failure)
 python "$REPO_DIR/grok_local.py" --ask "commit 'Test network failure commit'"
 
 # Restore network access
 echo "Restoring network access..."
-sudo pfctl -f /etc/pf.conf 2>/dev/null || sudo pfctl -d 2>/dev/null
+sudo pfctl -d 2>/dev/null  # Disable pf to revert to default state
 rm /tmp/pf.conf
 echo "Network restored."
 
