@@ -175,6 +175,31 @@ def get_git_file_tree() -> str:
     except Exception as e:
         return f"Unexpected error generating Git file tree: {e}"
 
+def get_log_tails() -> str:
+    """Retrieve the last 10 lines of important log files."""
+    log_files = [LOG_FILE]  # Add more log files here if needed (e.g., 'debug.log')
+    tail_lines = 10
+    output = ["Recent Log Entries (last {} lines):".format(tail_lines)]
+    
+    for log_file in log_files:
+        full_path = os.path.join(PROJECT_DIR, log_file)
+        output.append(f"\n- {log_file}:")
+        if os.path.exists(full_path):
+            try:
+                result = subprocess.run(
+                    ["tail", "-n", str(tail_lines), full_path],
+                    capture_output=True, text=True, check=True
+                )
+                output.append(result.stdout.rstrip())
+            except subprocess.CalledProcessError as e:
+                output.append(f"  Error reading log: {e}")
+            except Exception as e:
+                output.append(f"  Unexpected error: {e}")
+        else:
+            output.append("  Log file not found")
+    
+    return "\n".join(output)
+
 def generate_prompt(include_main=False):
     """Generate an efficient prompt for restarting a chat session."""
     preamble = "The following contains information to help you restart a malfunctioning Grok 3 chat session.\n\n"
@@ -208,12 +233,13 @@ def generate_prompt(include_main=False):
             for func_sig, desc in info["functions"]:
                 file_summary += f"    - {func_sig}: {desc}\n"
     
-    # Add the Git file tree after Critical Files
+    # Add the Git file tree and log tails
     git_tree = "\n" + get_git_file_tree() + "\n"
+    log_tails = "\n" + get_log_tails() + "\n"
 
     instructions = "\nInstructions:\n- Fetch files from git@github.com:imars/grok-local.git (e.g., `git show HEAD:<filename>`) or local disk.\n- Run `python grok_bootstrap.py --dump` for full contents.\n- Execute tests/tasks from `scripts/` (e.g., `chmod +x scripts/test_<feature>.sh && ./scripts/test_<feature>.sh`).\n"
 
-    prompt = preamble + header + agent_bootstrap + setup + workflow + file_summary + git_tree + instructions
+    prompt = preamble + header + agent_bootstrap + setup + workflow + file_summary + git_tree + log_tails + instructions
 
     if include_main:
         prompt += "\nMain File (grok_local.py):\n```\n"
