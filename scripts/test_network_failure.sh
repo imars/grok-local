@@ -26,19 +26,29 @@ fi
 # Create a test file to commit
 echo "Test network failure" > "$REPO_DIR/network_test.txt"
 
-# macOS: Use pfctl to block GitHub SSH (port 22 to ssh.github.com)
-echo "Blocking GitHub SSH (port 22) for test..."
+# macOS: Detect active network interface
 echo "Checking active network interface..."
-ACTIVE_IF=$(ifconfig | grep -B1 "status: active" | grep -o "^en[0-9]")
+# Try to find active Wi-Fi or Ethernet interface
+ACTIVE_IF=$(ifconfig | grep -B1 "status: active" | grep -o "^en[0-9]" | head -n 1)
 if [ -z "$ACTIVE_IF" ]; then
-    echo "Error: Could not determine active network interface. Using en0 as default."
+    echo "Warning: Could not determine active interface. Defaulting to en0."
     ACTIVE_IF="en0"
 fi
 echo "Using interface: $ACTIVE_IF"
-sudo bash -c "echo 'block drop out on $ACTIVE_IF to any port 22' > /tmp/pf.conf"
+
+# Block GitHub SSH (port 22) with pfctl
+echo "Blocking GitHub SSH (port 22) for test..."
+sudo bash -c "echo 'block drop out on $ACTIVE_IF proto tcp to any port 22' > /tmp/pf.conf"
 sudo pfctl -e 2>/dev/null  # Enable pf if not already
-sudo pfctl -f /tmp/pf.conf
-echo "Network block active (port 22 blocked). Running commit..."
+sudo pfctl -f /tmp/pf.conf 2>/dev/null
+if [ $? -eq 0 ]; then
+    echo "Network block active (port 22 blocked). Running commit..."
+else
+    echo "Error: Failed to apply pfctl rules. Check syntax or permissions."
+    sudo pfctl -d 2>/dev/null
+    rm /tmp/pf.conf
+    exit 1
+fi
 
 # Attempt commit (should trigger retries due to network failure)
 python "$REPO_DIR/grok_local.py" --ask "commit 'Test network failure commit'"
