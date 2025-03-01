@@ -83,6 +83,7 @@ def dump_critical_files(chat_mode=False):
 
 def generate_prompt(include_main=False):
     """Generate an efficient prompt for restarting a chat session."""
+    preamble = "The following contains information to help you restart a malfunctioning Grok 3 chat session.\n\n"
     with open(__file__, "r") as f:
         lines = f.readlines()
         header = "".join(lines[:20])  # Condensed header up to goals
@@ -105,7 +106,7 @@ def generate_prompt(include_main=False):
 
     instructions = "\nInstructions:\n- Fetch files from git@github.com:imars/grok-local.git (e.g., `git show HEAD:<filename>`) or local disk.\n- Run `python grok_bootstrap.py --dump` for full contents.\n"
 
-    prompt = header + file_summary + instructions
+    prompt = preamble + header + file_summary + instructions
 
     if include_main:
         prompt += "\nMain File (grok_local.py):\n```\n"
