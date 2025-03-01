@@ -8,6 +8,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+CHECKPOINT_DIR = os.path.join(PROJECT_DIR, "checkpoints")
 LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
 os.chdir(PROJECT_DIR)
 
@@ -19,13 +20,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Ensure checkpoints directory exists
+if not os.path.exists(CHECKPOINT_DIR):
+    os.makedirs(CHECKPOINT_DIR)
+    logger.info(f"Created checkpoint directory: {CHECKPOINT_DIR}")
+
 def list_checkpoints():
-    """List available checkpoint files in the project directory."""
-    checkpoint_files = [f for f in os.listdir(PROJECT_DIR) if f.endswith('.json') and 'checkpoint' in f.lower()]
+    """List available checkpoint files in the checkpoints directory."""
+    checkpoint_files = [f for f in os.listdir(CHECKPOINT_DIR) if f.endswith('.json') and 'checkpoint' in f.lower()]
     if not checkpoint_files:
-        logger.info("No checkpoint files found")
-        return "No checkpoint files found"
-    logger.info(f"Found checkpoint files: {checkpoint_files}")
+        logger.info("No checkpoint files found in checkpoints/")
+        return "No checkpoint files found in checkpoints/"
+    logger.info(f"Found checkpoint files in checkpoints/: {checkpoint_files}")
     return "\n".join(checkpoint_files)
 
 def save_checkpoint(description, filename="checkpoint.json", current_task=""):
@@ -37,10 +43,11 @@ def save_checkpoint(description, filename="checkpoint.json", current_task=""):
         "current_task": current_task
     }
     try:
-        # Save checkpoint JSON
-        with open(os.path.join(PROJECT_DIR, filename), "w") as f:
+        # Save checkpoint JSON in checkpoints/
+        checkpoint_path = os.path.join(CHECKPOINT_DIR, filename)
+        with open(checkpoint_path, "w") as f:
             json.dump(checkpoint_data, f, indent=4)
-        logger.info(f"Checkpoint saved: {description} to {filename}")
+        logger.info(f"Checkpoint saved: {description} to {checkpoint_path}")
 
         # Update grok_bootstrap.py with current task
         bootstrap_path = os.path.join(PROJECT_DIR, "grok_bootstrap.py")
@@ -55,7 +62,7 @@ def save_checkpoint(description, filename="checkpoint.json", current_task=""):
             f.writelines(lines)
         logger.info(f"Updated grok_bootstrap.py with current task: {current_task}")
 
-        return f"Checkpoint saved: {description} to {filename}"
+        return f"Checkpoint saved: {description} to {checkpoint_path}"
     except Exception as e:
         logger.error(f"Failed to save checkpoint: {e}")
         return f"Error saving checkpoint: {e}"
@@ -104,7 +111,7 @@ if __name__ == "__main__":
         description="Grok Checkpoint: Manage Grok-Local sessions with checkpointing.\n\n"
                     "This script starts or resumes a Grok-Local session, passing commands to grok_local.py. "
                     "Use --ask for non-interactive commands (including checkpoint operations) or --resume to view the last checkpoint. "
-                    "Checkpoints save/restore project state (files and safe/ contents).",
+                    "Checkpoints save/restore project state (files and safe/ contents) in checkpoints/.",
         epilog="Examples:\n"
                "  python grok_checkpoint.py                    # Start interactive Grok-Local session\n"
                "  python grok_checkpoint.py --ask 'list files' # Execute a single command\n"
