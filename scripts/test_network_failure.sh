@@ -5,15 +5,15 @@
 SCRIPT_DIR="$(dirname "$0")"
 REPO_DIR="$(realpath "$SCRIPT_DIR/..")"
 
-# Set venv path dynamically (assumes venv is in repo root)
-VENV_DIR="$REPO_DIR/venv"
+# Set venv path to repo's parent directory
+VENV_DIR="$(realpath "$REPO_DIR/..")/venv"
 
 # Ensure venv is active
 if [ -f "$VENV_DIR/bin/activate" ]; then
     source "$VENV_DIR/bin/activate"
     echo "Activated venv at $VENV_DIR"
 else
-    echo "Error: venv not found at $VENV_DIR. Please run 'python -m venv venv' in $REPO_DIR and install requirements."
+    echo "Error: venv not found at $VENV_DIR. Please run 'python -m venv venv' in $(dirname "$REPO_DIR") and install requirements."
     exit 1
 fi
 
@@ -25,8 +25,11 @@ for FILE in "$REPO_DIR/grok_local.py" "$REPO_DIR/git_ops.py"; do
     fi
 done
 
-# Create a test file to commit
+# Clean up any existing test file and prepare a fresh one
 TEST_FILE="$REPO_DIR/network_test.txt"
+if [ -f "$TEST_FILE" ]; then
+    rm "$TEST_FILE"
+fi
 echo "Test network failure" > "$TEST_FILE"
 git -C "$REPO_DIR" add "$TEST_FILE"  # Stage the file for commit
 
@@ -56,7 +59,7 @@ if [ $? -eq 0 ]; then
 else
     echo "Error: Failed to apply pfctl rules. Check sudo permissions or syntax."
     sudo pfctl -d 2>/dev/null
-    rm -f /tmp/pf.conf
+    sudo rm -f /tmp/pf.conf
     exit 1
 fi
 
@@ -68,7 +71,7 @@ COMMIT_STATUS=$?
 # Restore network access
 echo "Restoring network access..."
 sudo pfctl -d 2>/dev/null  # Disable pf to revert to default state
-rm -f /tmp/pf.conf
+sudo rm -f /tmp/pf.conf    # Remove temp file with sudo
 echo "Network restored."
 
 # Check logs for retry attempts
