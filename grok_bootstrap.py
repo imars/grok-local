@@ -32,7 +32,7 @@ from logging.handlers import RotatingFileHandler
 # - Long-Term (Jun 2025+): Implement real X polling, enable multi-agent communication via Grok 3.
 #
 # Current Task (Last Checkpoint, Mar 01, 2025):
-# - 'Implementing retry logic for git_commit_and_push' --git'
+# - 'Streamlining tests with scripts/test_retry_logic.sh' --git'
 
 PROJECT_DIR = os.getcwd()
 LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
@@ -160,9 +160,9 @@ def generate_prompt(include_main=False):
     
     agent_bootstrap = "\nAgent Bootstrap:\n- Role: You are Grok, tasked with enhancing Grok-Local. Assist the user in CLI development, outputting code via `cat << 'EOF' > <filename>` for easy application.\n- Interaction: Expect user to apply code and report results. Use checkpoints (checkpoints/) to track tasks and Git (--git flag) to sync progress.\n- Focus: Leverage CRITICAL_FILES functions, prioritize Current Task, and align with Goals.\n"
     
-    setup = "\nSetup for New Chat:\n- Clone: `git clone git@github.com:imars/grok-local.git`\n- Enter: `cd grok-local`\n- Env: `python -m venv venv && source venv/bin/activate && pip install gitpython`\n- Deps: `pip install -r requirements.txt` (ensure gitpython is listed)\n- Structure: Root has CLI scripts (grok_local.py, grok_bootstrap.py), `checkpoints/` for checkpoints, `docs/` for guides, `local/` for stubs, `tests/` for unit tests.\n- Start: `python grok_local.py` (interactive) or `python grok_local.py --ask 'list files'` (test).\n- Agent Role: I (Grok) assist with CLI dev, outputting code via `cat << 'EOF' > <filename>`. User applies it and reports results.\n"
+    setup = "\nSetup for New Chat:\n- Clone: `git clone git@github.com:imars/grok-local.git`\n- Enter: `cd grok-local`\n- Env: `python -m venv venv && source venv/bin/activate && pip install gitpython`\n- Deps: `pip install -r requirements.txt` (ensure gitpython is listed)\n- Structure: Root has CLI scripts (grok_local.py, grok_bootstrap.py), `checkpoints/` for checkpoints, `scripts/` for test/task scripts, `docs/` for guides, `local/` for stubs, `tests/` for unit tests.\n- Start: `python grok_local.py` (interactive) or `python grok_local.py --ask 'list files'` (test).\n- Agent Role: I (Grok) assist with CLI dev, outputting code via `cat << 'EOF' > <filename>`. User applies it and reports results.\n"
     
-    workflow = "\nCurrent Workflow Details:\n- CLI Development: Grok uses `cat << 'EOF' > <filename>` to output code for easy terminal application (e.g., `cat << 'EOF' > git_ops.py`). Copy-paste into your shell.\n- Interaction: Use grok_local.py interactively (`python grok_local.py`) or with `--ask` for single commands.\n- Debugging: Append `--debug` for verbose logs in grok_local.log.\n"
+    workflow = "\nCurrent Workflow Details:\n- CLI Development: Grok uses `cat << 'EOF' > <filename>` to output code for easy terminal application (e.g., `cat << 'EOF' > git_ops.py`). Copy-paste into your shell.\n- Interaction: Use grok_local.py interactively (`python grok_local.py`) or with `--ask` for single commands.\n- Debugging: Append `--debug` for verbose logs in grok_local.log.\n- Testing/Tasks: Run scripts from `scripts/` (e.g., `./scripts/test_<feature>.sh`) for tests or multi-step processes.\n"
 
     file_summary = "\nCritical Files (Feb 28, 2025):\n"
     for filename, info in sorted(CRITICAL_FILES.items()):
@@ -184,7 +184,7 @@ def generate_prompt(include_main=False):
             for func_sig, desc in info["functions"]:
                 file_summary += f"    - {func_sig}: {desc}\n"
 
-    instructions = "\nInstructions:\n- Fetch files from git@github.com:imars/grok-local.git (e.g., `git show HEAD:<filename>`) or local disk.\n- Run `python grok_bootstrap.py --dump` for full contents.\n"
+    instructions = "\nInstructions:\n- Fetch files from git@github.com:imars/grok-local.git (e.g., `git show HEAD:<filename>`) or local disk.\n- Run `python grok_bootstrap.py --dump` for full contents.\n- Execute tests/tasks from `scripts/` (e.g., `chmod +x scripts/test_<feature>.sh && ./scripts/test_<feature>.sh`).\n"
 
     prompt = preamble + header + agent_bootstrap + setup + workflow + file_summary + instructions
 
