@@ -1,112 +1,72 @@
-import os
 import git
-import logging
 import time
+import logging
 
-PROJECT_DIR = os.getcwd()
-LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
+# Setup basic logging (compatible with grok_local.py --debug flag)
+logging.basicConfig(level=logging.INFO, filename="grok_local.log", filemode="a",
+                    format="%(asctime)s - %(levelname)s - %(message)s")
 
-logger = logging.getLogger(__name__)
+def git_status() -> str:
+    repo = git.Repo(".")
+    return repo.git.status()
 
-def git_status():
-    try:
-        repo = git.Repo(PROJECT_DIR)
-        status = repo.git.status()
-        logger.info("Git status retrieved")
-        return status
-    except Exception as e:
-        logger.error(f"Git status failed: {e}")
-        return f"Error: {e}"
+def git_pull() -> str:
+    repo = git.Repo(".")
+    return repo.git.pull()
 
-def git_pull():
-    try:
-        repo = git.Repo(PROJECT_DIR)
-        origin = repo.remote(name="origin")
-        origin.pull()
-        logger.info("Git pull successful")
-        return "Pulled latest changes from remote"
-    except Exception as e:
-        logger.error(f"Git pull failed: {e}")
-        return f"Error: {e}"
+def git_log(count: int = 1) -> str:
+    repo = git.Repo(".")
+    return repo.git.log(f"-{count}")
 
-def git_log(count=1):
-    try:
-        repo = git.Repo(PROJECT_DIR)
-        log = repo.git.log(f"-{count}", oneline=True)
-        logger.info(f"Git log retrieved for last {count} commits")
-        return log
-    except Exception as e:
-        logger.error(f"Git log failed: {e}")
-        return f"Error: {e}"
+def git_branch() -> str:
+    repo = git.Repo(".")
+    return repo.git.branch()
 
-def git_branch():
-    try:
-        repo = git.Repo(PROJECT_DIR)
-        branches = repo.git.branch()
-        logger.info("Git branches retrieved")
-        return branches
-    except Exception as e:
-        logger.error(f"Git branch failed: {e}")
-        return f"Error: {e}"
+def git_checkout(branch: str) -> str:
+    repo = git.Repo(".")
+    return repo.git.checkout(branch)
 
-def git_checkout(branch):
-    try:
-        repo = git.Repo(PROJECT_DIR)
-        repo.git.checkout(branch)
-        logger.info(f"Checked out branch: {branch}")
-        return f"Checked out {branch}"
-    except Exception as e:
-        logger.error(f"Git checkout failed: {e}")
-        return f"Error: {e}"
+def git_rm(filename: str) -> str:
+    repo = git.Repo(".")
+    return repo.git.rm(filename)
 
-def git_rm(filename):
-    try:
-        repo = git.Repo(PROJECT_DIR)
-        repo.git.rm(filename)
-        logger.info(f"Removed file from Git: {filename}")
-        return f"Removed {filename} from Git tracking"
-    except Exception as e:
-        logger.error(f"Git rm failed: {e}")
-        return f"Error: {e}"
+def git_clean_repo() -> str:
+    repo = git.Repo(".")
+    return repo.git.clean("-fd")
 
-def git_clean_repo():
-    try:
-        repo = git.Repo(PROJECT_DIR)
-        repo.git.clean("-f", "-d")
-        logger.info("Cleaned untracked files from repo")
-        return "Cleaned untracked files from repo"
-    except Exception as e:
-        logger.error(f"Git clean failed: {e}")
-        return f"Error: {e}"
+def git_commit_and_push(message: str) -> str:
+    """
+    Commits changes and pushes to remote with retry logic for robustness.
+    Args:
+        message: Commit message
+    Returns:
+        str: Success message or error details
+    """
+    repo = git.Repo(".")
+    max_retries = 3
+    initial_delay = 1  # seconds
 
-def git_commit_and_push(message, retries=3, delay=5):
-    """Commit and push changes with retries on failure."""
-    try:
-        repo = git.Repo(PROJECT_DIR)
-        repo.git.add(all=True)
-        if repo.is_dirty():
-            repo.git.commit(m=message)
-            logger.info(f"Committed changes: {message}")
-        else:
-            logger.info("No changes to commit")
-            return "No changes to commit"
+    # Stage all changes
+    repo.git.add(A=True)
+    repo.git.commit(m=message)
+    logging.info(f"Committed changes with message: {message}")
 
-        for attempt in range(retries):
-            try:
-                origin = repo.remote(name="origin")
-                origin.push()
-                logger.info(f"Pushed changes: {message}")
-                return f"Committed and pushed: '{message}'"
-            except git.GitCommandError as e:
-                logger.warning(f"Push attempt {attempt + 1}/{retries} failed: {e}")
-                if attempt < retries - 1:
-                    time.sleep(delay)
-                else:
-                    logger.error(f"Push failed after {retries} retries: {e}")
-                    return f"Error pushing after {retries} retries: {e}"
-    except Exception as e:
-        logger.error(f"Git commit/push failed: {e}")
-        return f"Error: {e}"
+    # Retry logic for push
+    for attempt in range(max_retries):
+        try:
+            repo.git.push()
+            logging.info("Successfully pushed to remote")
+            return "Committed and pushed successfully"
+        except git.GitCommandError as e:
+            logging.error(f"Push failed on attempt {attempt + 1}/{max_retries}: {str(e)}")
+            if attempt == max_retries - 1:
+                return f"Failed to push after {max_retries} attempts: {str(e)}"
+            delay = initial_delay * (2 ** attempt)  # Exponential backoff
+            logging.info(f"Retrying in {delay} seconds...")
+            time.sleep(delay)
+
+    return "Unexpected error in git_commit_and_push"  # Fallback (shouldn't hit)
 
 if __name__ == "__main__":
-    print(git_status())
+    # Example usage for testing
+    print(git_commit_and_push("Test commit with retry logic"))
