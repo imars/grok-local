@@ -28,17 +28,33 @@ def list_checkpoints():
     logger.info(f"Found checkpoint files: {checkpoint_files}")
     return "\n".join(checkpoint_files)
 
-def save_checkpoint(description, filename="checkpoint.json"):
-    """Save a simple checkpoint with description to a JSON file."""
+def save_checkpoint(description, filename="checkpoint.json", current_task=""):
+    """Save a checkpoint with description, files, and current task, updating grok_bootstrap.py."""
     checkpoint_data = {
         "description": description,
         "timestamp": datetime.datetime.now().isoformat(),
-        "files": []  # Placeholder; could expand to include tracked files
+        "files": ["grok_bootstrap.py"],  # Track grok_bootstrap.py
+        "current_task": current_task
     }
     try:
+        # Save checkpoint JSON
         with open(os.path.join(PROJECT_DIR, filename), "w") as f:
             json.dump(checkpoint_data, f, indent=4)
         logger.info(f"Checkpoint saved: {description} to {filename}")
+
+        # Update grok_bootstrap.py with current task
+        bootstrap_path = os.path.join(PROJECT_DIR, "grok_bootstrap.py")
+        with open(bootstrap_path, "r") as f:
+            lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.startswith("# Current Task"):
+                lines[i] = f"# Current Task (Last Checkpoint, {datetime.datetime.now().strftime('%b %d, %Y')}):\n"
+                lines[i + 1] = f"# - {current_task}\n"
+                break
+        with open(bootstrap_path, "w") as f:
+            f.writelines(lines)
+        logger.info(f"Updated grok_bootstrap.py with current task: {current_task}")
+
         return f"Checkpoint saved: {description} to {filename}"
     except Exception as e:
         logger.error(f"Failed to save checkpoint: {e}")
@@ -57,11 +73,17 @@ def start_session(command=None, resume=False):
                 return "Error: Checkpoint requires a description"
             parts = description.split(" --file ")
             if len(parts) == 1:
-                return save_checkpoint(parts[0])
+                task_parts = parts[0].split(" --task ")
+                desc = task_parts[0]
+                task = task_parts[1] if len(task_parts) > 1 else ""
+                return save_checkpoint(desc, current_task=task)
             elif len(parts) == 2:
-                return save_checkpoint(parts[0], parts[1])
+                task_parts = parts[0].split(" --task ")
+                desc = task_parts[0]
+                task = task_parts[1] if len(task_parts) > 1 else ""
+                return save_checkpoint(desc, parts[1], task)
             else:
-                return "Error: Invalid checkpoint format. Use 'checkpoint \"description\" [--file <filename>]'"
+                return "Error: Invalid checkpoint format. Use 'checkpoint \"description\" [--file <filename>] [--task \"task\"]'"
         else:
             args = ["python", "grok_local.py", "--ask", command]
     else:
@@ -87,7 +109,7 @@ if __name__ == "__main__":
                "  python grok_checkpoint.py                    # Start interactive Grok-Local session\n"
                "  python grok_checkpoint.py --ask 'list files' # Execute a single command\n"
                "  python grok_checkpoint.py --ask 'list checkpoints' # List checkpoint files\n"
-               "  python grok_checkpoint.py --ask 'checkpoint \"Test backup\" --file test.json' # Save a checkpoint\n"
+               "  python grok_checkpoint.py --ask 'checkpoint \"Test backup\" --file test.json --task \"Add retry logic\"' # Save a checkpoint\n"
                "  python grok_checkpoint.py --resume           # View last checkpoint",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )

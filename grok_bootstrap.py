@@ -30,6 +30,9 @@ from logging.handlers import RotatingFileHandler
 # - Short-Term (Mar 2025): Enhance --help across scripts, harden git_commit_and_push with retries.
 # - Mid-Term (Apr-May 2025): Improve checkpoint listing (metadata), add restore functionality.
 # - Long-Term (Jun 2025+): Implement real X polling, enable multi-agent communication via Grok 3.
+#
+# Current Task (Last Checkpoint, Feb 28, 2025):
+# - Enhancing grok_bootstrap.py with detailed prompts and planning agent superpowers (e.g., retry logic in git_ops.py).
 
 PROJECT_DIR = os.getcwd()
 LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
@@ -153,7 +156,7 @@ def generate_prompt(include_main=False):
     preamble = "The following contains information to help you restart a malfunctioning Grok 3 chat session.\n\n"
     with open(__file__, "r") as f:
         lines = f.readlines()
-        header = "".join(lines[7:22])  # Skip shebang and imports, start at description
+        header = "".join(lines[7:24])  # Adjusted for Current Task section
     
     setup = "\nSetup for New Chat:\n- Clone: `git clone git@github.com:imars/grok-local.git`\n- Enter: `cd grok-local`\n- Env: `python -m venv venv && source venv/bin/activate && pip install gitpython`\n- Deps: `pip install -r requirements.txt` (ensure gitpython is listed)\n- Structure: Root has CLI scripts (grok_local.py, grok_bootstrap.py), `docs/` for guides, `local/` for stubs, `tests/` for unit tests.\n- Start: `python grok_local.py` (interactive) or `python grok_local.py --ask 'list files'` (test).\n- Agent Role: I (Grok) assist with CLI dev, outputting code via `cat << 'EOF' > <filename>`. User applies it and reports results.\n"
     
