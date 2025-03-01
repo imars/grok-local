@@ -45,24 +45,86 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 CRITICAL_FILES = {
-    "grok_local.py": "Core CLI logic for file/Git ops and Grok 3 delegation",
-    "file_ops.py": "File operation utilities (create, delete, move, etc.)",
-    "git_ops.py": "Git operation utilities (status, commit, push, etc.)",
-    "x_poller.py": "Polls X for Grok 3 commands, currently stubbed",
-    ".gitignore": "Ignores temp files and dirs for Git",
-    "grok.txt": "Simple memento file, purpose unclear",
-    "requirements.txt": "Lists project dependencies (e.g., gitpython)",
-    "bootstrap.py": "Setup script (placeholder, may be missing)",
-    "run_grok_test.py": "Runs mini project workflow tests",
-    "README.md": "Main project documentation",
-    "grok_bootstrap.py": "Restarts dev chat sessions",
-    "grok_checkpoint.py": "Manages sessions and checkpoints",
-    "tests/test_grok_local.py": "Unit tests for grok_local functionality",
-    "docs/timeline.md": "Project timeline and goals",
-    "docs/usage.md": "Detailed CLI usage guide",
-    "docs/installation.md": "Installation instructions",
-    "local/x_login_stub.py": "Stub for X login simulation",
-    "debug_x_poller.sh": "Debug script for x_poller.py"
+    "grok_local.py": {
+        "purpose": "Core CLI logic for file/Git ops and Grok 3 delegation",
+        "functions": [
+            ("report_to_grok(response: str) -> str", "Returns response for Grok integration"),
+            ("what_time_is_it() -> str", "Returns current UTC time as formatted string"),
+            ("delegate_to_grok(request: str) -> str", "Sends request to Grok 3, awaits response"),
+            ("process_multi_command(request: str) -> str", "Handles multiple commands split by &&"),
+            ("ask_local(request: str, debug: bool = False) -> str", "Processes CLI commands")
+        ]
+    },
+    "file_ops.py": {
+        "purpose": "File operation utilities (create, delete, move, etc.)",
+        "functions": [
+            ("create_file(filename: str, path: str = None) -> str", "Creates a new file"),
+            ("delete_file(filename: str) -> str", "Deletes a file"),
+            ("move_file(src_fname: str, dst_fname: str, src_path: str = None, dst_path: str = None) -> str", "Moves a file"),
+            ("copy_file(src: str, dst: str) -> str", "Copies a file"),
+            ("read_file(filename: str) -> str", "Reads file contents"),
+            ("write_file(filename: str, content: str, path: str = None) -> str", "Writes content to file"),
+            ("list_files() -> str", "Lists files in safe/"),
+            ("rename_file(src: str, dst: str) -> str", "Renames a file"),
+            ("clean_cruft() -> str", "Removes untracked files")
+        ]
+    },
+    "git_ops.py": {
+        "purpose": "Git operation utilities (status, commit, push, etc.)",
+        "functions": [
+            ("git_status() -> str", "Returns git status"),
+            ("git_pull() -> str", "Pulls latest changes from remote"),
+            ("git_log(count: int = 1) -> str", "Shows last <count> commits"),
+            ("git_branch() -> str", "Lists git branches"),
+            ("git_checkout(branch: str) -> str", "Switches to specified branch"),
+            ("git_rm(filename: str) -> str", "Removes file from Git tracking"),
+            ("git_clean_repo() -> str", "Cleans untracked files"),
+            ("git_commit_and_push(message: str) -> str", "Commits and pushes changes")
+        ]
+    },
+    "x_poller.py": {
+        "purpose": "Polls X for Grok 3 commands, currently stubbed",
+        "functions": [
+            ("x_login() -> bool", "Simulates X login with env vars"),
+            ("simulate_chat_scan() -> list", "Mocks X chat content"),
+            ("ask_grok(prompt: str, fetch: bool = False, headless: bool = False, use_stub: bool = True) -> str", "Handles Grok interactions"),
+            ("process_grok_interaction(prompt: str, fetch: bool, chat_content: list = None) -> str", "Processes chat commands"),
+            ("poll_x(headless: bool, debug: bool = False, info: bool = False, poll_interval: float = 5)", "Polls X in a loop")
+        ]
+    },
+    ".gitignore": {"purpose": "Ignores temp files and dirs for Git", "functions": []},
+    "grok.txt": {"purpose": "Simple memento file, purpose unclear", "functions": []},
+    "requirements.txt": {"purpose": "Lists project dependencies (e.g., gitpython)", "functions": []},
+    "bootstrap.py": {"purpose": "Setup script (placeholder, may be missing)", "functions": []},
+    "run_grok_test.py": {"purpose": "Runs mini project workflow tests", "functions": []},
+    "README.md": {"purpose": "Main project documentation", "functions": []},
+    "grok_bootstrap.py": {
+        "purpose": "Restarts dev chat sessions",
+        "functions": [
+            ("dump_critical_files(chat_mode: bool = False)", "Dumps file contents"),
+            ("generate_prompt(include_main: bool = False) -> str", "Creates chat restart prompt"),
+            ("start_session(debug: bool = False, command: str = None, dump: bool = False, prompt: bool = False, include_main: bool = False)", "Manages session start")
+        ]
+    },
+    "grok_checkpoint.py": {
+        "purpose": "Manages sessions and checkpoints",
+        "functions": [
+            ("list_checkpoints() -> str", "Lists checkpoint files"),
+            ("save_checkpoint(description: str, filename: str = 'checkpoint.json') -> str", "Saves a checkpoint"),
+            ("start_session(command: str = None, resume: bool = False) -> str", "Starts or resumes a session")
+        ]
+    },
+    "tests/test_grok_local.py": {"purpose": "Unit tests for grok_local functionality", "functions": []},
+    "docs/timeline.md": {"purpose": "Project timeline and goals", "functions": []},
+    "docs/usage.md": {"purpose": "Detailed CLI usage guide", "functions": []},
+    "docs/installation.md": {"purpose": "Installation instructions", "functions": []},
+    "local/x_login_stub.py": {
+        "purpose": "Stub for X login simulation",
+        "functions": [
+            ("x_login() -> bool", "Simulates X login with env vars")
+        ]
+    },
+    "debug_x_poller.sh": {"purpose": "Debug script for x_poller.py", "functions": []}
 }
 
 def dump_critical_files(chat_mode=False):
@@ -98,7 +160,7 @@ def generate_prompt(include_main=False):
     workflow = "\nCurrent Workflow Details:\n- CLI Development: Grok uses `cat << 'EOF' > <filename>` to output code for easy terminal application (e.g., `cat << 'EOF' > git_ops.py`). Copy-paste into your shell.\n- Interaction: Use grok_local.py interactively (`python grok_local.py`) or with `--ask` for single commands.\n- Debugging: Append `--debug` for verbose logs in grok_local.log.\n"
 
     file_summary = "\nCritical Files (Feb 28, 2025):\n"
-    for filename, purpose in sorted(CRITICAL_FILES.items()):
+    for filename, info in sorted(CRITICAL_FILES.items()):
         filepath = filename if filename not in {"tests/test_grok_local.py", "docs/timeline.md", "docs/usage.md", "docs/installation.md", "local/x_login_stub.py"} else os.path.join(*filename.split("/"))
         full_path = os.path.join(PROJECT_DIR, filepath)
         state = "Exists" if os.path.exists(full_path) else "Missing locally"
@@ -111,7 +173,11 @@ def generate_prompt(include_main=False):
             insights = "Stubbed, awaiting real X polling"
         elif state == "Missing locally":
             insights = "Fetch from Git if critical"
-        file_summary += f"- {filename} | Location: {filepath} | Purpose: {purpose} | State: {state} | Insights: {insights}\n"
+        file_summary += f"- {filename} | Location: {filepath} | Purpose: {info['purpose']} | State: {state} | Insights: {insights}\n"
+        if info["functions"]:
+            file_summary += "  Functions:\n"
+            for func_sig, desc in info["functions"]:
+                file_summary += f"    - {func_sig}: {desc}\n"
 
     instructions = "\nInstructions:\n- Fetch files from git@github.com:imars/grok-local.git (e.g., `git show HEAD:<filename>`) or local disk.\n- Run `python grok_bootstrap.py --dump` for full contents.\n"
 
