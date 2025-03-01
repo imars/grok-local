@@ -8,7 +8,12 @@ from logging.handlers import RotatingFileHandler
 
 # Grok-Local Bootstrap Script (Feb 28, 2025): Restarts dev chat sessions with context.
 # - Options: --dump (full file contents), --prompt (chat-ready summary), or run grok_local.py directly.
-# - Update: Modify CRITICAL_FILES and goals via `git commit -m "Updated bootstrap for <reason>"` when files or structure change (e.g., slow chats, new features).
+#
+# Meta (How to Update grok_bootstrap.py):
+# - When: Update if chat slows (>5s lag), new files/features emerge, or project structure shifts (e.g., new dirs).
+# - How: 1) Run `--dump` to inspect file states; 2) Add new critical files to CRITICAL_FILES; 3) Refresh Mission,
+#   Recent Work, Goals, and Workflow with latest from README.md/git log; 4) Test `--prompt` for clarity;
+#   5) Commit via `python grok_local.py --ask "commit 'Updated grok_bootstrap for <reason>'"`.
 #
 # Mission Statement:
 # Grok-Local aims to become a fully autonomous local agent, managing project files and Git repos,
@@ -86,7 +91,9 @@ def generate_prompt(include_main=False):
     preamble = "The following contains information to help you restart a malfunctioning Grok 3 chat session.\n\n"
     with open(__file__, "r") as f:
         lines = f.readlines()
-        header = "".join(lines[:20])  # Condensed header up to goals
+        header = "".join(lines[:22])  # Condensed header up to goals
+    
+    setup = "\nSetup for New Chat:\n- Clone: `git clone git@github.com:imars/grok-local.git`\n- Enter: `cd grok-local`\n- Env: `python -m venv venv && source venv/bin/activate && pip install gitpython`\n- Deps: `pip install -r requirements.txt` (ensure gitpython is listed)\n- Structure: Root has CLI scripts (grok_local.py, grok_bootstrap.py), `docs/` for guides, `local/` for stubs, `tests/` for unit tests.\n- Start: `python grok_local.py` (interactive) or `python grok_local.py --ask 'list files'` (test).\n- Agent Role: I (Grok) assist with CLI dev, outputting code via `cat << 'EOF' > <filename>`. User applies it and reports results.\n"
     
     workflow = "\nCurrent Workflow Details:\n- CLI Development: Grok uses `cat << 'EOF' > <filename>` to output code for easy terminal application (e.g., `cat << 'EOF' > git_ops.py`). Copy-paste into your shell.\n- Interaction: Use grok_local.py interactively (`python grok_local.py`) or with `--ask` for single commands.\n- Debugging: Append `--debug` for verbose logs in grok_local.log.\n"
 
@@ -108,7 +115,7 @@ def generate_prompt(include_main=False):
 
     instructions = "\nInstructions:\n- Fetch files from git@github.com:imars/grok-local.git (e.g., `git show HEAD:<filename>`) or local disk.\n- Run `python grok_bootstrap.py --dump` for full contents.\n"
 
-    prompt = preamble + header + workflow + file_summary + instructions
+    prompt = preamble + header + setup + workflow + file_summary + instructions
 
     if include_main:
         prompt += "\nMain File (grok_local.py):\n```\n"
