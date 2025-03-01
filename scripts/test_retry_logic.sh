@@ -5,11 +5,16 @@
 SCRIPT_DIR="$(dirname "$0")"
 REPO_DIR="$(realpath "$SCRIPT_DIR/..")"
 
-# Ensure venv is active (optional if already active)
-if [ -f "$REPO_DIR/venv/bin/activate" ]; then
-    source "$REPO_DIR/venv/bin/activate"
+# Set venv path (one level up from repo root)
+VENV_DIR="/Users/ian/dev/projects/agents/local/grok/venv"
+
+# Ensure venv is active
+if [ -f "$VENV_DIR/bin/activate" ]; then
+    source "$VENV_DIR/bin/activate"
+    echo "Activated venv at $VENV_DIR"
 else
-    echo "Warning: venv not found at $REPO_DIR/venv. Assuming dependencies are available."
+    echo "Error: venv not found at $VENV_DIR. Please ensure it exists and retry."
+    exit 1
 fi
 
 # Verify grok_local.py exists
@@ -33,7 +38,7 @@ python "$REPO_DIR/grok_local.py" --ask "commit 'Test retry logic again'"
 LOG_FILE="$REPO_DIR/grok_local.log"
 if [ -f "$LOG_FILE" ]; then
     echo "Checking $LOG_FILE for retry attempts..."
-    grep "Push attempt" "$LOG_FILE"
+    grep "Push attempt" "$LOG_FILE" || echo "No retry attempts found in log"
 else
     echo "Warning: $LOG_FILE not found. No retry logs available."
 fi
