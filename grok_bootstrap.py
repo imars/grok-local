@@ -32,7 +32,7 @@ from logging.handlers import RotatingFileHandler
 # - Long-Term (Jun 2025+): Implement real X polling, enable multi-agent communication via Grok 3.
 #
 # Current Task (Last Checkpoint, Mar 01, 2025):
-# - 'Testing checkpoint directory'
+# - 'Verify checkpoint dir'
 
 PROJECT_DIR = os.getcwd()
 LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")

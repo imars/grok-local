@@ -6,6 +6,7 @@ import datetime
 import json
 import logging
 from logging.handlers import RotatingFileHandler
+from git_ops import git_commit_and_push  # Import for Git operations
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 CHECKPOINT_DIR = os.path.join(PROJECT_DIR, "checkpoints")
@@ -34,8 +35,8 @@ def list_checkpoints():
     logger.info(f"Found checkpoint files in checkpoints/: {checkpoint_files}")
     return "\n".join(checkpoint_files)
 
-def save_checkpoint(description, filename="checkpoint.json", current_task=""):
-    """Save a checkpoint with description, files, and current task, updating grok_bootstrap.py."""
+def save_checkpoint(description, filename="checkpoint.json", current_task="", git_update=False):
+    """Save a checkpoint with description, files, and current task, optionally updating Git."""
     checkpoint_data = {
         "description": description,
         "timestamp": datetime.datetime.now().isoformat(),
@@ -62,6 +63,13 @@ def save_checkpoint(description, filename="checkpoint.json", current_task=""):
             f.writelines(lines)
         logger.info(f"Updated grok_bootstrap.py with current task: {current_task}")
 
+        # Optionally commit and push to Git
+        if git_update:
+            commit_message = f"Checkpoint: {description}"
+            git_result = git_commit_and_push(commit_message)
+            logger.info(f"Git update result: {git_result}")
+            return f"Checkpoint saved: {description} to {checkpoint_path}\n{git_result}"
+        
         return f"Checkpoint saved: {description} to {checkpoint_path}"
     except Exception as e:
         logger.error(f"Failed to save checkpoint: {e}")
@@ -79,18 +87,21 @@ def start_session(command=None, resume=False):
             if not description:
                 return "Error: Checkpoint requires a description"
             parts = description.split(" --file ")
+            git_update = "--git" in description
+            if git_update:
+                description = description.replace(" --git", "")
             if len(parts) == 1:
                 task_parts = parts[0].split(" --task ")
                 desc = task_parts[0]
                 task = task_parts[1] if len(task_parts) > 1 else ""
-                return save_checkpoint(desc, current_task=task)
+                return save_checkpoint(desc, current_task=task, git_update=git_update)
             elif len(parts) == 2:
                 task_parts = parts[0].split(" --task ")
                 desc = task_parts[0]
                 task = task_parts[1] if len(task_parts) > 1 else ""
-                return save_checkpoint(desc, parts[1], task)
+                return save_checkpoint(desc, parts[1], task, git_update=git_update)
             else:
-                return "Error: Invalid checkpoint format. Use 'checkpoint \"description\" [--file <filename>] [--task \"task\"]'"
+                return "Error: Invalid checkpoint format. Use 'checkpoint \"description\" [--file <filename>] [--task \"task\"] [--git]'"
         else:
             args = ["python", "grok_local.py", "--ask", command]
     else:
@@ -110,18 +121,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Grok Checkpoint: Manage Grok-Local sessions with checkpointing.\n\n"
                     "This script starts or resumes a Grok-Local session, passing commands to grok_local.py. "
-                    "Use --ask for non-interactive commands (including checkpoint operations) or --resume to view the last checkpoint. "
-                    "Checkpoints save/restore project state (files and safe/ contents) in checkpoints/.",
+                    "Use --ask for non-interactive commands (including checkpoint operations with optional Git update) or --resume to view the last checkpoint.",
         epilog="Examples:\n"
                "  python grok_checkpoint.py                    # Start interactive Grok-Local session\n"
                "  python grok_checkpoint.py --ask 'list files' # Execute a single command\n"
                "  python grok_checkpoint.py --ask 'list checkpoints' # List checkpoint files\n"
-               "  python grok_checkpoint.py --ask 'checkpoint \"Test backup\" --file test.json --task \"Add retry logic\"' # Save a checkpoint\n"
+               "  python grok_checkpoint.py --ask 'checkpoint \"Test backup\" --file test.json --task \"Add retry logic\" --git' # Save checkpoint and update Git\n"
                "  python grok_checkpoint.py --resume           # View last checkpoint",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--resume", action="store_true", help="Resume from the last checkpoint")
-    parser.add_argument("--ask", type=str, help="Run a specific command and exit (e.g., 'git status', 'list checkpoints')")
+    parser.add_argument("--ask", type=str, help="Run a specific command and exit (e.g., 'git status', 'checkpoint \"desc\" --git')")
     args = parser.parse_args()
 
     if args.resume:
