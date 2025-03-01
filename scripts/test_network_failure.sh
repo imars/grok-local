@@ -5,26 +5,37 @@
 SCRIPT_DIR="$(dirname "$0")"
 REPO_DIR="$(realpath "$SCRIPT_DIR/..")"
 
-# Set venv path
-VENV_DIR="/Users/ian/dev/projects/agents/local/grok/venv"
+# Set venv path dynamically (assumes venv is in repo root)
+VENV_DIR="$REPO_DIR/venv"
 
 # Ensure venv is active
 if [ -f "$VENV_DIR/bin/activate" ]; then
     source "$VENV_DIR/bin/activate"
     echo "Activated venv at $VENV_DIR"
 else
-    echo "Error: venv not found at $VENV_DIR. Please ensure it exists and retry."
+    echo "Error: venv not found at $VENV_DIR. Please run 'python -m venv venv' in $REPO_DIR and install requirements."
     exit 1
 fi
 
-# Verify grok_local.py exists
-if [ ! -f "$REPO_DIR/grok_local.py" ]; then
-    echo "Error: grok_local.py not found at $REPO_DIR/grok_local.py"
-    exit 1
-fi
+# Verify critical files exist
+for FILE in "$REPO_DIR/grok_local.py" "$REPO_DIR/git_ops.py"; do
+    if [ ! -f "$FILE" ]; then
+        echo "Error: $FILE not found."
+        exit 1
+    fi
+done
 
 # Create a test file to commit
-echo "Test network failure" > "$REPO_DIR/network_test.txt"
+TEST_FILE="$REPO_DIR/network_test.txt"
+echo "Test network failure" > "$TEST_FILE"
+git -C "$REPO_DIR" add "$TEST_FILE"  # Stage the file for commit
+
+# Detect OS and set network block method (macOS only for now)
+OS=$(uname)
+if [ "$OS" != "Darwin" ]; then
+    echo "Warning: Network block test only implemented for macOS (uses pfctl). Skipping on $OS."
+    exit 0
+fi
 
 # macOS: Detect active network interface
 echo "Checking active network interface..."
@@ -41,36 +52,51 @@ sudo bash -c "echo 'block drop out on $ACTIVE_IF proto tcp to any port 22' > /tm
 sudo pfctl -e 2>/dev/null  # Enable pf if not already
 sudo pfctl -f /tmp/pf.conf 2>/dev/null
 if [ $? -eq 0 ]; then
-    echo "Network block active (port 22 blocked). Running commit..."
+    echo "Network block active (port 22 blocked)."
 else
-    echo "Error: Failed to apply pfctl rules. Check syntax or permissions."
+    echo "Error: Failed to apply pfctl rules. Check sudo permissions or syntax."
     sudo pfctl -d 2>/dev/null
     rm -f /tmp/pf.conf
     exit 1
 fi
 
-# Attempt commit (should trigger retries due to network failure)
-python "$REPO_DIR/grok_local.py" --ask "commit 'Test network failure commit'"
+# Attempt commit with timeout (should fail and trigger retries in git_ops.py)
+echo "Running commit with simulated network failure..."
+timeout 30s python "$REPO_DIR/grok_local.py" --ask "commit 'Test network failure commit'" --debug > "$REPO_DIR/test_output.log" 2>&1
+COMMIT_STATUS=$?
 
 # Restore network access
 echo "Restoring network access..."
 sudo pfctl -d 2>/dev/null  # Disable pf to revert to default state
-rm -f /tmp/pf.conf        # Remove temp file explicitly
+rm -f /tmp/pf.conf
 echo "Network restored."
 
 # Check logs for retry attempts
 LOG_FILE="$REPO_DIR/grok_local.log"
 if [ -f "$LOG_FILE" ]; then
     echo "Checking $LOG_FILE for retry attempts..."
-    grep "Push attempt" "$LOG_FILE" | grep "Test network failure commit" || echo "No retry attempts found for this commit"
-    # Show last few log lines for context
-    echo "Last 5 log lines for reference:"
+    RETRY_COUNT=$(grep "Push attempt" "$LOG_FILE" | grep "Test network failure commit" | wc -l)
+    if [ "$RETRY_COUNT" -gt 0 ]; then
+        echo "Success: Detected $RETRY_COUNT retry attempts for 'Test network failure commit'."
+    else
+        echo "Failure: No retry attempts found in logs for this commit."
+    fi
+    echo "Last 5 log lines for context:"
     tail -n 5 "$LOG_FILE"
 else
-    echo "Warning: $LOG_FILE not found. No retry logs available."
+    echo "Warning: $LOG_FILE not found. Cannot verify retry logic."
+fi
+
+# Verify commit status
+if [ $COMMIT_STATUS -eq 0 ]; then
+    echo "Warning: Commit succeeded unexpectedly during network block (retry logic may have bypassed failure)."
+else
+    echo "Expected: Commit failed due to network block (status: $COMMIT_STATUS)."
 fi
 
 # Cleanup
-rm "$REPO_DIR/network_test.txt"
+rm -f "$TEST_FILE" "$REPO_DIR/test_output.log"
+git -C "$REPO_DIR" reset -- "$TEST_FILE"  # Unstage the test file
 
-echo "Test complete. Verify retry logs above."
+echo "Test complete. Review retry count and logs above for results."
+exit 0
