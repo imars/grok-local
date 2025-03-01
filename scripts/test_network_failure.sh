@@ -28,7 +28,6 @@ echo "Test network failure" > "$REPO_DIR/network_test.txt"
 
 # macOS: Detect active network interface
 echo "Checking active network interface..."
-# Try to find active Wi-Fi or Ethernet interface
 ACTIVE_IF=$(ifconfig | grep -B1 "status: active" | grep -o "^en[0-9]" | head -n 1)
 if [ -z "$ACTIVE_IF" ]; then
     echo "Warning: Could not determine active interface. Defaulting to en0."
@@ -46,7 +45,7 @@ if [ $? -eq 0 ]; then
 else
     echo "Error: Failed to apply pfctl rules. Check syntax or permissions."
     sudo pfctl -d 2>/dev/null
-    rm /tmp/pf.conf
+    rm -f /tmp/pf.conf
     exit 1
 fi
 
@@ -56,7 +55,7 @@ python "$REPO_DIR/grok_local.py" --ask "commit 'Test network failure commit'"
 # Restore network access
 echo "Restoring network access..."
 sudo pfctl -d 2>/dev/null  # Disable pf to revert to default state
-rm /tmp/pf.conf
+rm -f /tmp/pf.conf        # Remove temp file explicitly
 echo "Network restored."
 
 # Check logs for retry attempts
@@ -64,6 +63,9 @@ LOG_FILE="$REPO_DIR/grok_local.log"
 if [ -f "$LOG_FILE" ]; then
     echo "Checking $LOG_FILE for retry attempts..."
     grep "Push attempt" "$LOG_FILE" | grep "Test network failure commit" || echo "No retry attempts found for this commit"
+    # Show last few log lines for context
+    echo "Last 5 log lines for reference:"
+    tail -n 5 "$LOG_FILE"
 else
     echo "Warning: $LOG_FILE not found. No retry logs available."
 fi
