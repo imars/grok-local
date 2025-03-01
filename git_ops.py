@@ -1,109 +1,112 @@
 import os
 import git
-from git import Repo
 import logging
+import time
 
 PROJECT_DIR = os.getcwd()
+LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
+
 logger = logging.getLogger(__name__)
 
 def git_status():
     try:
-        repo = Repo(PROJECT_DIR)
+        repo = git.Repo(PROJECT_DIR)
         status = repo.git.status()
-        logger.info("Retrieved git status")
+        logger.info("Git status retrieved")
         return status
     except Exception as e:
-        logger.error(f"Git status error: {e}")
-        return f"Git status error: {e}"
+        logger.error(f"Git status failed: {e}")
+        return f"Error: {e}"
 
 def git_pull():
     try:
-        repo = Repo(PROJECT_DIR)
-        repo.git.pull()
-        logger.info("Pulled latest changes")
-        return "Pulled latest changes"
+        repo = git.Repo(PROJECT_DIR)
+        origin = repo.remote(name="origin")
+        origin.pull()
+        logger.info("Git pull successful")
+        return "Pulled latest changes from remote"
     except Exception as e:
-        logger.error(f"Git pull error: {e}")
-        return f"Git pull error: {e}"
+        logger.error(f"Git pull failed: {e}")
+        return f"Error: {e}"
 
 def git_log(count=1):
     try:
-        repo = Repo(PROJECT_DIR)
-        log = repo.git.log(f"-{count}")
-        logger.info(f"Retrieved git log with count {count}")
+        repo = git.Repo(PROJECT_DIR)
+        log = repo.git.log(f"-{count}", oneline=True)
+        logger.info(f"Git log retrieved for last {count} commits")
         return log
     except Exception as e:
-        logger.error(f"Git log error: {e}")
-        return f"Git log error: {e}"
+        logger.error(f"Git log failed: {e}")
+        return f"Error: {e}"
 
 def git_branch():
     try:
-        repo = Repo(PROJECT_DIR)
+        repo = git.Repo(PROJECT_DIR)
         branches = repo.git.branch()
-        logger.info("Listed git branches")
+        logger.info("Git branches retrieved")
         return branches
     except Exception as e:
-        logger.error(f"Git branch error: {e}")
-        return f"Git branch error: {e}"
+        logger.error(f"Git branch failed: {e}")
+        return f"Error: {e}"
 
 def git_checkout(branch):
     try:
-        repo = Repo(PROJECT_DIR)
+        repo = git.Repo(PROJECT_DIR)
         repo.git.checkout(branch)
         logger.info(f"Checked out branch: {branch}")
-        return f"Checked out branch: {branch}"
+        return f"Checked out {branch}"
     except Exception as e:
-        logger.error(f"Git checkout error: {e}")
-        return f"Git checkout error: {e}"
-
-def git_commit_and_push(message="Automated commit"):
-    repo = Repo(PROJECT_DIR)
-    try:
-        repo.git.add(A=True)
-        status = repo.git.status()
-        if "nothing to commit" in status:
-            logger.info("Nothing to commit")
-            return "Nothing to commit"
-        repo.git.commit(m=message)
-        logger.info(f"Committed: {message}")
-        try:
-            repo.git.push()
-            logger.info(f"Pushed: {message}")
-            return f"Committed and pushed: {message}"
-        except git.GitCommandError as e:
-            logger.warning(f"Push failed: {e}")
-            return f"Committed locally but push failed: {str(e)}"
-    except git.GitCommandError as e:
-        logger.error(f"Git error: {e}")
-        return f"Git error: {str(e)}"
+        logger.error(f"Git checkout failed: {e}")
+        return f"Error: {e}"
 
 def git_rm(filename):
     try:
-        repo = Repo(PROJECT_DIR)
+        repo = git.Repo(PROJECT_DIR)
         repo.git.rm(filename)
-        logger.info(f"Removed file from git: {filename}")
-        return f"Removed file from git: {filename}"
-    except git.GitCommandError as e:
-        logger.error(f"Git rm error for {filename}: {e}")
-        return f"Git rm error: {str(e)}"
+        logger.info(f"Removed file from Git: {filename}")
+        return f"Removed {filename} from Git tracking"
+    except Exception as e:
+        logger.error(f"Git rm failed: {e}")
+        return f"Error: {e}"
 
 def git_clean_repo():
-    """Clean the repo by syncing with remote, preserving bak/ moves."""
-    repo = Repo(PROJECT_DIR)
     try:
-        # Pull latest from remote to avoid conflicts
-        repo.git.pull()
-        # Clean untracked files only, not resetting tracked changes
-        repo.git.clean("-fd")
-        logger.info("Repo cleaned of untracked files")
-        status = repo.git.status()
-        if "nothing to commit" in status:
-            return "Repo cleaned, no changes to push"
-        repo.git.add(A=True)
-        repo.git.commit(m="Housekeeping: cleaned repo")
-        repo.git.push()
-        logger.info("Pushed cleaned repo state")
-        return "Repo cleaned and pushed"
-    except git.GitCommandError as e:
-        logger.error(f"Git clean error: {e}")
-        return f"Git clean error: {str(e)}"
+        repo = git.Repo(PROJECT_DIR)
+        repo.git.clean("-f", "-d")
+        logger.info("Cleaned untracked files from repo")
+        return "Cleaned untracked files from repo"
+    except Exception as e:
+        logger.error(f"Git clean failed: {e}")
+        return f"Error: {e}"
+
+def git_commit_and_push(message, retries=3, delay=5):
+    """Commit and push changes with retries on failure."""
+    try:
+        repo = git.Repo(PROJECT_DIR)
+        repo.git.add(all=True)
+        if repo.is_dirty():
+            repo.git.commit(m=message)
+            logger.info(f"Committed changes: {message}")
+        else:
+            logger.info("No changes to commit")
+            return "No changes to commit"
+
+        for attempt in range(retries):
+            try:
+                origin = repo.remote(name="origin")
+                origin.push()
+                logger.info(f"Pushed changes: {message}")
+                return f"Committed and pushed: '{message}'"
+            except git.GitCommandError as e:
+                logger.warning(f"Push attempt {attempt + 1}/{retries} failed: {e}")
+                if attempt < retries - 1:
+                    time.sleep(delay)
+                else:
+                    logger.error(f"Push failed after {retries} retries: {e}")
+                    return f"Error pushing after {retries} retries: {e}"
+    except Exception as e:
+        logger.error(f"Git commit/push failed: {e}")
+        return f"Error: {e}"
+
+if __name__ == "__main__":
+    print(git_status())
