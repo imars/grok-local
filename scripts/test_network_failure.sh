@@ -34,27 +34,6 @@ else
 fi
 echo "Git root: $(git -C "$REPO_DIR" rev-parse --show-toplevel)"
 
-echo "Staging test file: $TEST_FILE"
-GIT_ADD_OUTPUT=$(git -C "$REPO_DIR" add --force -v "$TEST_FILE" 2>&1)
-GIT_ADD_STATUS=$?
-echo "git add output: $GIT_ADD_OUTPUT"
-if [ $GIT_ADD_STATUS -eq 0 ]; then
-    echo "Staging command succeeded."
-else
-    echo "Error: Failed to stage $TEST_FILE (status: $GIT_ADD_STATUS)."
-    exit 1
-fi
-echo "Staged files before commit (git diff --cached --name-only):"
-git -C "$REPO_DIR" diff --cached --name-only > "$REPO_DIR/staged_files.log" 2>&1
-cat "$REPO_DIR/staged_files.log"
-
-echo "Running commit with simulated network failure..."
-timeout 30s python "$REPO_DIR/grok_local.py" --ask "commit 'Test network failure commit'" --debug > "$REPO_DIR/test_output.log" 2>&1
-COMMIT_STATUS=$?
-echo "Commit command status: $COMMIT_STATUS"
-echo "Full output from grok_local.py:"
-cat "$REPO_DIR/test_output.log"
-
 OS=$(uname)
 if [ "$OS" != "Darwin" ]; then
     echo "Warning: Network block test only implemented for macOS."
@@ -92,6 +71,13 @@ else
     sudo rm -f /tmp/pf.conf
     exit 1
 fi
+
+echo "Running commit with simulated network failure..."
+timeout 30s python "$REPO_DIR/grok_local.py" --ask "commit 'Test network failure commit'" --debug > "$REPO_DIR/test_output.log" 2>&1
+COMMIT_STATUS=$?
+echo "Commit command status: $COMMIT_STATUS"
+echo "Full output from grok_local.py:"
+cat "$REPO_DIR/test_output.log"
 
 echo "Testing manual Git push..."
 git -C "$REPO_DIR" push > /dev/null 2>&1
