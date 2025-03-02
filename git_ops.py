@@ -1,72 +1,77 @@
-import git
+import os
 import time
+from git import Repo
 import logging
 
-# Setup basic logging (compatible with grok_local.py --debug flag)
-logging.basicConfig(level=logging.INFO, filename="grok_local.log", filemode="a",
-                    format="%(asctime)s - %(levelname)s - %(message)s")
+# Ensure logging is configured
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("grok_local.log"), logging.StreamHandler()]
+)
+logger = logging.getLogger(__name__)
 
 def git_status() -> str:
-    repo = git.Repo(".")
+    repo = Repo(os.getcwd())
     return repo.git.status()
 
 def git_pull() -> str:
-    repo = git.Repo(".")
+    repo = Repo(os.getcwd())
     return repo.git.pull()
 
 def git_log(count: int = 1) -> str:
-    repo = git.Repo(".")
-    return repo.git.log(f"-{count}")
+    repo = Repo(os.getcwd())
+    return repo.git.log(f'-{count}')
 
 def git_branch() -> str:
-    repo = git.Repo(".")
+    repo = Repo(os.getcwd())
     return repo.git.branch()
 
 def git_checkout(branch: str) -> str:
-    repo = git.Repo(".")
+    repo = Repo(os.getcwd())
     return repo.git.checkout(branch)
 
 def git_rm(filename: str) -> str:
-    repo = git.Repo(".")
+    repo = Repo(os.getcwd())
     return repo.git.rm(filename)
 
 def git_clean_repo() -> str:
-    repo = git.Repo(".")
-    return repo.git.clean("-fd")
+    repo = Repo(os.getcwd())
+    return repo.git.clean('-fd')
 
 def git_commit_and_push(message: str) -> str:
-    """
-    Commits changes and pushes to remote with retry logic for robustness.
-    Args:
-        message: Commit message
-    Returns:
-        str: Success message or error details
-    """
-    repo = git.Repo(".")
-    max_retries = 3
-    initial_delay = 1  # seconds
+    repo = Repo(os.getcwd())
+    max_attempts = 3
+    delay = 2  # seconds between retries
+    
+    # Explicitly stage all changes in the working directory
+    repo.git.add(all=True)  # Stage all changes, including test_network_failure.unique
+    logger.debug(f"Staged files after add: {repo.git.diff('--cached', '--name-only')}")
 
-    # Stage all changes
-    repo.git.add(A=True)
-    repo.git.commit(m=message)
-    logging.info(f"Committed changes with message: {message}")
+    # Debug: Log Git state
+    logger.debug(f"Git status before commit: {repo.git.status()}")
+    logger.debug(f"Staged files before commit: {repo.git.diff('--cached', '--name-only')}")
 
-    # Retry logic for push
-    for attempt in range(max_retries):
+    try:
+        repo.git.commit('-m', message)
+        logger.info(f"Committed changes with message: '{message}'")
+    except Exception as e:
+        logger.error(f"Commit failed: {e}")
+        return f"Commit failed: {e}"
+
+    for attempt in range(max_attempts):
         try:
+            logger.info(f"Push attempt {attempt + 1}/{max_attempts} for commit: '{message}'")
             repo.git.push()
-            logging.info("Successfully pushed to remote")
-            return "Committed and pushed successfully"
-        except git.GitCommandError as e:
-            logging.error(f"Push failed on attempt {attempt + 1}/{max_retries}: {str(e)}")
-            if attempt == max_retries - 1:
-                return f"Failed to push after {max_retries} attempts: {str(e)}"
-            delay = initial_delay * (2 ** attempt)  # Exponential backoff
-            logging.info(f"Retrying in {delay} seconds...")
-            time.sleep(delay)
-
-    return "Unexpected error in git_commit_and_push"  # Fallback (shouldn't hit)
+            logger.info("Successfully pushed to remote")
+            return "Commit and push successful"
+        except Exception as e:
+            logger.warning(f"Push attempt {attempt + 1}/{max_attempts} failed: {e}")
+            if attempt < max_attempts - 1:
+                time.sleep(delay)
+            else:
+                logger.error(f"Push failed after {max_attempts} attempts: {e}")
+                return f"Push failed after {max_attempts} attempts: {e}"
 
 if __name__ == "__main__":
-    # Example usage for testing
-    print(git_commit_and_push("Test commit with retry logic"))
+    print(git_commit_and_push("Test commit"))

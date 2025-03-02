@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import sys
 import argparse
@@ -16,7 +17,7 @@ LOCAL_DIR = os.path.join(PROJECT_DIR, "local")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[RotatingFileHandler(LOG_FILE, maxBytes=1*1024*1024, backupCount=3)]
+    handlers=[RotatingFileHandler(LOG_FILE, maxBytes=1*1024*1024, backupCount=3), logging.StreamHandler()]
 )
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,10 @@ def ask_local(request, debug=False):
     request = request.strip().rstrip("?")
     if debug:
         print(f"Processing: {request}")
+        logger.setLevel(logging.DEBUG)
         logger.debug(f"Debug processing: {request}")
+    else:
+        logger.setLevel(logging.INFO)
 
     if "&&" in request:
         return process_multi_command(request)
@@ -90,8 +94,19 @@ def ask_local(request, debug=False):
         else:
             return "Error: Invalid checkpoint format. Use 'checkpoint \"description\" [--file <filename>]'"
     elif req_lower.startswith("commit "):
-        message = request[7:].strip() or "Automated commit"
-        return report_to_grok(git_commit_and_push(message))
+        # Extract commit message, handling quoted and unquoted cases
+        message = request[6:].strip()
+        if message.startswith("'") and message.endswith("'"):
+            message = message[1:-1]  # Remove single quotes
+        elif message.startswith('"') and message.endswith('"'):
+            message = message[1:-1]  # Remove double quotes
+        else:
+            message = message or "Automated commit"
+        result = git_commit_and_push(message)
+        if "failed" in result.lower():
+            logger.error(result)
+            return result  # Propagate failure
+        return report_to_grok(result)
     elif req_lower == "git status":
         return report_to_grok(git_status())
     elif req_lower == "git pull":
@@ -165,7 +180,7 @@ def ask_local(request, debug=False):
         if "Error" not in response:
             filename = "local/x_login_stub.py"
             logger.info(f"Generated X login stub:\n{response}")
-            write_file(filename, response.strip(), path=None)  # Write to project root, then move
+            write_file(filename, response.strip(), path=None)
             move_file("x_login_stub.py", "x_login_stub.py", src_path=PROJECT_DIR, dst_path=LOCAL_DIR)
             git_commit_and_push("Added X login stub for testing")
             return report_to_grok(f"Created {filename} with X login stub and committed.")
@@ -204,7 +219,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.ask:
-        print(ask_local(args.ask, args.debug))
+        result = ask_local(args.ask, args.debug)
+        print(result)
+        if "failed" in result.lower():
+            sys.exit(1)  # Exit with error code on failure
     else:
         try:
             while True:
