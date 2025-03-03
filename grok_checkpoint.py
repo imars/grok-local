@@ -6,8 +6,8 @@ import datetime
 import json
 import uuid
 import logging
-from abc import ABC, abstractmethod
 from logging.handlers import RotatingFileHandler
+from git_ops import get_git_interface
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 CHECKPOINT_DIR = os.path.join(PROJECT_DIR, "checkpoints")
@@ -24,25 +24,6 @@ logger = logging.getLogger(__name__)
 if not os.path.exists(CHECKPOINT_DIR):
     os.makedirs(CHECKPOINT_DIR)
     logger.info(f"Created checkpoint directory: {CHECKPOINT_DIR}")
-
-# Git Interface
-class GitInterface(ABC):
-    @abstractmethod
-    def commit_and_push(self, message):
-        pass
-
-class StubGit(GitInterface):
-    def commit_and_push(self, message):
-        logger.debug(f"Stubbed git commit and push: {message}")
-        return "Stubbed Git commit successful"
-
-class RealGit(GitInterface):
-    def commit_and_push(self, message):
-        from git_ops import git_commit_and_push  # Lazy import
-        return git_commit_and_push(message)
-
-def get_git_interface(use_stub=True):
-    return StubGit() if use_stub else RealGit()
 
 def list_checkpoints():
     checkpoint_files = [f for f in os.listdir(CHECKPOINT_DIR) if f.endswith('.json') and 'checkpoint' in f.lower()]
@@ -157,28 +138,14 @@ def start_session(git_interface, command=None, resume=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Grok Checkpoint: Manage Grok-Local session checkpoints.\n\n"
-                    "This script lists checkpoints or saves new ones with optional Git commits. "
-                    "Checkpoints can include chat URLs and file contents (e.g., x_poller.py) for session restoration.",
-        epilog="Options:\n"
-               "  --resume            View the last checkpoint\n"
-               "  --ask '<command>'   Run a command:\n"
-               "    'list checkpoints'         - List checkpoint files\n"
-               "    'checkpoint \"<desc>\" [options]' - Save a checkpoint\n"
-               "      Options: --file <filename>  - Save to <filename> (default: checkpoint.json)\n"
-               "               --task \"<task>\"    - Set current task\n"
-               "               --git              - Commit changes to Git\n"
-               "               chat_address=<id>  - Set chat address (UUID, auto-generated if omitted)\n"
-               "               chat_group=<group> - Set chat group (default: 'default')\n"
-               "               chat_url=<url>     - Set exact chat URL (e.g., https://x.com/i/grok?...)\n\n"
-               "Examples:\n"
-               "  python grok_checkpoint.py --resume           # View last checkpoint\n"
-               "  python grok_checkpoint.py --ask 'list checkpoints' # List all checkpoints\n"
-               "  python grok_checkpoint.py --stub --ask 'checkpoint \"Backup\" --file test.json chat_url=https://x.com/i/grok?conversation=123' # Save checkpoint (stubbed Git)\n",
+                    "Lists or saves checkpoints with optional Git commits, supporting stubbed Git operations.",
+        epilog="Examples:\n"
+               "  python grok_checkpoint.py --stub --ask 'checkpoint \"Test\" --git' # Stubbed Git commit\n",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--resume", action="store_true", help="Resume from the last checkpoint")
-    parser.add_argument("--ask", type=str, help="Run a specific command and exit (e.g., 'list checkpoints')")
-    parser.add_argument("--stub", action="store_true", help="Use stubbed Git operations instead of real Git")
+    parser.add_argument("--ask", type=str, help="Run a specific command and exit")
+    parser.add_argument("--stub", action="store_true", help="Use stubbed Git operations")
     args = parser.parse_args()
 
     git_interface = get_git_interface(use_stub=args.stub)

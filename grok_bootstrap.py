@@ -5,8 +5,10 @@ import subprocess
 import json
 import logging
 import argparse
-from abc import ABC, abstractmethod
 from logging.handlers import RotatingFileHandler
+from git_ops import get_git_interface
+
+print("Starting grok_bootstrap.py")  # Added for debugging
 
 # Grok-Local Bootstrap Script (Feb 28, 2025): Restarts dev chat sessions with context.
 # - Options: --dump (full file contents), --prompt (chat-ready summary), or run grok_local.py directly.
@@ -42,7 +44,10 @@ LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[RotatingFileHandler(LOG_FILE, maxBytes=1*1024*1024, backupCount=3), logging.StreamHandler()]
+    handlers=[
+        RotatingFileHandler(LOG_FILE, maxBytes=1*1024*1024, backupCount=3),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -67,42 +72,8 @@ CRITICAL_FILES = {
     "debug_x_poller.sh": {"purpose": "Debug script", "functions": []}
 }
 
-# Git Interface
-class GitInterface(ABC):
-    @abstractmethod
-    def get_file_tree(self):
-        pass
-
-class StubGit(GitInterface):
-    def get_file_tree(self):
-        logger.debug("Returning stubbed Git file tree")
-        return "Repository File Tree (stubbed):\n  .gitignore\n  grok_local.py\n  x_poller.py"
-
-class RealGit(GitInterface):
-    def get_file_tree(self):
-        logger.debug("Fetching real Git file tree")
-        try:
-            result = subprocess.run(
-                ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
-                capture_output=True, text=True, check=True
-            )
-            files = result.stdout.splitlines()
-            files.sort()
-            tree_lines = []
-            for file in files:
-                parts = file.split('/')
-                indent = "  " * (len(parts) - 1)
-                tree_lines.append(f"{indent}{parts[-1]}")
-            return "Repository File Tree (tracked and untracked, not ignored):\n" + "\n".join(tree_lines)
-        except subprocess.CalledProcessError as e:
-            return f"Error generating Git file tree: {e}"
-        except Exception as e:
-            return f"Unexpected error generating Git file tree: {e}"
-
-def get_git_interface(use_stub=True):
-    return StubGit() if use_stub else RealGit()
-
 def dump_critical_files(chat_mode=False):
+    """Print current contents of critical files from disk for session restart."""
     if chat_mode:
         print("Please analyze the project files in the current directory.\n")
     print("=== Critical Files (Feb 28, 2025) ===\n")
@@ -123,11 +94,12 @@ def dump_critical_files(chat_mode=False):
     print("=== End of Critical File Contents ===")
 
 def generate_prompt(git_interface, include_main=False):
+    """Generate an efficient prompt for restarting a chat session."""
     preamble = "The following contains information to help you restart a malfunctioning Grok 3 chat session.\n\n"
     with open(__file__, "r") as f:
         lines = f.readlines()
         header = "".join(lines[7:24])
-
+    
     agent_bootstrap = "\nAgent Bootstrap:\n- Role: You are Grok, tasked with enhancing Grok-Local. Assist the user in CLI development, outputting code via `cat << 'EOF' > <filename>` for easy application.\n- Interaction: Expect user to apply code and report results. Use checkpoints (checkpoints/) to track tasks and Git (--git flag) to sync progress.\n- Focus: Leverage CRITICAL_FILES functions, prioritize Current Task, and align with Goals.\n"
     
     setup = "\nSetup for New Chat:\n- Clone: `git clone git@github.com:imars/grok-local.git`\n- Enter: `cd grok-local`\n- Env: `python -m venv venv && source venv/bin/activate && pip install gitpython`\n- Deps: `pip install -r requirements.txt` (ensure gitpython is listed)\n- Structure: Root has CLI scripts (grok_local.py, grok_bootstrap.py), `checkpoints/` for checkpoints, `scripts/` for test/task scripts, `docs/` for guides, `local/` for stubs, `tests/` for unit tests.\n- Start: `python grok_local.py` (interactive) or `python grok_local.py --ask 'list files'` (test).\n- Agent Role: I (Grok) assist with CLI dev, outputting code via `cat << 'EOF' > <filename>`. User applies it and reports results.\n"
@@ -190,6 +162,7 @@ def generate_prompt(git_interface, include_main=False):
     return prompt
 
 def start_session(git_interface, debug=False, command=None, dump=False, prompt=False, include_main=False):
+    """Start or manage a grok-local session with configurable Git interface."""
     if dump:
         dump_critical_files(chat_mode=False)
         return
@@ -224,18 +197,18 @@ def start_session(git_interface, debug=False, command=None, dump=False, prompt=F
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Grok-Local Bootstrap: Restart Grok 3 dev chat sessions with context.\n\n"
-                    "This script generates prompts or dumps critical files to restart chat sessions, "
-                    "or runs grok_local.py commands. Use --prompt to see the latest checkpoint and file states.",
+                    "Generates prompts or dumps files to restart sessions, or runs grok_local.py commands. "
+                    "Supports stubbed mode for Git operations.",
         epilog="Options:\n"
                "  --debug             Run grok_local.py in debug mode with verbose logs\n"
                "  --command '<cmd>'   Execute '<cmd>' via grok_local.py (e.g., 'list files')\n"
                "  --dump              Dump current contents of critical files\n"
                "  --prompt            Generate a chat restart prompt with checkpoint and file info\n"
-               "  --include-main      Include grok_local.py content in the prompt (requires --prompt)\n"
+               "  --include-main      Include grok_local.py in the prompt (requires --prompt)\n"
                "  --stub              Use stubbed Git operations instead of real Git\n\n"
                "Examples:\n"
                "  python grok_bootstrap.py --dump          # Dump critical file contents\n"
-               "  python grok_bootstrap.py --stub --prompt # Show stubbed prompt with checkpoint\n"
+               "  python grok_bootstrap.py --stub --prompt # Show prompt with stubbed Git tree\n"
                "  python grok_bootstrap.py --command 'list files'  # Run a command via grok_local.py\n",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )

@@ -46,6 +46,10 @@ class GitInterface(ABC):
     def clean_repo(self):
         pass
 
+    @abstractmethod
+    def get_file_tree(self):
+        pass
+
 # Stub Implementation
 class StubGit(GitInterface):
     def commit_and_push(self, message):
@@ -73,15 +77,16 @@ class StubGit(GitInterface):
     def clean_repo(self):
         return "Stubbed git clean -fd"
 
+    def get_file_tree(self):
+        logger.debug("Returning stubbed Git file tree")
+        return "Repository File Tree (stubbed):\n  .gitignore\n  grok_local.py\n  x_poller.py"
+
 # Real Implementation
 class RealGit(GitInterface):
     def __init__(self):
         self.repo = Repo(os.getcwd())
 
     def commit_and_push(self, message):
-        max_attempts = 3
-        delay = 1
-        
         try:
             self.repo.git.add(".")
             logger.debug(f"Staged files: {self.repo.git.diff('--cached', '--name-only')}")
@@ -94,6 +99,8 @@ class RealGit(GitInterface):
             logger.error(f"Commit failed: {e}")
             return f"Commit failed: {e}"
 
+        max_attempts = 3
+        delay = 1
         for attempt in range(max_attempts):
             try:
                 logger.info(f"Push attempt {attempt + 1}/{max_attempts} for commit: '{message}'")
@@ -128,6 +135,26 @@ class RealGit(GitInterface):
 
     def clean_repo(self):
         return self.repo.git.clean('-fd')
+
+    def get_file_tree(self):
+        logger.debug("Fetching real Git file tree")
+        try:
+            result = subprocess.run(
+                ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+                capture_output=True, text=True, check=True
+            )
+            files = result.stdout.splitlines()
+            files.sort()
+            tree_lines = []
+            for file in files:
+                parts = file.split('/')
+                indent = "  " * (len(parts) - 1)
+                tree_lines.append(f"{indent}{parts[-1]}")
+            return "Repository File Tree (tracked and untracked, not ignored):\n" + "\n".join(tree_lines)
+        except subprocess.CalledProcessError as e:
+            return f"Error generating Git file tree: {e}"
+        except Exception as e:
+            return f"Unexpected error generating Git file tree: {e}"
 
 def get_git_interface(use_stub=True):
     return StubGit() if use_stub else RealGit()

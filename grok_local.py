@@ -4,23 +4,30 @@ import sys
 import argparse
 import datetime
 import logging
+import requests
 from abc import ABC, abstractmethod
 from logging.handlers import RotatingFileHandler
 from file_ops import create_file, delete_file, move_file, copy_file, read_file, write_file, list_files, rename_file, clean_cruft
-from git_ops import git_status, git_pull, git_log, git_branch, git_checkout, git_commit_and_push, git_rm, git_clean_repo
+from git_ops import git_status, git_pull, git_log, git_branch, git_checkout, git_rm, git_clean_repo, get_git_interface
 from grok_checkpoint import list_checkpoints, save_checkpoint
+from dotenv import load_dotenv
+from browser_use import Agent  # For browser-based login
 
 PROJECT_DIR = os.getcwd()
 LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
 LOCAL_DIR = os.path.join(PROJECT_DIR, "local")
 
-# Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[RotatingFileHandler(LOG_FILE, maxBytes=1*1024*1024, backupCount=3), logging.StreamHandler()]
 )
 logger = logging.getLogger(__name__)
+
+load_dotenv()
+GROK_API_KEY = os.getenv("GROK_API_KEY")  # For API mode
+GROK_USERNAME = os.getenv("GROK_USERNAME")  # For browser mode
+GROK_PASSWORD = os.getenv("GROK_PASSWORD")  # For browser mode
 
 # Grok Interface
 class GrokInterface(ABC):
@@ -52,8 +59,50 @@ class RealGrok(GrokInterface):
         logger.info(f"Received response from Grok 3:\n{response}")
         return response
 
+class GrokComBrowserInterface(GrokInterface):
+    def delegate(self, request):
+        """Query Grok at grok.com using browser automation."""
+        if not all([GROK_USERNAME, GROK_PASSWORD]):
+            logger.debug("Missing GROK_USERNAME or GROK_PASSWORD; using stub mode")
+            return f"Stubbed grok.com browser response for: {request}"
+        
+        try:
+            agent = Agent(headless=True)  # Headless for automation
+            logger.info("Navigating to grok.com login")
+            agent.navigate("https://grok.com/login")  # Adjust if login URL differs
+            
+            # Fill login form (adjust selectors based on grok.com's HTML)
+            logger.debug("Filling login form")
+            agent.fill_form({
+                "username": GROK_USERNAME,  # Adjust field name if needed
+                "password": GROK_PASSWORD   # Adjust field name if needed
+            })
+            agent.submit_form()
+            time.sleep(2)  # Wait for login
+            
+            if "login" in agent.current_url():
+                logger.error("Login failed: Still on login page")
+                return "Error: Login failed"
+            
+            logger.info("Logged in, navigating to chat")
+            agent.navigate("https://grok.com/chat")  # Adjust to actual chat URL
+            agent.fill_form({"message": request}, selector=".chat-input")  # Adjust selector
+            agent.submit_form()
+            time.sleep(2)  # Wait for response
+            
+            response = agent.extract_text(selector=".chat-response")  # Adjust selector
+            logger.info(f"Grok.com browser response to '{request}': {response}")
+            return response if response else "No response received"
+        except Exception as e:
+            logger.error(f"Browser login error: {str(e)}")
+            return f"Error with grok.com browser: {str(e)}"
+        finally:
+            agent.close()
+
 def get_grok_interface(use_stub=True):
-    return StubGrok() if use_stub else RealGrok()
+    if use_stub:
+        return StubGrok()
+    return GrokComBrowserInterface() if all([GROK_USERNAME, GROK_PASSWORD]) else RealGrok()
 
 def report_to_grok(response):
     return response
@@ -64,19 +113,19 @@ def what_time_is_it():
     logger.info(f"Time requested: {time_str}")
     return time_str
 
-def process_multi_command(request, grok_interface, debug=False):
+def process_multi_command(request, grok_interface, git_interface, debug=False):
     commands = request.split("&&")
     results = []
     for cmd in commands:
         cmd = cmd.strip()
         if not cmd:
             continue
-        result = ask_local(cmd, grok_interface, debug)
+        result = ask_local(cmd, grok_interface, git_interface, debug)
         results.append(result)
     logger.info(f"Processed multi-command: {request}")
     return "\n".join(results)
 
-def ask_local(request, grok_interface, debug=False):
+def ask_local(request, grok_interface, git_interface, debug=False):
     request = request.strip().rstrip("?")
     if debug:
         print(f"Processing: {request}")
@@ -86,9 +135,13 @@ def ask_local(request, grok_interface, debug=False):
         logger.setLevel(logging.INFO)
 
     if "&&" in request:
-        return process_multi_command(request, grok_interface, debug)
+        return process_multi_command(request, grok_interface, git_interface, debug)
 
     req_lower = request.lower()
+    if req_lower.startswith("grok "):
+        prompt = request[5:].strip()
+        return report_to_grok(grok_interface.delegate(prompt))
+    
     if req_lower in ["what time is it", "ask what time is it"]:
         return report_to_grok(what_time_is_it())
     elif req_lower == "version":
@@ -126,7 +179,7 @@ def ask_local(request, grok_interface, debug=False):
             if param.startswith("chat_url="):
                 chat_url = param.split("=", 1)[1].strip("'")
         
-        return report_to_grok(save_checkpoint(desc, filename=filename, file_content=content, chat_url=chat_url, git_update=git_update))
+        return report_to_grok(save_checkpoint(desc, git_interface, filename=filename, file_content=content, chat_url=chat_url, git_update=git_update))
     elif req_lower.startswith("commit "):
         full_message = request[6:].strip()
         if full_message.startswith("'") and full_message.endswith("'"):
@@ -136,7 +189,7 @@ def ask_local(request, grok_interface, debug=False):
         parts = full_message.split("|")
         message = parts[0] or "Automated commit"
         commit_message = full_message if len(parts) == 1 else message
-        result = git_commit_and_push(commit_message)
+        result = git_interface.commit_and_push(commit_message)
         if "failed" in result.lower():
             logger.error(result)
             return result
@@ -206,17 +259,17 @@ def ask_local(request, grok_interface, debug=False):
             filename = "spaceship_fuel.py"
             logger.info(f"Generated script:\n{response}")
             write_file(filename, response.strip(), path=LOCAL_DIR)
-            git_commit_and_push(f"Added {filename} from Grok 3 in local/")
+            git_interface.commit_and_push(f"Added {filename} from Grok 3 in local/")
             return report_to_grok(f"Created {filename} with fuel simulation script in local/ directory.")
         return report_to_grok(response)
     elif req_lower.startswith("create x login stub"):
-        response = grok_interface.delegate("Generate a Python script that simulates an X login process as a stub for x_poller.py. The script should: - Take username, password, and verify code as env vars (X_USERNAME, X_PASSWORD, X_VERIFY). - Simulate a login attempt with a 2-second delay to mimic network lag. - Return True for success if all vars are present, False otherwise. - Log each step (attempt, success/failure) to a file 'x_login_stub.log' with timestamps. - Save the script as 'local/x_login_stub.py' and commit it with the message 'Added X login stub for testing'.")
+        response = grok_interface.delegate("Generate a Python script that simulates an X login process as a stub for x_poller.py...")
         if "Error" not in response:
             filename = "local/x_login_stub.py"
             logger.info(f"Generated X login stub:\n{response}")
             write_file(filename, response.strip(), path=None)
             move_file("x_login_stub.py", "x_login_stub.py", src_path=PROJECT_DIR, dst_path=LOCAL_DIR)
-            git_commit_and_push("Added X login stub for testing")
+            git_interface.commit_and_push("Added X login stub for testing")
             return report_to_grok(f"Created {filename} with X login stub and committed.")
         return report_to_grok(response)
     else:
@@ -225,59 +278,24 @@ def ask_local(request, grok_interface, debug=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Grok-Local: A CLI for managing local files, Git repositories, and delegating tasks to Grok 3.\n\n"
-                    "This script handles file operations (create, delete, move, etc.), Git commands (status, commit, pull, etc.), "
-                    "checkpoint management (save/list via grok_checkpoint.py), and task delegation to Grok 3. "
-                    "Run interactively or use --ask for single commands. Use && to chain multiple commands.",
-        epilog="Supported Commands:\n"
-               "  FILE OPS:\n"
-               "    create file <path>          - Create a new file at <path>\n"
-               "    delete file <filename>      - Delete <filename> from safe/\n"
-               "    move file <src> to <dst>    - Move file from <src> to <dst>\n"
-               "    copy file <src> to <dst>    - Copy file from <src> to <dst>\n"
-               "    rename file <old> to <new>  - Rename file from <old> to <new>\n"
-               "    read file <filename>        - Read contents of <filename>\n"
-               "    write '<content>' to <file> - Write <content> to <file>\n"
-               "    list files                  - List files in safe/\n"
-               "  GIT OPS:\n"
-               "    git status                  - Show Git repository status\n"
-               "    git pull                    - Pull latest changes from remote\n"
-               "    git log [count]             - Show last [count] commits (default 1)\n"
-               "    git branch                  - List Git branches\n"
-               "    git checkout <branch>       - Switch to <branch>\n"
-               "    commit '<message>'          - Commit changes with <message> (use |<path> to specify file)\n"
-               "    git rm <filename>           - Remove <filename> from Git tracking\n"
-               "    clean repo                  - Remove untracked files from repo\n"
-               "  CHECKPOINT OPS:\n"
-               "    list checkpoints            - List all checkpoint files\n"
-               "    checkpoint '<desc>' [options] - Save a checkpoint with <desc>\n"
-               "      Options: --file <filename>  - Save to <filename> (default: checkpoint.json)\n"
-               "               --git              - Commit changes to Git after saving\n"
-               "               with current x_poller.py content - Include x_poller.py content\n"
-               "               chat_url=<url>     - Set chat URL (e.g., https://x.com/i/grok?...)\n"
-               "  UTILITY:\n"
-               "    what time is it             - Show current UTC time\n"
-               "    version                    - Show Grok-Local version\n"
-               "  DELEGATION:\n"
-               "    create spaceship fuel script - Generate and save a fuel simulation script\n"
-               "    create x login stub         - Generate and save an X login stub script\n\n"
-               "Examples:\n"
-               "  python grok_local.py                    # Start interactive mode\n"
-               "  python grok_local.py --ask 'list files' # List files in safe/\n"
-               "  python grok_local.py --stub --ask 'checkpoint \"Backup\" --file backup.json chat_url=https://x.com/i/grok?conversation=123 with current x_poller.py content' # Save checkpoint (stubbed)\n"
-               "  python grok_local.py --ask 'create file docs/note.txt && write \"Hello\" to docs/note.txt' # Chain commands\n"
-               "  python grok_local.py --debug            # Interactive mode with debug logs",
+        description="Grok-Local: A CLI for managing local files, Git repositories, and delegating tasks to Grok.\n\n"
+                    "Supports stubbed mode for testing and browser-based login to grok.com.",
+        epilog="Examples:\n"
+               "  python grok_local.py --stub --ask 'grok tell me a joke'          # Stubbed grok.com query\n"
+               "  python grok_local.py --ask 'grok tell me a joke'                # Browser login to grok.com\n"
+               "  python grok_local.py --stub --ask 'create spaceship fuel script' # Stubbed delegation and Git\n",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("--ask", type=str, help="Execute a single command and exit (e.g., 'git status')")
-    parser.add_argument("--debug", action="store_true", help="Enable debug output for commands")
-    parser.add_argument("--stub", action="store_true", help="Use stubbed Grok delegation instead of real interaction")
+    parser.add_argument("--ask", type=str, help="Execute a single command and exit")
+    parser.add_argument("--debug", action="store_true", help="Enable debug output")
+    parser.add_argument("--stub", action="store_true", help="Use stubbed Grok delegation and Git operations")
     args = parser.parse_args()
 
     grok_interface = get_grok_interface(use_stub=args.stub)
+    git_interface = get_git_interface(use_stub=args.stub)
 
     if args.ask:
-        result = ask_local(args.ask, grok_interface, args.debug)
+        result = ask_local(args.ask, grok_interface, git_interface, args.debug)
         print(result)
         if "failed" in result.lower():
             sys.exit(1)
@@ -287,7 +305,7 @@ if __name__ == "__main__":
                 cmd = input("Command: ")
                 if cmd.lower() == "exit":
                     break
-                result = ask_local(cmd, grok_interface, args.debug)
+                result = ask_local(cmd, grok_interface, git_interface, args.debug)
                 print(result)
         except KeyboardInterrupt:
             print("\nExiting interactive mode...")
