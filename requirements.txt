@@ -1,0 +1,5 @@
+selenium
+playwright
+browser-use
+python-dotenv
+requests

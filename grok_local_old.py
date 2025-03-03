@@ -36,8 +36,9 @@ PROJECT_DIR = os.getcwd()
 LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
 LOCAL_DIR = os.path.join(PROJECT_DIR, "local")
 
+# Set up logging globally, level will be adjusted later
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.INFO,  # Default level
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[RotatingFileHandler(LOG_FILE, maxBytes=1*1024*1024, backupCount=3), logging.StreamHandler()]
 )
@@ -54,7 +55,7 @@ class BrowserAdapter:
         self.backend = backend
         self.driver = None
         if backend == "SELENIUM" and SELENIUM_AVAILABLE:
-            self.driver = webdriver.Chrome()  # Add options for headless if needed
+            self.driver = webdriver.Chrome()
         elif backend == "PLAYWRIGHT" and PLAYWRIGHT_AVAILABLE:
             self.playwright = sync_playwright().start()
             self.driver = self.playwright.chromium.launch(headless=True).new_page()
@@ -69,7 +70,7 @@ class BrowserAdapter:
         elif self.backend == "PLAYWRIGHT":
             self.driver.goto(url)
         elif self.backend == "BROWSER_USE":
-            self.driver.goto(url)  # Assuming Browser supports goto
+            self.driver.goto(url)
 
     def fill(self, selector, value):
         if self.backend == "SELENIUM":
@@ -77,29 +78,29 @@ class BrowserAdapter:
             element.clear()
             element.send_keys(value)
         elif self.backend == "PLAYWRIGHT":
-            self.driver.wait_for_selector(selector, timeout=10000)  # Wait up to 10s
+            self.driver.wait_for_selector(selector, timeout=10000)
             self.driver.fill(selector, value)
         elif self.backend == "BROWSER_USE":
-            self.driver.fill(selector, value)  # Assuming Browser supports fill
+            self.driver.fill(selector, value)
 
     def click(self, selector):
         if self.backend == "SELENIUM":
             self.driver.find_element(By.CSS_SELECTOR, selector).click()
         elif self.backend == "PLAYWRIGHT":
-            self.driver.wait_for_selector(selector, timeout=10000)  # Wait up to 10s
+            self.driver.wait_for_selector(selector, timeout=10000)
             self.driver.click(selector)
         elif self.backend == "BROWSER_USE":
-            self.driver.click(selector)  # Assuming Browser supports click
+            self.driver.click(selector)
 
     def extract_text(self, selector):
         if self.backend == "SELENIUM":
             element = self.driver.find_element(By.CSS_SELECTOR, selector)
             return element.text
         elif self.backend == "PLAYWRIGHT":
-            self.driver.wait_for_selector(selector, timeout=10000)  # Wait up to 10s
+            self.driver.wait_for_selector(selector, timeout=10000)
             return self.driver.locator(selector).inner_text()
         elif self.backend == "BROWSER_USE":
-            return self.driver.extract_text(selector)  # Assuming Browser supports this
+            return self.driver.extract_text(selector)
 
     def close(self):
         if self.backend == "SELENIUM":
@@ -108,7 +109,7 @@ class BrowserAdapter:
             self.driver.close()
             self.playwright.stop()
         elif self.backend == "BROWSER_USE":
-            self.driver.close()  # Assuming synchronous close
+            self.driver.close()
 
 # Grok Interface
 class GrokInterface(ABC):
@@ -156,12 +157,12 @@ class GrokComBrowserInterface(GrokInterface):
             
             # Fill the free prompt box and submit (adjust selectors based on grok.com's HTML)
             logger.debug(f"Sending prompt: {request}")
-            browser.fill("textarea[id='prompt-input']", request)  # Example selector; adjust after inspection
-            browser.click("button[type='submit']")  # Placeholder for submit button
+            browser.fill("textarea[id='prompt-input']", request)
+            browser.click("button[type='submit']")
             time.sleep(3)  # Wait for response to load
             
             # Extract response (adjust selector based on actual site)
-            response = browser.extract_text("div[class='response-text']")  # Example selector; adjust after inspection
+            response = browser.extract_text("div[class='response-text']")
             if not response:
                 logger.warning("No response extracted from grok.com")
                 return "No response received from grok.com"
@@ -209,10 +210,8 @@ def ask_local(request, grok_interface, git_interface, debug=False):
     request = request.strip().rstrip("?")
     if debug:
         print(f"Processing: {request}")
-        logger.setLevel(logging.DEBUG)
         logger.debug(f"Debug processing: {request}")
-    else:
-        logger.setLevel(logging.INFO)
+    logger.info(f"Processing command: {request}")
 
     if "&&" in request:
         return process_multi_command(request, grok_interface, git_interface, debug)
@@ -368,15 +367,17 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--ask", type=str, help="Execute a single command and exit")
-    parser.add_argument("--debug", action="store_true", help="Enable debug output")
-    parser.add_argument("--stub", action="store_true", help="Use stubbed Grok delegation and Git operations")
+    parser.add_argument("--debug", "-d", action="store_true", help="Enable debug output")
     args = parser.parse_args()
+
+    # Set logging level once at startup based on --debug
+    logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
 
     grok_interface = get_grok_interface(use_stub=args.stub)
     git_interface = get_git_interface(use_stub=args.stub)
 
     if args.ask:
-        result = ask_local(args.ask, grok_interface, git_interface, args.debug)
+        result = ask_local(args.ask, grok_interface, git_interface, debug=args.debug)
         print(result)
         if "failed" in result.lower():
             sys.exit(1)
@@ -386,7 +387,7 @@ if __name__ == "__main__":
                 cmd = input("Command: ")
                 if cmd.lower() == "exit":
                     break
-                result = ask_local(cmd, grok_interface, git_interface, args.debug)
+                result = ask_local(cmd, grok_interface, git_interface, debug=args.debug)
                 print(result)
         except KeyboardInterrupt:
             print("\nExiting interactive mode...")
