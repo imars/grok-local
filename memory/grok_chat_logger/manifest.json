@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Grok Chat Logger",
+  "version": "1.0",
+  "description": "Logs Grok chats automatically",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.grok.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

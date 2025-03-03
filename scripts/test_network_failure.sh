@@ -21,6 +21,7 @@ for FILE in "$REPO_DIR/grok_local.py" "$REPO_DIR/git_ops.py"; do
 done
 
 TEST_FILE="$REPO_DIR/test_network_failure.unique"
+LOG_FILE="$REPO_DIR/grok_local.log"
 if [ -f "$TEST_FILE" ]; then
     rm "$TEST_FILE"
 fi
@@ -32,7 +33,24 @@ else
     echo "Error: Failed to create $TEST_FILE."
     exit 1
 fi
+echo "Staging test file: $TEST_FILE"
+git -C "$REPO_DIR" add --force "$TEST_FILE" > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    echo "Script staging succeeded."
+    echo "Staged files after script add:"
+    git -C "$REPO_DIR" diff --cached --name-only > "$REPO_DIR/staged_files.log" 2>&1
+    cat "$REPO_DIR/staged_files.log"
+else
+    echo "Error: Script staging failed."
+    exit 1
+fi
+echo "Clearing previous logs: $LOG_FILE"
+echo "" > "$LOG_FILE"  # Clear the log file
 echo "Git root: $(git -C "$REPO_DIR" rev-parse --show-toplevel)"
+echo "File state before commit: $(ls -l "$TEST_FILE")"
+echo "Git status before commit:"
+git -C "$REPO_DIR" status > "$REPO_DIR/git_status.log" 2>&1
+cat "$REPO_DIR/git_status.log"
 
 OS=$(uname)
 if [ "$OS" != "Darwin" ]; then
@@ -73,7 +91,7 @@ else
 fi
 
 echo "Running commit with simulated network failure..."
-timeout 30s python "$REPO_DIR/grok_local.py" --ask "commit 'Test network failure commit'" --debug > "$REPO_DIR/test_output.log" 2>&1
+timeout 10s python "$REPO_DIR/grok_local.py" --ask "commit 'Test network failure commit|$TEST_FILE'" --debug > "$REPO_DIR/test_output.log" 2>&1
 COMMIT_STATUS=$?
 echo "Commit command status: $COMMIT_STATUS"
 echo "Full output from grok_local.py:"
@@ -95,7 +113,6 @@ sudo pfctl -d 2>/dev/null
 sudo rm -f /tmp/pf.conf
 echo "Network restored."
 
-LOG_FILE="$REPO_DIR/grok_local.log"
 if [ -f "$LOG_FILE" ]; then
     echo "Checking $LOG_FILE for retry attempts..."
     RETRY_COUNT=$(grep "Push attempt" "$LOG_FILE" | grep "Test network failure commit" | wc -l)
@@ -105,7 +122,7 @@ if [ -f "$LOG_FILE" ]; then
         echo "Failure: No retry attempts found."
     fi
     echo "Last 5 log lines from $LOG_FILE:"
-    tail -n 5 "$LOG_FILE"
+    cat "$LOG_FILE" | tail -n 5
 else
     echo "Warning: $LOG_FILE not found."
 fi
@@ -116,7 +133,7 @@ else
     echo "Expected: Commit failed (status: $COMMIT_STATUS)."
 fi
 
-rm -f "$TEST_FILE" "$REPO_DIR/test_output.log" "$REPO_DIR/staged_files.log"
+rm -f "$TEST_FILE" "$REPO_DIR/test_output.log" "$REPO_DIR/staged_files.log" "$REPO_DIR/git_status.log"
 git -C "$REPO_DIR" reset -- "$TEST_FILE" 2>/dev/null
 
 echo "Test complete."

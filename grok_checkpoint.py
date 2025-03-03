@@ -4,16 +4,16 @@ import sys
 import argparse
 import datetime
 import json
+import uuid
 import logging
+from abc import ABC, abstractmethod
 from logging.handlers import RotatingFileHandler
-from git_ops import git_commit_and_push  # Import for Git operations
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 CHECKPOINT_DIR = os.path.join(PROJECT_DIR, "checkpoints")
 LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
 os.chdir(PROJECT_DIR)
 
-# Setup logging (shared with grok_local.py)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -21,13 +21,30 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Ensure checkpoints directory exists
 if not os.path.exists(CHECKPOINT_DIR):
     os.makedirs(CHECKPOINT_DIR)
     logger.info(f"Created checkpoint directory: {CHECKPOINT_DIR}")
 
+# Git Interface
+class GitInterface(ABC):
+    @abstractmethod
+    def commit_and_push(self, message):
+        pass
+
+class StubGit(GitInterface):
+    def commit_and_push(self, message):
+        logger.debug(f"Stubbed git commit and push: {message}")
+        return "Stubbed Git commit successful"
+
+class RealGit(GitInterface):
+    def commit_and_push(self, message):
+        from git_ops import git_commit_and_push  # Lazy import
+        return git_commit_and_push(message)
+
+def get_git_interface(use_stub=True):
+    return StubGit() if use_stub else RealGit()
+
 def list_checkpoints():
-    """List available checkpoint files in the checkpoints directory."""
     checkpoint_files = [f for f in os.listdir(CHECKPOINT_DIR) if f.endswith('.json') and 'checkpoint' in f.lower()]
     if not checkpoint_files:
         logger.info("No checkpoint files found in checkpoints/")
@@ -35,22 +52,26 @@ def list_checkpoints():
     logger.info(f"Found checkpoint files in checkpoints/: {checkpoint_files}")
     return "\n".join(checkpoint_files)
 
-def save_checkpoint(description, filename="checkpoint.json", current_task="", git_update=False):
-    """Save a checkpoint with description, files, and current task, optionally updating Git."""
+def save_checkpoint(description, git_interface, filename="checkpoint.json", current_task="", chat_address=None, chat_group=None, chat_url=None, file_content=None, git_update=False):
     checkpoint_data = {
         "description": description,
         "timestamp": datetime.datetime.now().isoformat(),
-        "files": ["grok_bootstrap.py"],  # Track grok_bootstrap.py
-        "current_task": current_task
+        "files": ["grok_bootstrap.py"],
+        "current_task": current_task,
+        "chat_address": chat_address if chat_address else str(uuid.uuid4()),
+        "chat_group": chat_group if chat_group else "default"
     }
+    if chat_url:
+        checkpoint_data["chat_url"] = chat_url
+    if file_content:
+        checkpoint_data["file_content"] = file_content
+    
     try:
-        # Save checkpoint JSON in checkpoints/
         checkpoint_path = os.path.join(CHECKPOINT_DIR, filename)
         with open(checkpoint_path, "w") as f:
             json.dump(checkpoint_data, f, indent=4)
         logger.info(f"Checkpoint saved: {description} to {checkpoint_path}")
 
-        # Update grok_bootstrap.py with current task
         bootstrap_path = os.path.join(PROJECT_DIR, "grok_bootstrap.py")
         with open(bootstrap_path, "r") as f:
             lines = f.readlines()
@@ -63,10 +84,9 @@ def save_checkpoint(description, filename="checkpoint.json", current_task="", gi
             f.writelines(lines)
         logger.info(f"Updated grok_bootstrap.py with current task: {current_task}")
 
-        # Optionally commit and push to Git
         if git_update:
-            commit_message = f"Checkpoint: {description}"
-            git_result = git_commit_and_push(commit_message)
+            commit_message = f"Checkpoint: {description} (Chat: {checkpoint_data['chat_address']}, Group: {checkpoint_data['chat_group']})"
+            git_result = git_interface.commit_and_push(commit_message)
             logger.info(f"Git update result: {git_result}")
             return f"Checkpoint saved: {description} to {checkpoint_path}\n{git_result}"
         
@@ -75,8 +95,7 @@ def save_checkpoint(description, filename="checkpoint.json", current_task="", gi
         logger.error(f"Failed to save checkpoint: {e}")
         return f"Error saving checkpoint: {e}"
 
-def start_session(command=None, resume=False):
-    """Start a grok-local session, either interactive, with a command, or resuming."""
+def start_session(git_interface, command=None, resume=False):
     if resume:
         args = ["python", "grok_local.py", "--resume"]
     elif command:
@@ -90,28 +109,46 @@ def start_session(command=None, resume=False):
             git_update = "--git" in description
             if git_update:
                 description = description.replace(" --git", "")
+            filename = None
+            task = ""
+            chat_address = None
+            chat_group = None
+            chat_url = None
+            
             if len(parts) == 1:
                 task_parts = parts[0].split(" --task ")
                 desc = task_parts[0]
-                task = task_parts[1] if len(task_parts) > 1 else ""
-                return save_checkpoint(desc, current_task=task, git_update=git_update)
+                if len(task_parts) > 1:
+                    task = task_parts[1]
+                for param in task_parts:
+                    if param.startswith("chat_address="):
+                        chat_address = param.split("=", 1)[1]
+                    elif param.startswith("chat_group="):
+                        chat_group = param.split("=", 1)[1]
+                    elif param.startswith("chat_url="):
+                        chat_url = param.split("=", 1)[1]
+                return save_checkpoint(desc, git_interface, current_task=task, chat_address=chat_address, chat_group=chat_group, chat_url=chat_url, git_update=git_update)
             elif len(parts) == 2:
                 task_parts = parts[0].split(" --task ")
                 desc = task_parts[0]
-                task = task_parts[1] if len(task_parts) > 1 else ""
-                return save_checkpoint(desc, parts[1], task, git_update=git_update)
+                if len(task_parts) > 1:
+                    task = task_parts[1]
+                for param in task_parts + parts[1].split():
+                    if param.startswith("chat_address="):
+                        chat_address = param.split("=", 1)[1]
+                    elif param.startswith("chat_group="):
+                        chat_group = param.split("=", 1)[1]
+                    elif param.startswith("chat_url="):
+                        chat_url = param.split("=", 1)[1]
+                return save_checkpoint(desc, git_interface, filename=parts[1], current_task=task, chat_address=chat_address, chat_group=chat_group, chat_url=chat_url, git_update=git_update)
             else:
-                return "Error: Invalid checkpoint format. Use 'checkpoint \"description\" [--file <filename>] [--task \"task\"] [--git]'"
+                return "Error: Invalid checkpoint format. Use 'checkpoint \"description\" [--file <filename>] [--task \"task\"] [--git] [chat_address=<id>] [chat_group=<group>] [chat_url=<url>]'"
         else:
             args = ["python", "grok_local.py", "--ask", command]
     else:
         args = ["python", "grok_local.py"]
 
-    result = subprocess.run(
-        args,
-        capture_output=True,
-        text=True
-    )
+    result = subprocess.run(args, capture_output=True, text=True)
     output = result.stdout.strip()
     if result.stderr:
         print(f"Error: {result.stderr.strip()}", file=sys.stderr)
@@ -119,24 +156,36 @@ def start_session(command=None, resume=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Grok Checkpoint: Manage Grok-Local sessions with checkpointing.\n\n"
-                    "This script starts or resumes a Grok-Local session, passing commands to grok_local.py. "
-                    "Use --ask for non-interactive commands (including checkpoint operations with optional Git update) or --resume to view the last checkpoint.",
-        epilog="Examples:\n"
-               "  python grok_checkpoint.py                    # Start interactive Grok-Local session\n"
-               "  python grok_checkpoint.py --ask 'list files' # Execute a single command\n"
-               "  python grok_checkpoint.py --ask 'list checkpoints' # List checkpoint files\n"
-               "  python grok_checkpoint.py --ask 'checkpoint \"Test backup\" --file test.json --task \"Add retry logic\" --git' # Save checkpoint and update Git\n"
-               "  python grok_checkpoint.py --resume           # View last checkpoint",
+        description="Grok Checkpoint: Manage Grok-Local session checkpoints.\n\n"
+                    "This script lists checkpoints or saves new ones with optional Git commits. "
+                    "Checkpoints can include chat URLs and file contents (e.g., x_poller.py) for session restoration.",
+        epilog="Options:\n"
+               "  --resume            View the last checkpoint\n"
+               "  --ask '<command>'   Run a command:\n"
+               "    'list checkpoints'         - List checkpoint files\n"
+               "    'checkpoint \"<desc>\" [options]' - Save a checkpoint\n"
+               "      Options: --file <filename>  - Save to <filename> (default: checkpoint.json)\n"
+               "               --task \"<task>\"    - Set current task\n"
+               "               --git              - Commit changes to Git\n"
+               "               chat_address=<id>  - Set chat address (UUID, auto-generated if omitted)\n"
+               "               chat_group=<group> - Set chat group (default: 'default')\n"
+               "               chat_url=<url>     - Set exact chat URL (e.g., https://x.com/i/grok?...)\n\n"
+               "Examples:\n"
+               "  python grok_checkpoint.py --resume           # View last checkpoint\n"
+               "  python grok_checkpoint.py --ask 'list checkpoints' # List all checkpoints\n"
+               "  python grok_checkpoint.py --stub --ask 'checkpoint \"Backup\" --file test.json chat_url=https://x.com/i/grok?conversation=123' # Save checkpoint (stubbed Git)\n",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--resume", action="store_true", help="Resume from the last checkpoint")
-    parser.add_argument("--ask", type=str, help="Run a specific command and exit (e.g., 'git status', 'checkpoint \"desc\" --git')")
+    parser.add_argument("--ask", type=str, help="Run a specific command and exit (e.g., 'list checkpoints')")
+    parser.add_argument("--stub", action="store_true", help="Use stubbed Git operations instead of real Git")
     args = parser.parse_args()
 
+    git_interface = get_git_interface(use_stub=args.stub)
+
     if args.resume:
-        print(start_session(resume=True))
+        print(start_session(git_interface, resume=True))
     elif args.ask:
-        print(start_session(command=args.ask))
+        print(start_session(git_interface, command=args.ask))
     else:
-        start_session()
+        start_session(git_interface)

@@ -1,52 +1,85 @@
-# Grok-Local Usage Guide
+# Grok-Local CLI Usage Guide
 
-This guide provides detailed instructions for using Grok-Local, a CLI agent for managing local Git repositories and files.
+## Overview
+Grok-Local is a command-line interface (CLI) tool for managing local files, Git repositories, and delegating tasks to Grok 3. It supports interactive mode, single commands via `--ask`, checkpointing for session state, and chat session restarting via `grok_bootstrap.py`.
 
-## Running the Agent
-- **Interactive Mode**: `python grok_checkpoint.py`
-  - Enter commands at the `Command:` prompt.
-- **Non-Interactive Mode**: `python grok_checkpoint.py --ask "command"`
-  - Executes a single command and exits.
-- **Resume**: `python grok_checkpoint.py --resume`
-  - Displays the last checkpoint.
+## Scripts
 
-## Supported Commands
-### File Operations
-- `create file <path>`: Creates a file at the specified path (e.g., `create file docs/new_file.txt`).
-- `delete file <filename>`: Deletes a file from `safe/` (add `--force` to skip confirmation).
-- `move file <src> to <dst>`: Moves a file (e.g., `move file local/temp.txt to docs/temp.txt`).
-- `copy file <src> to <dst>`: Copies a file within `safe/`.
-- `rename file <old> to <new>`: Renames a file in `safe/`.
-- `read file <filename>`: Reads a file from `safe/`.
-- `write <content> to <filename>`: Writes content to a file (defaults to `local/`).
-- `list files`: Lists files in `safe/`.
+### grok_local.py
+The core CLI for file operations, Git commands, and Grok 3 delegation.
 
-### Git Operations
-- `git status`: Shows repository status.
-- `git pull`: Pulls latest changes.
-- `git log [count]`: Displays commit history (default: 1).
-- `git branch`: Lists branches.
-- `git checkout <branch>`: Switches branches.
-- `commit <message>`: Commits changes with a message.
-- `git rm <filename>`: Removes a file from Git.
-- `git diff`: Shows uncommitted changes.
+**Usage:**
+- Interactive: `python grok_local.py`
+- Single Command: `python grok_local.py --ask '<command>'`
+- Debug Mode: `python grok_local.py --debug`
 
-### Checkpointing
-- `checkpoint <description>`: Saves a project snapshot.
-- `checkpoint <description> --file <filename>`: Saves to a custom file.
-- `restore`: Restores `safe/` files from the last checkpoint.
-- `restore --all`: Restores all tracked files.
-- `restore --file <filename>`: Restores from a specific file.
+**Commands:**
+- **File Operations:**
+  - `create file <path>` - Create a file at <path>
+  - `delete file <filename>` - Delete <filename> from safe/
+  - `move file <src> to <dst>` - Move file from <src> to <dst>
+  - `copy file <src> to <dst>` - Copy file from <src> to <dst>
+  - `rename file <old> to <new>` - Rename file from <old> to <new>
+  - `read file <filename>` - Read contents of <filename>
+  - `write '<content>' to <filename>` - Write <content> to <filename>
+  - `list files` - List files in safe/
+- **Git Operations:**
+  - `git status` - Show Git status
+  - `git pull` - Pull changes from remote
+  - `git log [count]` - Show last [count] commits (default 1)
+  - `git branch` - List branches
+  - `git checkout <branch>` - Switch to <branch>
+  - `commit '<message>'` - Commit with <message> (use |<path> for specific file)
+  - `git rm <filename>` - Remove <filename> from Git
+  - `clean repo` - Remove untracked files
+- **Checkpoint Operations:**
+  - `list checkpoints` - List checkpoint files
+  - `checkpoint '<description>' [--file <filename>] [with current x_poller.py content] [chat_url=<url>] [--git]` - Save a checkpoint
+    - `--file <filename>`: Save to <filename> (default: checkpoint.json)
+    - `with current x_poller.py content`: Include x_poller.py content
+    - `chat_url=<url>`: Set exact chat URL (e.g., https://x.com/i/grok?conversation=123)
+    - `--git`: Commit to Git
+- **Utility:**
+  - `what time is it` - Show UTC time
+  - `version` - Show version (v0.1)
+- **Delegation:**
+  - `create spaceship fuel script` - Generate a fuel simulation script
+  - `create x login stub` - Generate an X login stub
 
-### Delegation
-- `create spaceship fuel script`: Delegates to Grok 3 for a fuel simulation script.
-- `create x login stub`: Creates an X login stub via Grok 3.
+**Examples:**
+- `python grok_local.py --ask 'checkpoint "Session backup" --file backup.json chat_url=https://x.com/i/grok?conversation=123 with current x_poller.py content'`
+- `python grok_local.py --ask 'list files && git status'`
 
-## Examples
-- Create and commit a doc: `create file docs/note.txt && write "Hello" to docs/note.txt && commit "Added note"`
-- Move a file: `move file local/test.py to safe/test.py`
-- Check Git status: `git status`
+### grok_bootstrap.py
+Restarts Grok 3 chat sessions with context from checkpoints and critical files.
+
+**Usage:**
+- `python grok_bootstrap.py [--debug] [--command '<cmd>'] [--dump] [--prompt] [--include-main]`
+
+**Options:**
+- `--debug`: Run grok_local.py with debug logs
+- `--command '<cmd>'`: Run <cmd> via grok_local.py
+- `--dump`: Dump critical file contents
+- `--prompt`: Generate a restart prompt (includes chat URL and file content from checkpoint)
+- `--include-main`: Include grok_local.py in prompt
+
+**Examples:**
+- `python grok_bootstrap.py --prompt` - Show latest checkpoint with chat URL
+- `python grok_bootstrap.py --dump` - Dump all critical files
+
+### grok_checkpoint.py
+Manages checkpoint saving and listing.
+
+**Usage:**
+- `python grok_checkpoint.py [--resume] [--ask '<command>']`
+
+**Commands:**
+- `list checkpoints` - List checkpoint files
+- `checkpoint '<desc>' [--file <filename>] [--task '<task>'] [--git] [chat_url=<url>]` - Save a checkpoint
+
+**Examples:**
+- `python grok_checkpoint.py --ask 'checkpoint "Backup" --file test.json chat_url=https://x.com/i/grok?conversation=123'`
 
 ## Notes
-- Commands can be chained with `&&` (e.g., `create file safe/test.txt && git status`).
-- Set environment variables (e.g., `X_USERNAME`) for X-related tasks.
+- Checkpoints save session state, including `chat_url` for exact chat resumption and `file_content` (e.g., x_poller.py).
+- Use `grok_bootstrap.py --prompt` to restart a chat with the latest checkpoint details.
