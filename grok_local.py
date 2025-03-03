@@ -4,14 +4,33 @@ import sys
 import argparse
 import datetime
 import logging
-import requests
+import time
 from abc import ABC, abstractmethod
 from logging.handlers import RotatingFileHandler
 from file_ops import create_file, delete_file, move_file, copy_file, read_file, write_file, list_files, rename_file, clean_cruft
 from git_ops import git_status, git_pull, git_log, git_branch, git_checkout, git_rm, git_clean_repo, get_git_interface
 from grok_checkpoint import list_checkpoints, save_checkpoint
 from dotenv import load_dotenv
-from browser_use import Agent  # For browser-based login
+
+# Browser backends (optional imports)
+try:
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+    SELENIUM_AVAILABLE = True
+except ImportError:
+    SELENIUM_AVAILABLE = False
+
+try:
+    from playwright.sync_api import sync_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
+
+try:
+    from browser_use import Browser
+    BROWSER_USE_AVAILABLE = True
+except ImportError:
+    BROWSER_USE_AVAILABLE = False
 
 PROJECT_DIR = os.getcwd()
 LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
@@ -25,9 +44,71 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 load_dotenv()
-GROK_API_KEY = os.getenv("GROK_API_KEY")  # For API mode
-GROK_USERNAME = os.getenv("GROK_USERNAME")  # For browser mode
-GROK_PASSWORD = os.getenv("GROK_PASSWORD")  # For browser mode
+GROK_USERNAME = os.getenv("GROK_USERNAME")  # Optional for future login
+GROK_PASSWORD = os.getenv("GROK_PASSWORD")  # Optional for future login
+BROWSER_BACKEND = os.getenv("BROWSER_BACKEND", "PLAYWRIGHT")  # Default to Playwright
+
+# Browser Adapter
+class BrowserAdapter:
+    def __init__(self, backend):
+        self.backend = backend
+        self.driver = None
+        if backend == "SELENIUM" and SELENIUM_AVAILABLE:
+            self.driver = webdriver.Chrome()  # Add options for headless if needed
+        elif backend == "PLAYWRIGHT" and PLAYWRIGHT_AVAILABLE:
+            self.playwright = sync_playwright().start()
+            self.driver = self.playwright.chromium.launch(headless=True).new_page()
+        elif backend == "BROWSER_USE" and BROWSER_USE_AVAILABLE:
+            self.driver = Browser()
+        else:
+            raise ValueError(f"Unsupported or unavailable backend: {backend}")
+
+    def goto(self, url):
+        if self.backend == "SELENIUM":
+            self.driver.get(url)
+        elif self.backend == "PLAYWRIGHT":
+            self.driver.goto(url)
+        elif self.backend == "BROWSER_USE":
+            self.driver.goto(url)  # Assuming Browser supports goto
+
+    def fill(self, selector, value):
+        if self.backend == "SELENIUM":
+            element = self.driver.find_element(By.CSS_SELECTOR, selector)
+            element.clear()
+            element.send_keys(value)
+        elif self.backend == "PLAYWRIGHT":
+            self.driver.wait_for_selector(selector, timeout=10000)  # Wait up to 10s
+            self.driver.fill(selector, value)
+        elif self.backend == "BROWSER_USE":
+            self.driver.fill(selector, value)  # Assuming Browser supports fill
+
+    def click(self, selector):
+        if self.backend == "SELENIUM":
+            self.driver.find_element(By.CSS_SELECTOR, selector).click()
+        elif self.backend == "PLAYWRIGHT":
+            self.driver.wait_for_selector(selector, timeout=10000)  # Wait up to 10s
+            self.driver.click(selector)
+        elif self.backend == "BROWSER_USE":
+            self.driver.click(selector)  # Assuming Browser supports click
+
+    def extract_text(self, selector):
+        if self.backend == "SELENIUM":
+            element = self.driver.find_element(By.CSS_SELECTOR, selector)
+            return element.text
+        elif self.backend == "PLAYWRIGHT":
+            self.driver.wait_for_selector(selector, timeout=10000)  # Wait up to 10s
+            return self.driver.locator(selector).inner_text()
+        elif self.backend == "BROWSER_USE":
+            return self.driver.extract_text(selector)  # Assuming Browser supports this
+
+    def close(self):
+        if self.backend == "SELENIUM":
+            self.driver.quit()
+        elif self.backend == "PLAYWRIGHT":
+            self.driver.close()
+            self.playwright.stop()
+        elif self.backend == "BROWSER_USE":
+            self.driver.close()  # Assuming synchronous close
 
 # Grok Interface
 class GrokInterface(ABC):
@@ -46,7 +127,7 @@ class StubGrok(GrokInterface):
 
 class RealGrok(GrokInterface):
     def delegate(self, request):
-        logger.info(f"Delegating to Grok 3: {request}")
+        logger.info(f"Delegating to Grok 3 manually: {request}")
         print(f"Request sent to Grok 3: {request}")
         print("Awaiting response from Grok 3... (Paste the response and press Ctrl+D or Ctrl+Z then Enter)")
         lines = []
@@ -61,48 +142,47 @@ class RealGrok(GrokInterface):
 
 class GrokComBrowserInterface(GrokInterface):
     def delegate(self, request):
-        """Query Grok at grok.com using browser automation."""
-        if not all([GROK_USERNAME, GROK_PASSWORD]):
-            logger.debug("Missing GROK_USERNAME or GROK_PASSWORD; using stub mode")
+        """Query Grok's free prompt on grok.com home page using browser automation."""
+        if not hasattr(self, "stubbed") or self.stubbed:
+            logger.debug("Using stub mode for grok.com browser")
             return f"Stubbed grok.com browser response for: {request}"
         
+        browser = None
         try:
-            agent = Agent(headless=True)  # Headless for automation
-            logger.info("Navigating to grok.com login")
-            agent.navigate("https://grok.com/login")  # Adjust if login URL differs
+            browser = BrowserAdapter(self.backend)
+            logger.info("Navigating to grok.com home page")
+            browser.goto("https://grok.com")
+            time.sleep(2)  # Initial wait for page load
             
-            # Fill login form (adjust selectors based on grok.com's HTML)
-            logger.debug("Filling login form")
-            agent.fill_form({
-                "username": GROK_USERNAME,  # Adjust field name if needed
-                "password": GROK_PASSWORD   # Adjust field name if needed
-            })
-            agent.submit_form()
-            time.sleep(2)  # Wait for login
+            # Fill the free prompt box and submit (adjust selectors based on grok.com's HTML)
+            logger.debug(f"Sending prompt: {request}")
+            browser.fill("textarea[id='prompt-input']", request)  # Example selector; adjust after inspection
+            browser.click("button[type='submit']")  # Placeholder for submit button
+            time.sleep(3)  # Wait for response to load
             
-            if "login" in agent.current_url():
-                logger.error("Login failed: Still on login page")
-                return "Error: Login failed"
+            # Extract response (adjust selector based on actual site)
+            response = browser.extract_text("div[class='response-text']")  # Example selector; adjust after inspection
+            if not response:
+                logger.warning("No response extracted from grok.com")
+                return "No response received from grok.com"
             
-            logger.info("Logged in, navigating to chat")
-            agent.navigate("https://grok.com/chat")  # Adjust to actual chat URL
-            agent.fill_form({"message": request}, selector=".chat-input")  # Adjust selector
-            agent.submit_form()
-            time.sleep(2)  # Wait for response
-            
-            response = agent.extract_text(selector=".chat-response")  # Adjust selector
             logger.info(f"Grok.com browser response to '{request}': {response}")
-            return response if response else "No response received"
+            return response
         except Exception as e:
-            logger.error(f"Browser login error: {str(e)}")
+            logger.error(f"Browser interaction error: {str(e)}")
             return f"Error with grok.com browser: {str(e)}"
         finally:
-            agent.close()
+            if browser:
+                browser.close()
+
+    def __init__(self, stub=False, backend=BROWSER_BACKEND):
+        self.stubbed = stub
+        self.backend = backend
 
 def get_grok_interface(use_stub=True):
     if use_stub:
         return StubGrok()
-    return GrokComBrowserInterface() if all([GROK_USERNAME, GROK_PASSWORD]) else RealGrok()
+    return GrokComBrowserInterface(stub=False)
 
 def report_to_grok(response):
     return response
@@ -279,10 +359,11 @@ def ask_local(request, grok_interface, git_interface, debug=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Grok-Local: A CLI for managing local files, Git repositories, and delegating tasks to Grok.\n\n"
-                    "Supports stubbed mode for testing and browser-based login to grok.com.",
+                    "Supports stubbed mode and browser-based interaction with grok.com's free prompt via Selenium, Playwright, or browser_use.\n"
+                    "Set BROWSER_BACKEND env var to 'SELENIUM', 'PLAYWRIGHT', or 'BROWSER_USE' (default: PLAYWRIGHT).",
         epilog="Examples:\n"
                "  python grok_local.py --stub --ask 'grok tell me a joke'          # Stubbed grok.com query\n"
-               "  python grok_local.py --ask 'grok tell me a joke'                # Browser login to grok.com\n"
+               "  BROWSER_BACKEND=PLAYWRIGHT python grok_local.py --ask 'grok tell me a joke'  # Browser query\n"
                "  python grok_local.py --stub --ask 'create spaceship fuel script' # Stubbed delegation and Git\n",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
