@@ -3,3 +3,5 @@ playwright
 browser-use
 python-dotenv
 requests
+func-timeout
+func-timeout

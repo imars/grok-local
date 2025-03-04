@@ -111,7 +111,7 @@ class LocalDeepSeekAI(AIAdapter):
                 "prompt": request,
                 "stream": False
             }
-            response = requests.post(url, json=payload, timeout=60)  # Increased timeout
+            response = requests.post(url, json=payload, timeout=600)  # Increased from 60 to 600
             response.raise_for_status()
             result = response.json()["response"]
             logger.info(f"Local {self.model} response: {result}")

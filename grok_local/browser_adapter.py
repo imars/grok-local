@@ -23,14 +23,15 @@ except ImportError:
     BROWSER_USE_AVAILABLE = False
 
 class BrowserAdapter:
-    def __init__(self, backend):
+    def __init__(self, backend, headless=True):
         self.backend = backend
         self.driver = None
+        self.headless = headless
         if backend == "SELENIUM" and SELENIUM_AVAILABLE:
             self.driver = webdriver.Chrome()
         elif backend == "PLAYWRIGHT" and PLAYWRIGHT_AVAILABLE:
             self.playwright = sync_playwright().start()
-            self.driver = self.playwright.chromium.launch(headless=True).new_page()
+            self.driver = self.playwright.chromium.launch(headless=self.headless).new_page()
         elif backend == "BROWSER_USE" and BROWSER_USE_AVAILABLE:
             self.driver = Browser()
         else:
