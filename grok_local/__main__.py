@@ -1,24 +1,21 @@
 #!/usr/bin/env python3
-# grok_local/main.py
+# grok_local/__main__.py
 import logging
 from logging.handlers import RotatingFileHandler
 import argparse
 import sys
 
-# Configure logging before any other imports with root logger
-from grok_local.config import LOG_FILE
+from .config import LOG_FILE, AI_BACKEND, BROWSER_BACKEND
 logging.basicConfig(
-    level=logging.WARNING,  # Default to WARNING
+    level=logging.WARNING,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[RotatingFileHandler(LOG_FILE, maxBytes=1*1024*1024, backupCount=3), logging.StreamHandler()]
 )
-logger = logging.getLogger()  # Use root logger
+logger = logging.getLogger()
 
-# Now import other modules
-from grok_local.config import AI_BACKEND, BROWSER_BACKEND
-from grok_local.command_handler import ask_local
-from grok_local.ai_adapters import get_ai_adapter
-from git_ops import get_git_interface  # Import from root
+from .command_handler import ask_local
+from .ai_adapters import get_ai_adapter
+from git_ops import get_git_interface
 
 def main():
     parser = argparse.ArgumentParser(
@@ -26,8 +23,8 @@ def main():
                     "AI backends: STUB, MANUAL, GROK_BROWSER, CHATGPT, DEEPSEEK (set AI_BACKEND env var).\n"
                     "Browser backends: SELENIUM, PLAYWRIGHT, BROWSER_USE (set BROWSER_BACKEND env var).",
         epilog="Examples:\n"
-               "  python -m grok_local.main --stub --ask 'grok tell me a joke'\n"
-               "  AI_BACKEND=CHATGPT python -m grok_local.main --info --ask 'grok tell me a joke'",
+               "  python -m grok_local --stub --ask 'grok tell me a joke'\n"
+               "  AI_BACKEND=CHATGPT python -m grok_local --info --ask 'grok tell me a joke'",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--ask", type=str, help="Execute a single command and exit")
@@ -36,7 +33,6 @@ def main():
     parser.add_argument("--stub", action="store_true", help="Use stubbed AI and Git operations")
     args = parser.parse_args()
 
-    # Set logging level after parsing args
     if args.debug:
         logger.setLevel(logging.DEBUG)
         logger.debug("Logging level set to DEBUG")
@@ -47,7 +43,6 @@ def main():
         logger.setLevel(logging.WARNING)
         logger.debug("Logging level set to WARNING (default)")
 
-    # Test logging
     logger.info("Main logger initialized")
 
     ai_adapter = get_ai_adapter("STUB" if args.stub else AI_BACKEND)

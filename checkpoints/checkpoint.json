@@ -1,10 +1,10 @@
 {
-    "description": "Added json import to dom_discovery package'",
-    "timestamp": "2025-03-04T07:12:50.672235",
+    "description": "Added grok_local/ai_adapters/ and grok_local/dom_discovery/ to Git tracking",
+    "timestamp": "2025-03-04T09:47:00.129625",
     "files": [
         "grok_bootstrap.py"
     ],
     "current_task": "",
-    "chat_address": "16404ec2-ce28-4487-adaa-f1e613cc4e85",
+    "chat_address": "b8e28006-8091-4b00-be92-d0ed5da27fab",
     "chat_group": "default"
 }
