@@ -1,4 +1,7 @@
 # grok_local/ai_adapters/__init__.py
+import os
+import logging
+from grok_local.config import logger
 from .stub_ai import StubAI
 from .manual_ai import ManualAI
 from .grok_browser_ai import GrokBrowserAI

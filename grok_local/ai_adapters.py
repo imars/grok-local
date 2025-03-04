@@ -46,10 +46,10 @@ class GrokBrowserAI(AIAdapter):
             self.browser.goto("https://grok.com")
             time.sleep(5)
             logger.debug(f"Sending prompt: {request}")
-            self.browser.fill("#prompt", request)  # Placeholder
-            self.browser.click("button.submit-btn")
+            self.browser.fill(".question-input", request)
+            self.browser.click(".submit-btn")
             time.sleep(5)
-            response = self.browser.extract_text("div.response-area")
+            response = self.browser.extract_text(".response-output")
             if not response or response.strip() == "":
                 logger.warning("No response extracted from grok.com")
                 return "No response received from grok.com"
@@ -100,8 +100,8 @@ class DeepSeekAI(AIAdapter):
 class LocalDeepSeekAI(AIAdapter):
     def __init__(self, model="deepseek-r1"):
         self.model = model
-        # Warm-up call to ensure model is ready
-        self.delegate("Warm-up prompt: Hello, are you ready?")
+        logger.info(f"Warming up {self.model}")
+        self.delegate("Warm-up prompt: Hello, ready to analyze HTML?")
 
     def delegate(self, request):
         try:
@@ -111,7 +111,10 @@ class LocalDeepSeekAI(AIAdapter):
                 "prompt": request,
                 "stream": False
             }
-            response = requests.post(url, json=payload, timeout=600)  # Increased from 60 to 600
+            start_time = time.time()
+            response = requests.post(url, json=payload, timeout=600)  # 10 minutes
+            end_time = time.time()
+            logger.info(f"Local {self.model} took {end_time - start_time:.2f} seconds")
             response.raise_for_status()
             result = response.json()["response"]
             logger.info(f"Local {self.model} response: {result}")
