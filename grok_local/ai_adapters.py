@@ -44,15 +44,13 @@ class GrokBrowserAI(AIAdapter):
         try:
             logger.info("Navigating to grok.com home page")
             self.browser.goto("https://grok.com")
-            time.sleep(2)
-            
+            time.sleep(5)
             logger.debug(f"Sending prompt: {request}")
-            self.browser.fill("textarea[id='prompt-input']", request)
-            self.browser.click("button[type='submit']")
-            time.sleep(3)
-            
-            response = self.browser.extract_text("div[class='response-text']")
-            if not response:
+            self.browser.fill("#prompt", request)  # Placeholder
+            self.browser.click("button.submit-btn")
+            time.sleep(5)
+            response = self.browser.extract_text("div.response-area")
+            if not response or response.strip() == "":
                 logger.warning("No response extracted from grok.com")
                 return "No response received from grok.com"
             logger.info(f"Grok.com browser response to '{request}': {response}")
@@ -87,7 +85,7 @@ class DeepSeekAI(AIAdapter):
             logger.error("DEEPSEEK_API_KEY not set")
             return "Error: DeepSeek API key missing"
         try:
-            url = "https://api.deepseek.com/v1/chat/completions"  # Placeholder; adjust per DeepSeek docs
+            url = "https://api.deepseek.com/v1/chat/completions"
             headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"}
             payload = {"model": "deepseek-chat", "messages": [{"role": "user", "content": request}]}
             response = requests.post(url, json=payload, headers=headers, timeout=10)
@@ -99,13 +97,35 @@ class DeepSeekAI(AIAdapter):
             logger.error(f"DeepSeek API error: {str(e)}")
             return f"Error with DeepSeek: {str(e)}"
 
-def get_ai_adapter(backend=os.getenv("AI_BACKEND", "STUB")):
+class LocalDeepSeekAI(AIAdapter):
+    def __init__(self, model="deepseek-r1"):
+        self.model = model
+
+    def delegate(self, request):
+        try:
+            url = "http://localhost:11434/api/generate"
+            payload = {
+                "model": self.model,
+                "prompt": request,
+                "stream": False
+            }
+            response = requests.post(url, json=payload, timeout=30)
+            response.raise_for_status()
+            result = response.json()["response"]
+            logger.info(f"Local {self.model} response: {result}")
+            return result
+        except Exception as e:
+            logger.error(f"Local {self.model} error: {str(e)}")
+            return f"Error with local {self.model}: {str(e)}"
+
+def get_ai_adapter(backend=os.getenv("AI_BACKEND", "STUB"), model="deepseek-r1"):
     backends = {
         "STUB": StubAI,
         "MANUAL": ManualAI,
         "GROK_BROWSER": GrokBrowserAI,
         "CHATGPT": ChatGPTAI,
-        "DEEPSEEK": DeepSeekAI
+        "DEEPSEEK": DeepSeekAI,
+        "LOCAL_DEEPSEEK": lambda: LocalDeepSeekAI(model)
     }
     if backend not in backends:
         logger.error(f"Unsupported AI backend: {backend}")
