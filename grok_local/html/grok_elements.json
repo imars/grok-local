@@ -1,0 +1,1712 @@
+{
+  "url": "https://grok.com",
+  "elements": [
+    {
+      "tag": "div",
+      "text": "Sign upSign inWelcome to Grok.How can I help you t",
+      "attributes": {
+        "class": [
+          "flex",
+          "w-full",
+          "h-full",
+          "@container/mainview"
+        ]
+      },
+      "selector": "div.flex.w-full.h-full.@container/mainview",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Sign upSign inWelcome to Grok.How can I help you t",
+      "attributes": {
+        "class": [
+          "flex",
+          "w-full",
+          "h-full"
+        ]
+      },
+      "selector": "div.flex.w-full.h-full",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Sign upSign in",
+      "attributes": {
+        "class": [
+          "w-full",
+          "relative",
+          "@container/nav",
+          "z-40"
+        ]
+      },
+      "selector": "div.w-full.relative.@container/nav.z-40",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Sign upSign in",
+      "attributes": {
+        "class": [
+          "h-16",
+          "top-0",
+          "@[80rem]/nav:h-0",
+          "@[80rem]/nav:top-8",
+          "absolute",
+          "z-10",
+          "flex",
+          "flex-row",
+          "items-center",
+          "justify-center",
+          "w-full",
+          "bg-gradient-to-b",
+          "from-background",
+          "via-background",
+          "via-80%",
+          "to-transparent",
+          "@[80rem]/nav:from-transparent",
+          "@[80rem]/nav:via-transparent"
+        ]
+      },
+      "selector": "div.h-16.top-0.@[80rem]/nav:h-0.@[80rem]/nav:top-8.absolute.z-10.flex.flex-row.items-center.justify-center.w-full.bg-gradient-to-b.from-background.via-background.via-80%.to-transparent.@[80rem]/nav:from-transparent.@[80rem]/nav:via-transparent",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "",
+      "attributes": {
+        "class": [
+          "absolute",
+          "flex",
+          "flex-row",
+          "items-center",
+          "start-1"
+        ]
+      },
+      "selector": "div.absolute.flex.flex-row.items-center.start-1",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "",
+      "attributes": {
+        "class": [
+          "grow",
+          "justify-center",
+          "hidden",
+          "max-w-[50%]",
+          "@[640px]/nav:flex"
+        ]
+      },
+      "selector": "div.grow.justify-center.hidden.max-w-[50%].@[640px]/nav:flex",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Sign upSign in",
+      "attributes": {
+        "class": [
+          "absolute",
+          "flex",
+          "flex-row",
+          "items-center",
+          "gap-0.5",
+          "ml-auto",
+          "end-3"
+        ]
+      },
+      "selector": "div.absolute.flex.flex-row.items-center.gap-0.5.ml-auto.end-3",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "button",
+      "text": "",
+      "attributes": {
+        "class": [
+          "inline-flex",
+          "items-center",
+          "justify-center",
+          "gap-2",
+          "whitespace-nowrap",
+          "text-sm",
+          "font-medium",
+          "leading-[normal]",
+          "cursor-pointer",
+          "focus-visible:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring",
+          "disabled:opacity-50",
+          "disabled:cursor-default",
+          "[&_svg]:pointer-events-none",
+          "[&_svg]:shrink-0",
+          "[&_svg]:-mx-0.5",
+          "text-primary",
+          "hover:bg-button-ghost-hover",
+          "h-10",
+          "w-10",
+          "rounded-full"
+        ],
+        "type": "button",
+        "data-state": "closed"
+      },
+      "selector": "button.inline-flex.items-center.justify-center.gap-2.whitespace-nowrap.text-sm.font-medium.leading-[normal].cursor-pointer.focus-visible:outline-none.focus-visible:ring-1.focus-visible:ring-ring.disabled:opacity-50.disabled:cursor-default.[&_svg]:pointer-events-none.[&_svg]:shrink-0.[&_svg]:-mx-0.5.text-primary.hover:bg-button-ghost-hover.h-10.w-10.rounded-full",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Sign upSign in",
+      "attributes": {
+        "class": [
+          "flex",
+          "flex-row",
+          "items-center",
+          "gap-2"
+        ]
+      },
+      "selector": "div.flex.flex-row.items-center.gap-2",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "button",
+      "text": "",
+      "attributes": {
+        "class": [
+          "items-center",
+          "justify-center",
+          "gap-2",
+          "whitespace-nowrap",
+          "text-sm",
+          "font-medium",
+          "leading-[normal]",
+          "cursor-pointer",
+          "focus-visible:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring",
+          "disabled:opacity-50",
+          "disabled:cursor-default",
+          "[&_svg]:pointer-events-none",
+          "[&_svg]:shrink-0",
+          "[&_svg]:-mx-0.5",
+          "text-primary",
+          "hover:bg-button-ghost-hover",
+          "h-10",
+          "w-10",
+          "rounded-full",
+          "hidden",
+          "@sm:flex"
+        ],
+        "type": "button",
+        "id": "radix-:r11:",
+        "aria-haspopup": "menu",
+        "aria-expanded": "false",
+        "data-state": "closed"
+      },
+      "selector": "#radix-:r11:",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "button",
+      "text": "Sign up",
+      "attributes": {
+        "class": [
+          "inline-flex",
+          "items-center",
+          "justify-center",
+          "gap-2",
+          "whitespace-nowrap",
+          "font-medium",
+          "cursor-pointer",
+          "focus-visible:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring",
+          "disabled:opacity-50",
+          "disabled:cursor-default",
+          "[&_svg]:pointer-events-none",
+          "[&_svg]:shrink-0",
+          "[&_svg]:-mx-0.5",
+          "bg-button-primary",
+          "text-background",
+          "hover:bg-button-primary-hover",
+          "rounded-full",
+          "py-2",
+          "h-8",
+          "px-3",
+          "text-sm"
+        ],
+        "type": "button"
+      },
+      "selector": "button.inline-flex.items-center.justify-center.gap-2.whitespace-nowrap.font-medium.cursor-pointer.focus-visible:outline-none.focus-visible:ring-1.focus-visible:ring-ring.disabled:opacity-50.disabled:cursor-default.[&_svg]:pointer-events-none.[&_svg]:shrink-0.[&_svg]:-mx-0.5.bg-button-primary.text-background.hover:bg-button-primary-hover.rounded-full.py-2.h-8.px-3.text-sm",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Sign up",
+      "attributes": {},
+      "selector": "div",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "button",
+      "text": "Sign in",
+      "attributes": {
+        "class": [
+          "items-center",
+          "justify-center",
+          "gap-2",
+          "whitespace-nowrap",
+          "font-medium",
+          "cursor-pointer",
+          "focus-visible:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring",
+          "disabled:opacity-50",
+          "disabled:cursor-default",
+          "[&_svg]:pointer-events-none",
+          "[&_svg]:shrink-0",
+          "[&_svg]:-mx-0.5",
+          "rounded-full",
+          "py-2",
+          "hidden",
+          "@sm:flex",
+          "h-8",
+          "px-3",
+          "text-sm",
+          "text-primary",
+          "bg-transparent",
+          "ring-1",
+          "ring-inset",
+          "ring-toggle-border",
+          "hover:bg-button-secondary-hover",
+          "hover:border-text-secondary"
+        ],
+        "type": "button"
+      },
+      "selector": "button.items-center.justify-center.gap-2.whitespace-nowrap.font-medium.cursor-pointer.focus-visible:outline-none.focus-visible:ring-1.focus-visible:ring-ring.disabled:opacity-50.disabled:cursor-default.[&_svg]:pointer-events-none.[&_svg]:shrink-0.[&_svg]:-mx-0.5.rounded-full.py-2.hidden.@sm:flex.h-8.px-3.text-sm.text-primary.bg-transparent.ring-1.ring-inset.ring-toggle-border.hover:bg-button-secondary-hover.hover:border-text-secondary",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Sign in",
+      "attributes": {},
+      "selector": "div",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Welcome to Grok.How can I help you today?ResearchH",
+      "attributes": {
+        "class": [
+          "flex",
+          "flex-col",
+          "items-center",
+          "justify-between",
+          "w-full",
+          "h-full",
+          "gap-6",
+          "p-2",
+          "pt-20",
+          "mx-auto",
+          "@sm:justify-center",
+          "@sm:p-4",
+          "@sm:gap-9",
+          "@lg:w-4/5"
+        ]
+      },
+      "selector": "div.flex.flex-col.items-center.justify-between.w-full.h-full.gap-6.p-2.pt-20.mx-auto.@sm:justify-center.@sm:p-4.@sm:gap-9.@lg:w-4/5",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Welcome to Grok.How can I help you today?ResearchH",
+      "attributes": {
+        "class": [
+          "flex",
+          "flex-col",
+          "items-start",
+          "justify-center",
+          "w-full",
+          "@sm:px-4",
+          "px-2",
+          "gap-6",
+          "@sm:gap-4",
+          "@lg:w-4/5",
+          "max-w-[50rem]",
+          "flex-1",
+          "@sm:flex-initial",
+          "pt-[120px]",
+          "@sm:pt-0"
+        ]
+      },
+      "selector": "div.flex.flex-col.items-start.justify-center.w-full.@sm:px-4.px-2.gap-6.@sm:gap-4.@lg:w-4/5.max-w-[50rem].flex-1.@sm:flex-initial.pt-[120px].@sm:pt-0",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "span",
+      "text": "How can I help you today?",
+      "attributes": {
+        "class": [
+          "text-secondary"
+        ]
+      },
+      "selector": "span.text-secondary",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "ResearchHow toAnalyzeCreate imagesCode",
+      "attributes": {
+        "class": [
+          "w-full",
+          "@lg:w-4/5",
+          "max-w-[50rem]",
+          "overflow-x-auto",
+          "no-touch-scrollbar",
+          "will-change-[mask-image]",
+          "@sm:[mask-image:none]",
+          "[mask-image:linear-gradient(to_right,transparent_0,black_0px,black_calc(100%_-_40px),transparent_100%)]",
+          "@sm:hidden"
+        ]
+      },
+      "selector": "div.w-full.@lg:w-4/5.max-w-[50rem].overflow-x-auto.no-touch-scrollbar.will-change-[mask-image].@sm:[mask-image:none].[mask-image:linear-gradient(to_right,transparent_0,black_0px,black_calc(100%_-_40px),transparent_100%)].@sm:hidden",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "ResearchHow toAnalyzeCreate imagesCode",
+      "attributes": {
+        "class": [
+          "flex",
+          "flex-row",
+          "flex-wrap",
+          "@sm:flex-nowrap",
+          "w-full",
+          "gap-2",
+          "@sm:gap-2",
+          "justify-center",
+          "items-center"
+        ]
+      },
+      "selector": "div.flex.flex-row.flex-wrap.@sm:flex-nowrap.w-full.gap-2.@sm:gap-2.justify-center.items-center",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Research",
+      "attributes": {
+        "role": "button",
+        "class": [
+          "flex",
+          "items-center",
+          "text-primary",
+          "text-sm",
+          "font-medium",
+          "rounded-2xl",
+          "px-3",
+          "py-2",
+          "border",
+          "border-input-border",
+          "hover:bg-input-hover",
+          "cursor-pointer",
+          "transition-all",
+          "focus:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring"
+        ],
+        "tabindex": "0"
+      },
+      "selector": "div.flex.items-center.text-primary.text-sm.font-medium.rounded-2xl.px-3.py-2.border.border-input-border.hover:bg-input-hover.cursor-pointer.transition-all.focus:outline-none.focus-visible:ring-1.focus-visible:ring-ring",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "p",
+      "text": "Research",
+      "attributes": {
+        "class": [
+          "overflow-hidden",
+          "whitespace-nowrap",
+          "text-ellipsis"
+        ]
+      },
+      "selector": "p.overflow-hidden.whitespace-nowrap.text-ellipsis",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "How to",
+      "attributes": {
+        "role": "button",
+        "class": [
+          "flex",
+          "items-center",
+          "text-primary",
+          "text-sm",
+          "font-medium",
+          "rounded-2xl",
+          "px-3",
+          "py-2",
+          "border",
+          "border-input-border",
+          "hover:bg-input-hover",
+          "cursor-pointer",
+          "transition-all",
+          "focus:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring"
+        ],
+        "tabindex": "0"
+      },
+      "selector": "div.flex.items-center.text-primary.text-sm.font-medium.rounded-2xl.px-3.py-2.border.border-input-border.hover:bg-input-hover.cursor-pointer.transition-all.focus:outline-none.focus-visible:ring-1.focus-visible:ring-ring",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "p",
+      "text": "How to",
+      "attributes": {
+        "class": [
+          "overflow-hidden",
+          "whitespace-nowrap",
+          "text-ellipsis"
+        ]
+      },
+      "selector": "p.overflow-hidden.whitespace-nowrap.text-ellipsis",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Analyze",
+      "attributes": {
+        "role": "button",
+        "class": [
+          "flex",
+          "items-center",
+          "text-primary",
+          "text-sm",
+          "font-medium",
+          "rounded-2xl",
+          "px-3",
+          "py-2",
+          "border",
+          "border-input-border",
+          "hover:bg-input-hover",
+          "cursor-pointer",
+          "transition-all",
+          "focus:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring"
+        ],
+        "tabindex": "0"
+      },
+      "selector": "div.flex.items-center.text-primary.text-sm.font-medium.rounded-2xl.px-3.py-2.border.border-input-border.hover:bg-input-hover.cursor-pointer.transition-all.focus:outline-none.focus-visible:ring-1.focus-visible:ring-ring",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "p",
+      "text": "Analyze",
+      "attributes": {
+        "class": [
+          "overflow-hidden",
+          "whitespace-nowrap",
+          "text-ellipsis"
+        ]
+      },
+      "selector": "p.overflow-hidden.whitespace-nowrap.text-ellipsis",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Create images",
+      "attributes": {
+        "role": "button",
+        "class": [
+          "flex",
+          "items-center",
+          "text-primary",
+          "text-sm",
+          "font-medium",
+          "rounded-2xl",
+          "px-3",
+          "py-2",
+          "border",
+          "border-input-border",
+          "hover:bg-input-hover",
+          "cursor-pointer",
+          "transition-all",
+          "focus:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring"
+        ],
+        "tabindex": "0"
+      },
+      "selector": "div.flex.items-center.text-primary.text-sm.font-medium.rounded-2xl.px-3.py-2.border.border-input-border.hover:bg-input-hover.cursor-pointer.transition-all.focus:outline-none.focus-visible:ring-1.focus-visible:ring-ring",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "p",
+      "text": "Create images",
+      "attributes": {
+        "class": [
+          "overflow-hidden",
+          "whitespace-nowrap",
+          "text-ellipsis"
+        ]
+      },
+      "selector": "p.overflow-hidden.whitespace-nowrap.text-ellipsis",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Code",
+      "attributes": {
+        "role": "button",
+        "class": [
+          "flex",
+          "items-center",
+          "text-primary",
+          "text-sm",
+          "font-medium",
+          "rounded-2xl",
+          "px-3",
+          "py-2",
+          "border",
+          "border-input-border",
+          "hover:bg-input-hover",
+          "cursor-pointer",
+          "transition-all",
+          "focus:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring"
+        ],
+        "tabindex": "0"
+      },
+      "selector": "div.flex.items-center.text-primary.text-sm.font-medium.rounded-2xl.px-3.py-2.border.border-input-border.hover:bg-input-hover.cursor-pointer.transition-all.focus:outline-none.focus-visible:ring-1.focus-visible:ring-ring",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "p",
+      "text": "Code",
+      "attributes": {
+        "class": [
+          "overflow-hidden",
+          "whitespace-nowrap",
+          "text-ellipsis"
+        ]
+      },
+      "selector": "p.overflow-hidden.whitespace-nowrap.text-ellipsis",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "What do you want to know?DeepSearchThinkGrok 3Rese",
+      "attributes": {
+        "class": [
+          "flex",
+          "flex-col",
+          "items-center",
+          "w-full",
+          "gap-1",
+          "@sm:gap-4"
+        ]
+      },
+      "selector": "div.flex.flex-col.items-center.w-full.gap-1.@sm:gap-4",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "What do you want to know?DeepSearchThinkGrok 3Rese",
+      "attributes": {
+        "class": [
+          "flex",
+          "flex-col-reverse",
+          "items-center",
+          "justify-between",
+          "flex-1",
+          "w-full",
+          "gap-0",
+          "@sm:gap-5",
+          "@sm:flex-col",
+          "relative"
+        ]
+      },
+      "selector": "div.flex.flex-col-reverse.items-center.justify-between.flex-1.w-full.gap-0.@sm:gap-5.@sm:flex-col.relative",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "form",
+      "text": "What do you want to know?DeepSearchThinkGrok 3",
+      "attributes": {
+        "class": [
+          "bottom-0",
+          "w-full",
+          "text-base",
+          "flex",
+          "flex-col",
+          "gap-2",
+          "items-center",
+          "justify-center",
+          "relative",
+          "z-10",
+          "mt-2"
+        ]
+      },
+      "selector": "form.bottom-0.w-full.text-base.flex.flex-col.gap-2.items-center.justify-center.relative.z-10.mt-2",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "What do you want to know?DeepSearchThinkGrok 3",
+      "attributes": {
+        "class": [
+          "flex",
+          "flex-row",
+          "gap-2",
+          "justify-center",
+          "w-full",
+          "relative",
+          "@lg:w-4/5"
+        ]
+      },
+      "selector": "div.flex.flex-row.gap-2.justify-center.w-full.relative.@lg:w-4/5",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "input",
+      "text": "",
+      "attributes": {
+        "class": [
+          "hidden"
+        ],
+        "multiple": "",
+        "type": "file",
+        "name": "files"
+      },
+      "selector": "input.hidden",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "What do you want to know?DeepSearchThinkGrok 3",
+      "attributes": {
+        "class": [
+          "duration-100",
+          "relative",
+          "w-full",
+          "max-w-[50rem]",
+          "ring-1",
+          "ring-input-border",
+          "ring-inset",
+          "overflow-hidden",
+          "bg-input",
+          "@container/input",
+          "hover:ring-card-border-focus",
+          "hover:bg-input-hover",
+          "focus-within:ring-1",
+          "focus-within:ring-input-border-focus",
+          "hover:focus-within:ring-input-border-focus",
+          "pb-12",
+          "px-2",
+          "@[480px]/input:px-3",
+          "rounded-3xl"
+        ]
+      },
+      "selector": "div.duration-100.relative.w-full.max-w-[50rem].ring-1.ring-input-border.ring-inset.overflow-hidden.bg-input.@container/input.hover:ring-card-border-focus.hover:bg-input-hover.focus-within:ring-1.focus-within:ring-input-border-focus.hover:focus-within:ring-input-border-focus.pb-12.px-2.@[480px]/input:px-3.rounded-3xl",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "What do you want to know?",
+      "attributes": {
+        "class": [
+          "relative",
+          "z-10"
+        ]
+      },
+      "selector": "div.relative.z-10",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "span",
+      "text": "What do you want to know?",
+      "attributes": {
+        "class": [
+          "absolute",
+          "px-2",
+          "@[480px]/input:px-3",
+          "py-5",
+          "text-secondary",
+          "pointer-events-none"
+        ]
+      },
+      "selector": "span.absolute.px-2.@[480px]/input:px-3.py-5.text-secondary.pointer-events-none",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "textarea",
+      "text": "",
+      "attributes": {
+        "dir": "auto",
+        "class": [
+          "w-full",
+          "px-2",
+          "@[480px]/input:px-3",
+          "bg-transparent",
+          "focus:outline-none",
+          "text-primary",
+          "align-bottom",
+          "min-h-14",
+          "pt-5",
+          "my-0",
+          "mb-5"
+        ],
+        "style": "resize: none; height: 44px !important;"
+      },
+      "selector": "textarea.w-full.px-2.@[480px]/input:px-3.bg-transparent.focus:outline-none.text-primary.align-bottom.min-h-14.pt-5.my-0.mb-5",
+      "candidate_role": {
+        "role": "prompt_input",
+        "confidence": 0.3
+      }
+    },
+    {
+      "tag": "div",
+      "text": "DeepSearchThinkGrok 3",
+      "attributes": {
+        "class": [
+          "flex",
+          "gap-1.5",
+          "absolute",
+          "inset-x-0",
+          "bottom-0",
+          "border-2",
+          "border-transparent",
+          "p-2",
+          "@[480px]/input:p-3",
+          "max-w-full"
+        ]
+      },
+      "selector": "div.flex.gap-1.5.absolute.inset-x-0.bottom-0.border-2.border-transparent.p-2.@[480px]/input:p-3.max-w-full",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "button",
+      "text": "",
+      "attributes": {
+        "class": [
+          "inline-flex",
+          "items-center",
+          "justify-center",
+          "gap-2",
+          "whitespace-nowrap",
+          "text-sm",
+          "font-medium",
+          "leading-[normal]",
+          "cursor-pointer",
+          "focus-visible:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring",
+          "disabled:opacity-50",
+          "disabled:cursor-default",
+          "[&_svg]:pointer-events-none",
+          "[&_svg]:shrink-0",
+          "[&_svg]:-mx-0.5",
+          "h-9",
+          "rounded-full",
+          "py-2",
+          "relative",
+          "px-2",
+          "transition-all",
+          "duration-150",
+          "bg-transparent",
+          "border",
+          "w-9",
+          "aspect-square",
+          "border-toggle-border",
+          "text-secondary",
+          "hover:text-primary",
+          "hover:bg-toggle-hover"
+        ],
+        "type": "button",
+        "disabled": "",
+        "tabindex": "0",
+        "data-state": "closed"
+      },
+      "selector": "button.inline-flex.items-center.justify-center.gap-2.whitespace-nowrap.text-sm.font-medium.leading-[normal].cursor-pointer.focus-visible:outline-none.focus-visible:ring-1.focus-visible:ring-ring.disabled:opacity-50.disabled:cursor-default.[&_svg]:pointer-events-none.[&_svg]:shrink-0.[&_svg]:-mx-0.5.h-9.rounded-full.py-2.relative.px-2.transition-all.duration-150.bg-transparent.border.w-9.aspect-square.border-toggle-border.text-secondary.hover:text-primary.hover:bg-toggle-hover",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "DeepSearchThinkGrok 3",
+      "attributes": {
+        "class": [
+          "flex",
+          "grow",
+          "gap-1.5",
+          "max-w-full"
+        ],
+        "style": "transform: none; opacity: 1;"
+      },
+      "selector": "div.flex.grow.gap-1.5.max-w-full",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "DeepSearchThink",
+      "attributes": {
+        "class": [
+          "grow",
+          "flex",
+          "gap-1.5",
+          "max-w-full"
+        ]
+      },
+      "selector": "div.grow.flex.gap-1.5.max-w-full",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "button",
+      "text": "DeepSearch",
+      "attributes": {
+        "class": [
+          "inline-flex",
+          "gap-2",
+          "whitespace-nowrap",
+          "text-sm",
+          "font-medium",
+          "leading-[normal]",
+          "cursor-pointer",
+          "focus-visible:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring",
+          "disabled:opacity-50",
+          "disabled:cursor-default",
+          "[&_svg]:pointer-events-none",
+          "[&_svg]:shrink-0",
+          "[&_svg]:-mx-0.5",
+          "text-primary",
+          "h-9",
+          "rounded-full",
+          "px-3.5",
+          "py-2",
+          "border",
+          "border-toggle-border",
+          "overflow-hidden",
+          "items-center",
+          "justify-center",
+          "bg-transparent",
+          "hover:bg-toggle-hover"
+        ],
+        "type": "button",
+        "tabindex": "0",
+        "aria-pressed": "false",
+        "data-state": "closed"
+      },
+      "selector": "button.inline-flex.gap-2.whitespace-nowrap.text-sm.font-medium.leading-[normal].cursor-pointer.focus-visible:outline-none.focus-visible:ring-1.focus-visible:ring-ring.disabled:opacity-50.disabled:cursor-default.[&_svg]:pointer-events-none.[&_svg]:shrink-0.[&_svg]:-mx-0.5.text-primary.h-9.rounded-full.px-3.5.py-2.border.border-toggle-border.overflow-hidden.items-center.justify-center.bg-transparent.hover:bg-toggle-hover",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "span",
+      "text": "DeepSearch",
+      "attributes": {},
+      "selector": "span",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "button",
+      "text": "Think",
+      "attributes": {
+        "class": [
+          "gap-2",
+          "whitespace-nowrap",
+          "text-sm",
+          "font-medium",
+          "leading-[normal]",
+          "cursor-pointer",
+          "focus-visible:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring",
+          "disabled:opacity-50",
+          "disabled:cursor-default",
+          "[&_svg]:pointer-events-none",
+          "[&_svg]:shrink-0",
+          "[&_svg]:-mx-0.5",
+          "text-primary",
+          "h-9",
+          "rounded-full",
+          "px-3.5",
+          "py-2",
+          "border",
+          "border-toggle-border",
+          "overflow-hidden",
+          "flex",
+          "items-center",
+          "justify-center",
+          "bg-transparent",
+          "hover:bg-toggle-hover"
+        ],
+        "type": "button",
+        "tabindex": "0",
+        "aria-pressed": "false",
+        "data-state": "closed"
+      },
+      "selector": "button.gap-2.whitespace-nowrap.text-sm.font-medium.leading-[normal].cursor-pointer.focus-visible:outline-none.focus-visible:ring-1.focus-visible:ring-ring.disabled:opacity-50.disabled:cursor-default.[&_svg]:pointer-events-none.[&_svg]:shrink-0.[&_svg]:-mx-0.5.text-primary.h-9.rounded-full.px-3.5.py-2.border.border-toggle-border.overflow-hidden.flex.items-center.justify-center.bg-transparent.hover:bg-toggle-hover",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "span",
+      "text": "Think",
+      "attributes": {},
+      "selector": "span",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Grok 3",
+      "attributes": {
+        "class": [
+          "flex",
+          "items-center"
+        ]
+      },
+      "selector": "div.flex.items-center",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "button",
+      "text": "Grok 3",
+      "attributes": {
+        "class": [
+          "inline-flex",
+          "items-center",
+          "justify-center",
+          "gap-2",
+          "whitespace-nowrap",
+          "text-sm",
+          "font-medium",
+          "leading-[normal]",
+          "cursor-pointer",
+          "focus-visible:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring",
+          "disabled:opacity-50",
+          "disabled:cursor-default",
+          "[&_svg]:pointer-events-none",
+          "[&_svg]:shrink-0",
+          "[&_svg]:-mx-0.5",
+          "text-primary",
+          "hover:bg-button-ghost-hover",
+          "rounded-full",
+          "px-3.5",
+          "py-2",
+          "flex-row",
+          "pl-3",
+          "pr-2.5",
+          "h-9",
+          "sm:px-3",
+          "border",
+          "border-button-outline-border",
+          "sm:border-0"
+        ],
+        "type": "button",
+        "id": "radix-:r1d:",
+        "aria-haspopup": "menu",
+        "aria-expanded": "false",
+        "data-state": "closed",
+        "aria-describedby": "radix-:r1f:"
+      },
+      "selector": "#radix-:r1d:",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "span",
+      "text": "Grok 3",
+      "attributes": {
+        "class": [
+          "inline-block",
+          "text-primary",
+          "text-xs",
+          "@[400px]/input:text-sm"
+        ]
+      },
+      "selector": "span.inline-block.text-primary.text-xs.@[400px]/input:text-sm",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "",
+      "attributes": {
+        "class": [
+          "ml-auto",
+          "flex",
+          "flex-row",
+          "items-end",
+          "gap-1"
+        ]
+      },
+      "selector": "div.ml-auto.flex.flex-row.items-end.gap-1",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "button",
+      "text": "",
+      "attributes": {
+        "class": [
+          "group",
+          "flex",
+          "flex-col",
+          "justify-center",
+          "rounded-full",
+          "focus:outline-none",
+          "focus-visible:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring"
+        ],
+        "type": "submit",
+        "disabled": "",
+        "style": "opacity: 1;"
+      },
+      "selector": "button.group.flex.flex-col.justify-center.rounded-full.focus:outline-none.focus-visible:outline-none.focus-visible:ring-1.focus-visible:ring-ring",
+      "candidate_role": {
+        "role": "submit_button",
+        "confidence": 0.5
+      }
+    },
+    {
+      "tag": "div",
+      "text": "",
+      "attributes": {
+        "class": [
+          "h-9",
+          "relative",
+          "aspect-square",
+          "flex",
+          "flex-col",
+          "items-center",
+          "justify-center",
+          "rounded-full",
+          "ring-inset",
+          "before:absolute",
+          "before:inset-0",
+          "before:rounded-full",
+          "before:bg-primary",
+          "before:ring-0",
+          "before:transition-all",
+          "duration-500",
+          "bg-button-secondary",
+          "text-secondary",
+          "before:[clip-path:circle(0%_at_50%_50%)]",
+          "ring-0"
+        ]
+      },
+      "selector": "div.h-9.relative.aspect-square.flex.flex-col.items-center.justify-center.rounded-full.ring-inset.before:absolute.before:inset-0.before:rounded-full.before:bg-primary.before:ring-0.before:transition-all.duration-500.bg-button-secondary.text-secondary.before:[clip-path:circle(0%_at_50%_50%)].ring-0",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "ResearchHow toAnalyzeCreate imagesCode",
+      "attributes": {
+        "class": [
+          "w-full",
+          "@lg:w-4/5",
+          "max-w-[50rem]",
+          "no-touch-scrollbar",
+          "will-change-[mask-image]",
+          "@sm:[mask-image:none]",
+          "[mask-image:linear-gradient(to_right,transparent_0,black_0px,black_calc(100%_-_40px),transparent_100%)]",
+          "hidden",
+          "@sm:block",
+          "h-10",
+          "overflow-visible"
+        ]
+      },
+      "selector": "div.w-full.@lg:w-4/5.max-w-[50rem].no-touch-scrollbar.will-change-[mask-image].@sm:[mask-image:none].[mask-image:linear-gradient(to_right,transparent_0,black_0px,black_calc(100%_-_40px),transparent_100%)].hidden.@sm:block.h-10.overflow-visible",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "ResearchHow toAnalyzeCreate imagesCode",
+      "attributes": {
+        "class": [
+          "flex",
+          "flex-row",
+          "flex-wrap",
+          "@sm:flex-nowrap",
+          "w-full",
+          "gap-2",
+          "@sm:gap-2",
+          "justify-center",
+          "items-center"
+        ]
+      },
+      "selector": "div.flex.flex-row.flex-wrap.@sm:flex-nowrap.w-full.gap-2.@sm:gap-2.justify-center.items-center",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Research",
+      "attributes": {
+        "role": "button",
+        "class": [
+          "flex",
+          "items-center",
+          "text-primary",
+          "text-sm",
+          "font-medium",
+          "rounded-2xl",
+          "px-3",
+          "py-2",
+          "border",
+          "border-input-border",
+          "hover:bg-input-hover",
+          "cursor-pointer",
+          "transition-all",
+          "focus:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring"
+        ],
+        "tabindex": "0"
+      },
+      "selector": "div.flex.items-center.text-primary.text-sm.font-medium.rounded-2xl.px-3.py-2.border.border-input-border.hover:bg-input-hover.cursor-pointer.transition-all.focus:outline-none.focus-visible:ring-1.focus-visible:ring-ring",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "p",
+      "text": "Research",
+      "attributes": {
+        "class": [
+          "overflow-hidden",
+          "whitespace-nowrap",
+          "text-ellipsis"
+        ]
+      },
+      "selector": "p.overflow-hidden.whitespace-nowrap.text-ellipsis",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "How to",
+      "attributes": {
+        "role": "button",
+        "class": [
+          "flex",
+          "items-center",
+          "text-primary",
+          "text-sm",
+          "font-medium",
+          "rounded-2xl",
+          "px-3",
+          "py-2",
+          "border",
+          "border-input-border",
+          "hover:bg-input-hover",
+          "cursor-pointer",
+          "transition-all",
+          "focus:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring"
+        ],
+        "tabindex": "0"
+      },
+      "selector": "div.flex.items-center.text-primary.text-sm.font-medium.rounded-2xl.px-3.py-2.border.border-input-border.hover:bg-input-hover.cursor-pointer.transition-all.focus:outline-none.focus-visible:ring-1.focus-visible:ring-ring",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "p",
+      "text": "How to",
+      "attributes": {
+        "class": [
+          "overflow-hidden",
+          "whitespace-nowrap",
+          "text-ellipsis"
+        ]
+      },
+      "selector": "p.overflow-hidden.whitespace-nowrap.text-ellipsis",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Analyze",
+      "attributes": {
+        "role": "button",
+        "class": [
+          "flex",
+          "items-center",
+          "text-primary",
+          "text-sm",
+          "font-medium",
+          "rounded-2xl",
+          "px-3",
+          "py-2",
+          "border",
+          "border-input-border",
+          "hover:bg-input-hover",
+          "cursor-pointer",
+          "transition-all",
+          "focus:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring"
+        ],
+        "tabindex": "0"
+      },
+      "selector": "div.flex.items-center.text-primary.text-sm.font-medium.rounded-2xl.px-3.py-2.border.border-input-border.hover:bg-input-hover.cursor-pointer.transition-all.focus:outline-none.focus-visible:ring-1.focus-visible:ring-ring",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "p",
+      "text": "Analyze",
+      "attributes": {
+        "class": [
+          "overflow-hidden",
+          "whitespace-nowrap",
+          "text-ellipsis"
+        ]
+      },
+      "selector": "p.overflow-hidden.whitespace-nowrap.text-ellipsis",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Create images",
+      "attributes": {
+        "role": "button",
+        "class": [
+          "flex",
+          "items-center",
+          "text-primary",
+          "text-sm",
+          "font-medium",
+          "rounded-2xl",
+          "px-3",
+          "py-2",
+          "border",
+          "border-input-border",
+          "hover:bg-input-hover",
+          "cursor-pointer",
+          "transition-all",
+          "focus:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring"
+        ],
+        "tabindex": "0"
+      },
+      "selector": "div.flex.items-center.text-primary.text-sm.font-medium.rounded-2xl.px-3.py-2.border.border-input-border.hover:bg-input-hover.cursor-pointer.transition-all.focus:outline-none.focus-visible:ring-1.focus-visible:ring-ring",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "p",
+      "text": "Create images",
+      "attributes": {
+        "class": [
+          "overflow-hidden",
+          "whitespace-nowrap",
+          "text-ellipsis"
+        ]
+      },
+      "selector": "p.overflow-hidden.whitespace-nowrap.text-ellipsis",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Code",
+      "attributes": {
+        "role": "button",
+        "class": [
+          "flex",
+          "items-center",
+          "text-primary",
+          "text-sm",
+          "font-medium",
+          "rounded-2xl",
+          "px-3",
+          "py-2",
+          "border",
+          "border-input-border",
+          "hover:bg-input-hover",
+          "cursor-pointer",
+          "transition-all",
+          "focus:outline-none",
+          "focus-visible:ring-1",
+          "focus-visible:ring-ring"
+        ],
+        "tabindex": "0"
+      },
+      "selector": "div.flex.items-center.text-primary.text-sm.font-medium.rounded-2xl.px-3.py-2.border.border-input-border.hover:bg-input-hover.cursor-pointer.transition-all.focus:outline-none.focus-visible:ring-1.focus-visible:ring-ring",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "p",
+      "text": "Code",
+      "attributes": {
+        "class": [
+          "overflow-hidden",
+          "whitespace-nowrap",
+          "text-ellipsis"
+        ]
+      },
+      "selector": "p.overflow-hidden.whitespace-nowrap.text-ellipsis",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "By messaging Grok, you agree to ourTermsandPrivacy",
+      "attributes": {
+        "class": [
+          "text-[11px]",
+          "@sm:text-xs",
+          "text-secondary",
+          "text-nowrap"
+        ]
+      },
+      "selector": "div.text-[11px].@sm:text-xs.text-secondary.text-nowrap",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "textarea",
+      "text": "",
+      "attributes": {
+        "tabindex": "-1",
+        "aria-hidden": "true",
+        "style": "min-height: 0px !important; max-height: none !important; height: 0px !important; visibility: hidden !important; overflow: hidden !important; position: absolute !important; z-index: -1000 !important; top: 0px !important; right: 0px !important; display: block !important; border-width: 0px; box-sizing: border-box; font-family: __Inter_2b114f, __Inter_Fallback_2b114f; font-size: 16px; font-style: normal; font-weight: 400; letter-spacing: -0.1px; line-height: 24px; padding: 20px 12px 0px; tab-size: 4; text-indent: 0px; text-rendering: auto; text-transform: none; width: 777.594px; word-break: normal; word-spacing: 0px; scrollbar-gutter: auto;"
+      },
+      "selector": "textarea",
+      "candidate_role": {
+        "role": "prompt_input",
+        "confidence": 0.3
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Grok 3 EnabledYou have the most powerful model ava",
+      "attributes": {
+        "data-radix-popper-content-wrapper": "",
+        "style": "position: fixed; left: 0px; top: 0px; transform: translate(690px, 427px); min-width: max-content; --radix-popper-transform-origin: 246.27324999999993px -5px; z-index: 50; --radix-popper-available-width: 964.796875px; --radix-popper-available-height: 276.75px; --radix-popper-anchor-width: 87.8125px; --radix-popper-anchor-height: 36px;"
+      },
+      "selector": "div",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Grok 3 EnabledYou have the most powerful model ava",
+      "attributes": {
+        "data-side": "bottom",
+        "data-align": "end",
+        "data-state": "instant-open",
+        "class": [
+          "pointer-events-none",
+          "animate-in",
+          "fade-in-0",
+          "zoom-in-95",
+          "data-[state=closed]:animate-out",
+          "data-[state=closed]:fade-out-0",
+          "data-[state=closed]:zoom-out-95",
+          "data-[side=bottom]:slide-in-from-top-2",
+          "data-[side=left]:slide-in-from-right-2",
+          "data-[side=right]:slide-in-from-left-2",
+          "data-[side=top]:slide-in-from-bottom-2",
+          "z-50",
+          "overflow-hidden",
+          "rounded-2xl",
+          "bg-primary",
+          "text-primary-foreground",
+          "shadow-sm",
+          "dark:shadow-none",
+          "text-xs",
+          "animate-in",
+          "fade-in-0",
+          "zoom-in-95",
+          "data-[state=closed]:animate-out",
+          "data-[state=closed]:fade-out-0",
+          "data-[state=closed]:zoom-out-95",
+          "data-[side=bottom]:slide-in-from-top-2",
+          "data-[side=left]:slide-in-from-right-2",
+          "data-[side=right]:slide-in-from-left-2",
+          "data-[side=top]:slide-in-from-bottom-2",
+          "p-3"
+        ],
+        "style": "--radix-tooltip-content-transform-origin: var(--radix-popper-transform-origin); --radix-tooltip-content-available-width: var(--radix-popper-available-width); --radix-tooltip-content-available-height: var(--radix-popper-available-height); --radix-tooltip-trigger-width: var(--radix-popper-anchor-width); --radix-tooltip-trigger-height: var(--radix-popper-anchor-height);"
+      },
+      "selector": "div.pointer-events-none.animate-in.fade-in-0.zoom-in-95.data-[state=closed]:animate-out.data-[state=closed]:fade-out-0.data-[state=closed]:zoom-out-95.data-[side=bottom]:slide-in-from-top-2.data-[side=left]:slide-in-from-right-2.data-[side=right]:slide-in-from-left-2.data-[side=top]:slide-in-from-bottom-2.z-50.overflow-hidden.rounded-2xl.bg-primary.text-primary-foreground.shadow-sm.dark:shadow-none.text-xs.animate-in.fade-in-0.zoom-in-95.data-[state=closed]:animate-out.data-[state=closed]:fade-out-0.data-[state=closed]:zoom-out-95.data-[side=bottom]:slide-in-from-top-2.data-[side=left]:slide-in-from-right-2.data-[side=right]:slide-in-from-left-2.data-[side=top]:slide-in-from-bottom-2.p-3",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "span",
+      "text": "",
+      "attributes": {
+        "style": "position: absolute; top: 0px; transform-origin: center 0px; transform: rotate(180deg); left: 241.273px;"
+      },
+      "selector": "span",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "p",
+      "text": "Grok 3 Enabled",
+      "attributes": {
+        "class": [
+          "text-sm",
+          "font-semibold"
+        ]
+      },
+      "selector": "p.text-sm.font-semibold",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "p",
+      "text": "You have the most powerful model available",
+      "attributes": {
+        "class": [
+          "text-xs",
+          "text-primary-foreground/60"
+        ]
+      },
+      "selector": "p.text-xs.text-primary-foreground/60",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "span",
+      "text": "Grok 3 EnabledYou have the most powerful model ava",
+      "attributes": {
+        "id": "radix-:r1f:",
+        "role": "tooltip",
+        "style": "position: absolute; border: 0px; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; overflow-wrap: normal;"
+      },
+      "selector": "#radix-:r1f:",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "p",
+      "text": "Grok 3 Enabled",
+      "attributes": {
+        "class": [
+          "text-sm",
+          "font-semibold"
+        ]
+      },
+      "selector": "p.text-sm.font-semibold",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "p",
+      "text": "You have the most powerful model available",
+      "attributes": {
+        "class": [
+          "text-xs",
+          "text-primary-foreground/60"
+        ]
+      },
+      "selector": "p.text-xs.text-primary-foreground/60",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    }
+  ],
+  "agent_suggestions": {
+    "raw_response": "Error with local deepseek-r1: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=30)"
+  }
+}
