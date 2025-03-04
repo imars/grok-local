@@ -1,30 +1,33 @@
-#!/usr/bin/env python3
-# grok_local/dom_discovery/__main__.py
-import argparse
-import logging
-from grok_local.config import logger
-from grok_local.dom_discovery import discover_dom
+import os
+from .html_fetcher import fetch_html
+from .element_parser import parse_dom_elements
+from .agent_analyzer import analyze_elements
+
+def main():
+    """Run DOM discovery on a local HTML file."""
+    html_path = "grok_com.html"
+    if not os.path.exists(html_path):
+        print(f"Error: {html_path} not found. Please provide a valid HTML file.")
+        return
+
+    # Step 1: Fetch HTML
+    html_content = fetch_html(html_path)
+    if not html_content:
+        print("Failed to load HTML")
+        return
+
+    # Step 2: Parse elements
+    dom_elements = parse_dom_elements(html_content)
+    print(f"Parsed {sum(len(v) for v in dom_elements.values())} DOM elements")
+
+    # Step 3: Analyze with DeepSeekAI
+    analysis = analyze_elements(dom_elements, html_content, url="https://grok.com")
+    print(f"Raw AI Response: {analysis['raw_response']}")
+    if analysis['parsed']:
+        print("Parsed AI Suggestions:")
+        print(json.dumps(analysis['parsed'], indent=2))
+    if analysis['error']:
+        print(f"Analysis Error: {analysis['error']}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Discover DOM elements from a webpage with agent suggestions.",
-        epilog="Example: python -m grok_local.dom_discovery --url https://grok.com --html-dir grok_chat_files --output grok_elements.json --model deepseek-r1 --info"
-    )
-    parser.add_argument("--url", required=True, help="Target URL to analyze")
-    parser.add_argument("--html-dir", help="Directory containing saved HTML (e.g., Brave Save Page As)")
-    parser.add_argument("--output", default="elements.json", help="Output JSON file")
-    parser.add_argument("--browser", action="store_true", help="Use browser for dynamic DOM if fetching")
-    parser.add_argument("--force", action="store_true", help="Force fetch even if HTML exists")
-    parser.add_argument("--model", default="deepseek-r1", help="Local Ollama model (e.g., deepseek-r1, llama3.2)")
-    parser.add_argument("--debug", "-d", action="store_true", help="Enable debug logging")
-    parser.add_argument("--info", "-i", action="store_true", help="Enable info logging")
-    args = parser.parse_args()
-
-    if args.debug:
-        logger.setLevel(logging.DEBUG)
-    elif args.info:
-        logger.setLevel(logging.INFO)
-    else:
-        logger.setLevel(logging.WARNING)
-
-    discover_dom(args.url, args.output, html_dir=args.html_dir, use_browser=args.browser, force=args.force, model=args.model)
+    main()
