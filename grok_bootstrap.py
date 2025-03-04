@@ -8,8 +8,6 @@ import argparse
 from logging.handlers import RotatingFileHandler
 from git_ops import get_git_interface
 
-sys.stdout.write("Starting grok_bootstrap.py\n")
-
 PROJECT_DIR = os.getcwd()
 LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
 
@@ -45,7 +43,20 @@ CRITICAL_FILES = {
     "docs/usage.md": {"purpose": "CLI usage guide", "functions": []},
     "docs/installation.md": {"purpose": "Installation guide", "functions": []},
     "local/x_login_stub.py": {"purpose": "X login stub", "functions": [("x_login()", "Simulates login")]},
-    "debug_x_poller.sh": {"purpose": "Debug script", "functions": []}
+    "debug_x_poller.sh": {"purpose": "Debug script", "functions": []},
+    "grok_local/ai_adapters/__init__.py": {"purpose": "AI adapters package init", "functions": []},
+    "grok_local/ai_adapters/chatgpt_ai.py": {"purpose": "ChatGPT AI adapter", "functions": []},
+    "grok_local/ai_adapters/grok_browser_ai.py": {"purpose": "Grok browser AI adapter", "functions": []},
+    "grok_local/ai_adapters/manual_ai.py": {"purpose": "Manual AI adapter", "functions": []},
+    "grok_local/ai_adapters/deepseek_ai.py": {"purpose": "DeepSeek AI adapter", "functions": [("delegate(...)", "Sends requests to DeepSeek API")]},
+    "grok_local/ai_adapters/local_deepseek_ai.py": {"purpose": "Local DeepSeek AI adapter", "functions": []},
+    "grok_local/ai_adapters/stub_ai.py": {"purpose": "Stub AI adapter", "functions": []},
+    "grok_local/dom_discovery/__init__.py": {"purpose": "DOM discovery package init", "functions": []},
+    "grok_local/dom_discovery/__main__.py": {"purpose": "DOM discovery CLI entry", "functions": [("main()", "Runs DOM discovery")]},
+    "grok_local/dom_discovery/agent_analyzer.py": {"purpose": "Analyzes DOM elements for agent", "functions": [("analyze_elements(...)", "Identifies navigation roles")]},
+    "grok_local/dom_discovery/element_parser.py": {"purpose": "Parses DOM elements", "functions": [("parse_dom_elements(...)", "Extracts elements to JSON")]},
+    "grok_local/dom_discovery/html_fetcher.py": {"purpose": "Fetches HTML content", "functions": [("fetch_html(...)", "Loads HTML from file")]},
+    "grok_local/dom_discovery/ollama_manager.py": {"purpose": "Manages Ollama AI (stub)", "functions": [("analyze(...)", "Placeholder for analysis")]}
 }
 
 def dump_critical_files(chat_mode=False):
@@ -53,7 +64,7 @@ def dump_critical_files(chat_mode=False):
         print("Please analyze the project files in the current directory.\n")
     print("=== Critical Files (Feb 28, 2025) ===\n")
     for filename in sorted(CRITICAL_FILES.keys()):
-        filepath = os.path.join(PROJECT_DIR, filename) if filename not in {"tests/test_grok_local.py", "docs/timeline.md", "docs/usage.md", "docs/installation.md", "local/x_login_stub.py"} else os.path.join(PROJECT_DIR, *filename.split("/"))
+        filepath = os.path.join(PROJECT_DIR, filename)
         print(f"--- {filename} ---")
         try:
             with open(filepath, "r") as f:
@@ -118,7 +129,7 @@ def generate_prompt(git_interface, include_main=False):
     setup = (
         "\nSetup for New Chat:\n"
         "- Clone: `git clone git@github.com:imars/grok-local.git`\n"
-        "- Enter: `cd grok-local`\n"
+        "- Enter: `cd grok_local`\n"
         "- Env: `python -m venv venv && source venv/bin/activate && pip install gitpython`\n"
         "- Deps: `pip install -r requirements.txt` (ensure gitpython is listed)\n"
         "- Structure: Root has CLI scripts (grok_local.py, grok_bootstrap.py), `checkpoints/` for "
@@ -154,7 +165,7 @@ def generate_prompt(git_interface, include_main=False):
 
     file_summary = "\nCritical Files (Feb 28, 2025):\n"
     for filename, info in sorted(CRITICAL_FILES.items()):
-        filepath = os.path.join(PROJECT_DIR, filename) if filename not in {"tests/test_grok_local.py", "docs/timeline.md", "docs/usage.md", "docs/installation.md", "local/x_login_stub.py"} else os.path.join(PROJECT_DIR, *filename.split("/"))
+        filepath = os.path.join(PROJECT_DIR, filename)
         state = "Exists" if os.path.exists(filepath) else "Missing locally"
         insights = "Stable Feb 28, 2025"
         if filename == "grok_bootstrap.py":
