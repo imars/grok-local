@@ -5,14 +5,14 @@ from logging.handlers import RotatingFileHandler
 import argparse
 import sys
 
-# Configure logging before any other imports
+# Configure logging before any other imports with root logger
 from grok_local.config import LOG_FILE
 logging.basicConfig(
-    level=logging.INFO,  # Default level
+    level=logging.WARNING,  # Default to WARNING
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[RotatingFileHandler(LOG_FILE, maxBytes=1*1024*1024, backupCount=3), logging.StreamHandler()]
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()  # Use root logger
 
 # Now import other modules
 from grok_local.config import AI_BACKEND, BROWSER_BACKEND
@@ -27,17 +27,28 @@ def main():
                     "Browser backends: SELENIUM, PLAYWRIGHT, BROWSER_USE (set BROWSER_BACKEND env var).",
         epilog="Examples:\n"
                "  python -m grok_local.main --stub --ask 'grok tell me a joke'\n"
-               "  AI_BACKEND=CHATGPT python -m grok_local.main --ask 'grok tell me a joke'",
+               "  AI_BACKEND=CHATGPT python -m grok_local.main --info --ask 'grok tell me a joke'",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--ask", type=str, help="Execute a single command and exit")
     parser.add_argument("--debug", "-d", action="store_true", help="Enable debug output")
+    parser.add_argument("--info", "-i", action="store_true", help="Enable info output")
     parser.add_argument("--stub", action="store_true", help="Use stubbed AI and Git operations")
     args = parser.parse_args()
 
     # Set logging level after parsing args
-    logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
-    logger.debug(f"Logging level set to {'DEBUG' if args.debug else 'INFO'}")
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+        logger.debug("Logging level set to DEBUG")
+    elif args.info:
+        logger.setLevel(logging.INFO)
+        logger.debug("Logging level set to INFO")
+    else:
+        logger.setLevel(logging.WARNING)
+        logger.debug("Logging level set to WARNING (default)")
+
+    # Test logging
+    logger.info("Main logger initialized")
 
     ai_adapter = get_ai_adapter("STUB" if args.stub else AI_BACKEND)
     git_interface = get_git_interface(use_stub=args.stub)

@@ -1,7 +1,8 @@
 # grok_local/command_handler.py
 import os
 import logging
-from grok_local.config import logger, PROJECT_DIR, LOCAL_DIR
+from grok_local.config import PROJECT_DIR, LOCAL_DIR
+logger = logging.getLogger()  # Use root logger
 from file_ops import create_file, delete_file, move_file, copy_file, read_file, write_file, list_files, rename_file, clean_cruft
 from git_ops import git_status, git_pull, git_log, git_branch, git_checkout, git_rm, git_clean_repo
 from grok_checkpoint import save_checkpoint, list_checkpoints
