@@ -35,24 +35,31 @@ def ensure_ollama_running(model):
             return False
     return False
 
-def discover_dom(url, output_json, html_file=None, use_browser=False, force=False, model="deepseek-r1", retries=3):
+def discover_dom(url, output_json, html_file=None, html_dir=None, use_browser=False, force=False, model="deepseek-r1", retries=3):
+    """Discover DOM elements from a URL or existing HTML, with agent-suggested candidates."""
     elements = []
     html = None
-    start_time = time.time()
 
-    # Derive default HTML file path from URL if not explicitly provided
-    if not html_file:
-        domain = url.split("://")[-1].split("/")[0].replace(".", "_")
-        html_file = f"grok_local/html/{domain}.html"
-    html_file = os.path.abspath(html_file)
-
-    # Use stored HTML if it exists and --force isn't set
-    if os.path.exists(html_file) and not force:
-        logger.info(f"Using existing HTML file: {html_file}")
-        with open(html_file, 'r', encoding='utf-8') as f:
-            html = f.read()
+    # Use html_dir for directory-based HTML saves (e.g., Brave's Save Page As)
+    if html_dir and os.path.isdir(html_dir):
+        html_file_path = os.path.join(html_dir, "saved_resource.html")
+        if os.path.exists(html_file_path) and not force:
+            logger.info(f"Using existing HTML directory file: {html_file_path}")
+            with open(html_file_path, 'r', encoding='utf-8') as f:
+                html = f.read()
+        else:
+            logger.error(f"HTML file {html_file_path} not found in directory")
+            return
+    elif html_file:
+        html_file = os.path.abspath(html_file)
+        if os.path.exists(html_file) and not force:
+            logger.info(f"Using existing HTML file: {html_file}")
+            with open(html_file, 'r', encoding='utf-8') as f:
+                html = f.read()
+        else:
+            logger.error(f"HTML file {html_file} not found")
+            return
     else:
-        logger.info(f"No suitable HTML file found at {html_file} or --force specified; attempting to fetch from {url}")
         if use_browser:
             for attempt in range(retries):
                 try:
@@ -82,18 +89,16 @@ def discover_dom(url, output_json, html_file=None, use_browser=False, force=Fals
             if not html:
                 return
 
-        if html:
+        if html and html_file:
             os.makedirs(os.path.dirname(html_file), exist_ok=True)
             with open(html_file, 'w', encoding='utf-8') as f:
                 f.write(html)
-            logger.info(f"Saved fetched HTML to {html_file}")
+            logger.info(f"Saved HTML to {html_file}")
 
     if not html:
         logger.error("No HTML content available to process")
         return
 
-    logger.info(f"HTML loaded in {time.time() - start_time:.2f}s")
-    parse_start = time.time()
     soup = BeautifulSoup(html, 'html.parser')
 
     for tag in soup.find_all(['input', 'textarea', 'button', 'form', 'div', 'p', 'span']):
@@ -107,8 +112,6 @@ def discover_dom(url, output_json, html_file=None, use_browser=False, force=Fals
         if element["text"] or element["attributes"]:
             elements.append(element)
 
-    logger.info(f"DOM parsed in {time.time() - parse_start:.2f}s")
-
     if not ensure_ollama_running(model):
         logger.error(f"Could not start Ollama with model {model}")
         return
@@ -117,22 +120,14 @@ def discover_dom(url, output_json, html_file=None, use_browser=False, force=Fals
 
     with open(output_json, 'w', encoding='utf-8') as f:
         json.dump({"url": url, "elements": elements, "agent_suggestions": agent_suggestions}, f, indent=2)
-    logger.info(f"DOM elements and agent suggestions saved to {output_json} in {time.time() - start_time:.2f}s")
+    logger.info(f"DOM elements and agent suggestions saved to {output_json}")
 
 def fetch_static(url):
     try:
         logger.info(f"Fetching {url} statically")
-        start_time = time.time()
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        }
-        response = requests.get(url, headers=headers, timeout=60)
+        response = requests.get(url, timeout=10)
         response.raise_for_status()
-        logger.info(f"Static fetch completed in {time.time() - start_time:.2f}s")
         return response.text
-    except requests.Timeout:
-        logger.error("Static fetch timed out after 60s")
-        return None
     except Exception as e:
         logger.error(f"Static DOM fetch failed: {str(e)}")
         return None
@@ -198,27 +193,22 @@ def _get_agent_suggestions(url, html, elements, model):
         "Provide selectors and reasoning in JSON format."
     )
     try:
-        start_time = time.time()
-        # Attempt to set a 600-second timeout; adjust if delegate doesn't support it
-        response = agent.delegate(prompt, timeout=600)
-        duration = time.time() - start_time
-        logger.info(f"Agent suggestions received in {duration:.2f}s: {response}")
-        if duration > 300:
-            logger.warning(f"Agent processing took {duration:.2f}s, consider optimizing prompt or model")
+        response = agent.delegate(prompt)
+        logger.info(f"Agent suggestions: {response}")
         return {"raw_response": response}
     except Exception as e:
-        duration = time.time() - start_time
-        logger.error(f"Agent analysis failed after {duration:.2f}s: {str(e)}")
+        logger.error(f"Agent analysis failed: {str(e)}")
         return {"error": str(e)}
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(
         description="Discover DOM elements from a webpage with agent suggestions.",
-        epilog="Example: python -m grok_local.dom_discovery --url https://grok.com --output grok_elements.json --model deepseek-r1 --info"
+        epilog="Example: python -m grok_local.dom_discovery --url https://grok.com --html-dir grok_chat_files --output grok_elements.json --model deepseek-r1 --info"
     )
-    parser.add_argument("--url", required=True, help="Target URL (for context and default HTML path)")
-    parser.add_argument("--html", help="Custom HTML file to use instead of default or fetching")
+    parser.add_argument("--url", required=True, help="Target URL to analyze")
+    parser.add_argument("--html", help="Existing HTML file to use instead of fetching")
+    parser.add_argument("--html-dir", help="Directory containing saved HTML (e.g., Brave Save Page As)")
     parser.add_argument("--output", default="elements.json", help="Output JSON file")
     parser.add_argument("--browser", action="store_true", help="Use browser for dynamic DOM if fetching")
     parser.add_argument("--force", action="store_true", help="Force fetch even if HTML exists")
@@ -234,4 +224,4 @@ if __name__ == "__main__":
     else:
         logger.setLevel(logging.WARNING)
 
-    discover_dom(args.url, args.output, html_file=args.html, use_browser=args.browser, force=args.force, model=args.model)
+    discover_dom(args.url, args.output, html_file=args.html, html_dir=args.html_dir, use_browser=args.browser, force=args.force, model=args.model)
