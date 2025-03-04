@@ -38,6 +38,7 @@ def ensure_ollama_running(model):
 def discover_dom(url, output_json, html_file=None, use_browser=False, force=False, model="deepseek-r1", retries=3):
     elements = []
     html = None
+    start_time = time.time()
 
     if html_file:
         html_file = os.path.abspath(html_file)
@@ -86,6 +87,8 @@ def discover_dom(url, output_json, html_file=None, use_browser=False, force=Fals
         logger.error("No HTML content available to process")
         return
 
+    logger.info(f"HTML fetched in {time.time() - start_time:.2f}s")
+    parse_start = time.time()
     soup = BeautifulSoup(html, 'html.parser')
 
     for tag in soup.find_all(['input', 'textarea', 'button', 'form', 'div', 'p', 'span']):
@@ -99,6 +102,8 @@ def discover_dom(url, output_json, html_file=None, use_browser=False, force=Fals
         if element["text"] or element["attributes"]:
             elements.append(element)
 
+    logger.info(f"DOM parsed in {time.time() - parse_start:.2f}s")
+
     if not ensure_ollama_running(model):
         logger.error(f"Could not start Ollama with model {model}")
         return
@@ -107,14 +112,20 @@ def discover_dom(url, output_json, html_file=None, use_browser=False, force=Fals
 
     with open(output_json, 'w', encoding='utf-8') as f:
         json.dump({"url": url, "elements": elements, "agent_suggestions": agent_suggestions}, f, indent=2)
-    logger.info(f"DOM elements and agent suggestions saved to {output_json}")
+    logger.info(f"DOM elements and agent suggestions saved to {output_json} in {time.time() - start_time:.2f}s")
 
 def fetch_static(url):
     try:
         logger.info(f"Fetching {url} statically")
-        response = requests.get(url, timeout=10)
+        start_time = time.time()
+        # Increased timeout from 10s to 60s
+        response = requests.get(url, timeout=60)
         response.raise_for_status()
+        logger.info(f"Static fetch completed in {time.time() - start_time:.2f}s")
         return response.text
+    except requests.Timeout:
+        logger.error("Static fetch timed out after 60s")
+        return None
     except Exception as e:
         logger.error(f"Static DOM fetch failed: {str(e)}")
         return None
@@ -181,11 +192,13 @@ def _get_agent_suggestions(url, html, elements, model):
         "Provide selectors and reasoning in JSON format."
     )
     try:
-        response = agent.delegate(prompt)
-        logger.info(f"Agent suggestions: {response}")
+        start_time = time.time()
+        # Assuming delegate() supports a timeout parameter; if not, this depends on adapter implementation
+        response = agent.delegate(prompt)  # Add timeout=60 here if supported
+        logger.info(f"Agent suggestions received in {time.time() - start_time:.2f}s: {response}")
         return {"raw_response": response}
     except Exception as e:
-        logger.error(f"Agent analysis failed: {str(e)}")
+        logger.error(f"Agent analysis failed after {time.time() - start_time:.2f}s: {str(e)}")
         return {"error": str(e)}
 
 if __name__ == "__main__":
