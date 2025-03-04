@@ -14,7 +14,7 @@ class LocalDeepSeekAI(AIAdapter):
     def __init__(self, model="deepseek-r1"):
         self.model = model
         logger.info(f"Warming up {self.model}")
-        self.delegate("Warm-up prompt: Hello, ready to analyze HTML?")
+        self.delegate("Warm-up: Analyze a simple HTML snippet for input and button elements.")
 
     def delegate(self, request):
         try:
@@ -25,7 +25,7 @@ class LocalDeepSeekAI(AIAdapter):
                 "stream": False
             }
             start_time = time.time()
-            response = requests.post(url, json=payload, timeout=600)  # 10 minutes
+            response = requests.post(url, json=payload, timeout=600)
             end_time = time.time()
             logger.info(f"Local {self.model} took {end_time - start_time:.2f} seconds")
             response.raise_for_status()

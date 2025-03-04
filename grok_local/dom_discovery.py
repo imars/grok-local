@@ -12,7 +12,6 @@ from grok_local.browser_adapter import BrowserAdapter
 from grok_local.ai_adapters import get_ai_adapter
 
 def ensure_ollama_running(model):
-    """Ensure Ollama is running and the model is available."""
     try:
         response = requests.get("http://localhost:11434/api/tags", timeout=5)
         if response.status_code == 200:
@@ -35,30 +34,15 @@ def ensure_ollama_running(model):
             return False
     return False
 
-def discover_dom(url, output_json, html_file=None, html_dir=None, use_browser=False, force=False, model="deepseek-r1", retries=3):
-    """Discover DOM elements from a URL or existing HTML, with agent-suggested candidates."""
+def discover_dom(url, output_json, html_dir=None, use_browser=False, force=False, model="deepseek-r1", retries=3):
     elements = []
     html = None
+    html_file = os.path.join(html_dir, "saved_resource.html") if html_dir else None
 
-    # Use html_dir for directory-based HTML saves (e.g., Brave's Save Page As)
-    if html_dir and os.path.isdir(html_dir):
-        html_file_path = os.path.join(html_dir, "saved_resource.html")
-        if os.path.exists(html_file_path) and not force:
-            logger.info(f"Using existing HTML directory file: {html_file_path}")
-            with open(html_file_path, 'r', encoding='utf-8') as f:
-                html = f.read()
-        else:
-            logger.error(f"HTML file {html_file_path} not found in directory")
-            return
-    elif html_file:
-        html_file = os.path.abspath(html_file)
-        if os.path.exists(html_file) and not force:
-            logger.info(f"Using existing HTML file: {html_file}")
-            with open(html_file, 'r', encoding='utf-8') as f:
-                html = f.read()
-        else:
-            logger.error(f"HTML file {html_file} not found")
-            return
+    if html_file and os.path.exists(html_file) and not force:
+        logger.info(f"Using existing HTML file: {html_file}")
+        with open(html_file, 'r', encoding='utf-8') as f:
+            html = f.read()
     else:
         if use_browser:
             for attempt in range(retries):
@@ -100,6 +84,7 @@ def discover_dom(url, output_json, html_file=None, html_dir=None, use_browser=Fa
         return
 
     soup = BeautifulSoup(html, 'html.parser')
+    logger.info("Parsing HTML with BeautifulSoup")
 
     for tag in soup.find_all(['input', 'textarea', 'button', 'form', 'div', 'p', 'span']):
         element = {
@@ -111,6 +96,8 @@ def discover_dom(url, output_json, html_file=None, html_dir=None, use_browser=Fa
         }
         if element["text"] or element["attributes"]:
             elements.append(element)
+
+    logger.info(f"Found {len(elements)} elements")
 
     if not ensure_ollama_running(model):
         logger.error(f"Could not start Ollama with model {model}")
@@ -182,9 +169,9 @@ def _identify_candidate_role(tag):
 
 def _get_agent_suggestions(url, html, elements, model):
     agent = get_ai_adapter("LOCAL_DEEPSEEK", model=model)
-    top_elements = sorted(elements, key=lambda x: x["candidate_role"]["confidence"], reverse=True)[:10]
+    top_elements = sorted(elements, key=lambda x: x["candidate_role"]["confidence"], reverse=True)[:5]
     prompt = (
-        f"Analyze this HTML snippet from {url} (truncated):\n\n{html[:500]}\n\n"
+        f"Analyze this HTML snippet from {url}:\n\n{html[:1000]}\n\n"
         f"Here are the top detected elements:\n{json.dumps(top_elements, indent=2)}\n\n"
         "Suggest the best candidates for:\n"
         "- Prompt input (where to enter text)\n"
@@ -193,6 +180,7 @@ def _get_agent_suggestions(url, html, elements, model):
         "Provide selectors and reasoning in JSON format."
     )
     try:
+        logger.info("Sending prompt to agent")
         response = agent.delegate(prompt)
         logger.info(f"Agent suggestions: {response}")
         return {"raw_response": response}
@@ -207,7 +195,6 @@ if __name__ == "__main__":
         epilog="Example: python -m grok_local.dom_discovery --url https://grok.com --html-dir grok_chat_files --output grok_elements.json --model deepseek-r1 --info"
     )
     parser.add_argument("--url", required=True, help="Target URL to analyze")
-    parser.add_argument("--html", help="Existing HTML file to use instead of fetching")
     parser.add_argument("--html-dir", help="Directory containing saved HTML (e.g., Brave Save Page As)")
     parser.add_argument("--output", default="elements.json", help="Output JSON file")
     parser.add_argument("--browser", action="store_true", help="Use browser for dynamic DOM if fetching")
@@ -224,4 +211,4 @@ if __name__ == "__main__":
     else:
         logger.setLevel(logging.WARNING)
 
-    discover_dom(args.url, args.output, html_file=args.html, html_dir=args.html_dir, use_browser=args.browser, force=args.force, model=args.model)
+    discover_dom(args.url, args.output, html_dir=args.html_dir, use_browser=args.browser, force=args.force, model=args.model)
