@@ -8,48 +8,24 @@ import argparse
 from logging.handlers import RotatingFileHandler
 from git_ops import get_git_interface
 
-print("Starting grok_bootstrap.py")  # Added for debugging
-
-# Grok-Local Bootstrap Script (Feb 28, 2025): Restarts dev chat sessions with context.
-# - Options: --dump (full file contents), --prompt (chat-ready summary), or run grok_local.py directly.
-#
-# Meta (How to Update grok_bootstrap.py):
-# - When: Update if chat slows (>5s lag), new files/features emerge, or project structure shifts (e.g., new dirs).
-# - How: 1) Run `--dump` to inspect file states; 2) Add new critical files to CRITICAL_FILES; 3) Refresh Mission,
-#   Recent Work, Goals, and Workflow with latest from README.md/git log; 4) Test `--prompt` for clarity;
-#   5) Commit via `python grok_local.py --ask "commit 'Updated grok_bootstrap for <reason>'"`.
-#
-# Mission Statement:
-# Grok-Local aims to become a fully autonomous local agent, managing project files and Git repos,
-# communicating with users and multiple agents (local/remote), and solving problems collaboratively.
-# Progress: Robust CLI (grok_local.py) with file/Git ops, checkpointing system (grok_checkpoint.py),
-# X polling stubs (x_poller.py), and slimmed bootstrap script (~150 lines).
-#
-# Recent Work (Feb 28, 2025):
-# - Slimmed this script from thousands to ~150 lines, removing embedded files.
-# - Moved checkpoint logic to grok_checkpoint.py, added list/save functionality.
-# - Integrated x_login_stub.py into x_poller.py for stubbed X polling.
-#
-# Goals:
-# - Short-Term (Mar 2025): Enhance --help across scripts, harden git_commit_and_push with retries.
-# - Mid-Term (Apr-May 2025): Improve checkpoint listing (metadata), add restore functionality.
-# - Long-Term (Jun 2025+): Implement real X polling, enable multi-agent communication via Grok 3.
-#
-# Current Task (Last Checkpoint, Mar 04, 2025):
-# - 
+sys.stdout.write("Starting grok_bootstrap.py\n")
 
 PROJECT_DIR = os.getcwd()
 LOG_FILE = os.path.join(PROJECT_DIR, "grok_local.log")
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        RotatingFileHandler(LOG_FILE, maxBytes=1*1024*1024, backupCount=3),
-        logging.StreamHandler()
-    ]
-)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+file_handler = RotatingFileHandler(LOG_FILE, maxBytes=1*1024*1024, backupCount=3)
+file_handler.setLevel(logging.DEBUG)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+file_handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+logger.handlers = []
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
+logging.getLogger('git_ops').setLevel(logging.INFO)
 
 CRITICAL_FILES = {
     "grok_local.py": {"purpose": "Core CLI logic", "functions": [("ask_local(...)", "Processes CLI commands")]},
@@ -73,7 +49,6 @@ CRITICAL_FILES = {
 }
 
 def dump_critical_files(chat_mode=False):
-    """Print current contents of critical files from disk for session restart."""
     if chat_mode:
         print("Please analyze the project files in the current directory.\n")
     print("=== Critical Files (Feb 28, 2025) ===\n")
@@ -94,35 +69,88 @@ def dump_critical_files(chat_mode=False):
     print("=== End of Critical File Contents ===")
 
 def generate_prompt(git_interface, include_main=False):
-    """Generate an efficient prompt for restarting a chat session."""
-    preamble = "The following contains information to help you restart a malfunctioning Grok 3 chat session.\n\n"
-    with open(__file__, "r") as f:
-        lines = f.readlines()
-        header = "".join(lines[7:24])
-    
-    agent_bootstrap = "\nAgent Bootstrap:\n- Role: You are Grok, tasked with enhancing Grok-Local. Assist the user in CLI development, outputting code via `cat << 'EOF' > <filename>` for easy application.\n- Interaction: Expect user to apply code and report results. Use checkpoints (checkpoints/) to track tasks and Git (--git flag) to sync progress.\n- Focus: Leverage CRITICAL_FILES functions, prioritize Current Task, and align with Goals.\n"
-    
-    setup = "\nSetup for New Chat:\n- Clone: `git clone git@github.com:imars/grok-local.git`\n- Enter: `cd grok-local`\n- Env: `python -m venv venv && source venv/bin/activate && pip install gitpython`\n- Deps: `pip install -r requirements.txt` (ensure gitpython is listed)\n- Structure: Root has CLI scripts (grok_local.py, grok_bootstrap.py), `checkpoints/` for checkpoints, `scripts/` for test/task scripts, `docs/` for guides, `local/` for stubs, `tests/` for unit tests.\n- Start: `python grok_local.py` (interactive) or `python grok_local.py --ask 'list files'` (test).\n- Agent Role: I (Grok) assist with CLI dev, outputting code via `cat << 'EOF' > <filename>`. User applies it and reports results.\n"
-    
-    workflow = "\nCurrent Workflow Details:\n- CLI Development: Grok uses `cat << 'EOF' > <filename>` to output code for easy terminal application (e.g., `cat << 'EOF' > git_ops.py`). Copy-paste into your shell.\n- Interaction: Use grok_local.py interactively (`python grok_local.py`) or with `--ask` for single commands.\n- Debugging: Append `--debug` for verbose logs in grok_local.log.\n- Testing/Tasks: Run scripts from `scripts/` (e.g., `./scripts/test_<feature>.sh`) for tests or multi-step processes.\n"
+    preamble = (
+        "The following contains information to help you restart a malfunctioning Grok 3 chat session. "
+        "We are currently developing grok_local/dom_discovery/ and grok_local/ai_adapters/, tools to "
+        "empower grok_local to discover important DOM elements for navigation by our agent on websites. "
+        "Our DeepSeekAI adapter can now analyze downloaded websites in structure to further the goal "
+        "of autonomous website harnessing.\n\n"
+    )
+    header = (
+        "# Grok-Local Bootstrap Script (Mar 04, 2025): Restarts dev chat sessions with context.\n"
+        "# - Options: --dump (full file contents), --prompt (chat-ready summary), or run grok_local.py directly.\n"
+        "#\n"
+        "# Meta (How to Update grok_bootstrap.py):\n"
+        "# - When: Update if chat slows (>5s lag), new files/features emerge, or project structure shifts (e.g., new dirs).\n"
+        "# - How: 1) Run `--dump` to inspect file states; 2) Add new critical files to CRITICAL_FILES; 3) Refresh Mission,\n"
+        "#   Recent Work, Goals, and Workflow with latest from README.md/git log; 4) Test `--prompt` for clarity;\n"
+        "#   5) Commit via `python grok_local.py --ask \"commit 'Updated grok_bootstrap for <reason>'\"`.\n"
+        "#\n"
+        "# Mission Statement:\n"
+        "# Grok-Local aims to become a fully autonomous local agent, managing project files and Git repos,\n"
+        "# communicating with users and multiple agents (local/remote), and solving problems collaboratively.\n"
+        "# Progress: Robust CLI (grok_local.py) with file/Git ops, checkpointing system (grok_checkpoint.py),\n"
+        "# X polling stubs (x_poller.py), and slimmed bootstrap script (~150 lines).\n"
+        "#\n"
+        "# Recent Work (Feb 28, 2025):\n"
+        "# - Slimmed this script from thousands to ~150 lines, removing embedded files.\n"
+        "# - Moved checkpoint logic to grok_checkpoint.py, added list/save functionality.\n"
+        "# - Integrated x_login_stub.py into x_poller.py for stubbed X polling.\n"
+        "#\n"
+        "# Goals:\n"
+        "# - Short-Term (Mar 2025): Enhance --help across scripts, harden git_commit_and_push with retries.\n"
+        "# - Mid-Term (Apr-May 2025): Improve checkpoint listing (metadata), add restore functionality.\n"
+        "# - Long-Term (Jun 2025+): Implement real X polling, enable multi-agent communication via Grok 3.\n"
+        "#\n"
+        "# Current Task (Last Checkpoint, Mar 04, 2025):\n"
+        "# -\n"
+    )
+
+    agent_bootstrap = (
+        "\nAgent Bootstrap:\n"
+        "- Role: You are Grok, tasked with enhancing Grok-Local. Assist the user in CLI development, "
+        "outputting code via `cat << 'EOF' > <filename>` for easy application.\n"
+        "- Interaction: Expect user to apply code and report results. Use checkpoints (checkpoints/) "
+        "to track tasks and Git (--git flag) to sync progress.\n"
+        "- Focus: Leverage CRITICAL_FILES functions, prioritize Current Task, and align with Goals.\n"
+    )
+
+    setup = (
+        "\nSetup for New Chat:\n"
+        "- Clone: `git clone git@github.com:imars/grok-local.git`\n"
+        "- Enter: `cd grok-local`\n"
+        "- Env: `python -m venv venv && source venv/bin/activate && pip install gitpython`\n"
+        "- Deps: `pip install -r requirements.txt` (ensure gitpython is listed)\n"
+        "- Structure: Root has CLI scripts (grok_local.py, grok_bootstrap.py), `checkpoints/` for "
+        "checkpoints, `scripts/` for test/task scripts, `docs/` for guides, `local/` for stubs, "
+        "`tests/` for unit tests.\n"
+        "- Start: `python grok_local.py` (interactive) or `python grok_local.py --ask 'list files'` (test).\n"
+        "- Agent Role: I (Grok) assist with CLI dev, outputting code via `cat << 'EOF' > <filename>`. "
+        "User applies it and reports results.\n"
+    )
+
+    workflow = (
+        "\nCurrent Workflow Details:\n"
+        "- CLI Development: Grok uses `cat << 'EOF' > <filename>` to output code for easy terminal "
+        "application (e.g., `cat << 'EOF' > git_ops.py`). Copy-paste into your shell.\n"
+        "- Interaction: Use grok_local.py interactively (`python grok_local.py`) or with `--ask` for "
+        "single commands.\n"
+        "- Debugging: Append `--debug` for verbose logs in grok_local.log.\n"
+        "- Testing/Tasks: Run scripts from `scripts/` (e.g., `./scripts/test_<feature>.sh`) for tests "
+        "or multi-step processes.\n"
+    )
 
     checkpoint_file = os.path.join('checkpoints', 'checkpoint.json')
     checkpoint_info = ""
     if os.path.exists(checkpoint_file):
         with open(checkpoint_file, 'r') as f:
             checkpoint = json.load(f)
-        checkpoint_info += "\nLatest Checkpoint:\n"
-        checkpoint_info += f"Description: {checkpoint.get('description', 'N/A')}\n"
-        checkpoint_info += f"Timestamp: {checkpoint.get('timestamp', 'N/A')}\n"
-        checkpoint_info += f"Current Task: {checkpoint.get('current_task', 'N/A')}\n"
-        if 'chat_url' in checkpoint:
-            checkpoint_info += f"Current Chat URL: {checkpoint['chat_url']}\n"
-        if 'chat_address' in checkpoint:
-            checkpoint_info += f"Chat Address: {checkpoint['chat_address']}\n"
-        if 'chat_group' in checkpoint:
-            checkpoint_info += f"Chat Group: {checkpoint['chat_group']}\n"
-        if 'file_content' in checkpoint:
-            checkpoint_info += "Checkpointed File Content: Included\n"
+        checkpoint_info += "\nLatest Checkpoint Task:\n"
+        desc = checkpoint.get('description', 'No task description available')
+        timestamp = checkpoint.get('timestamp', 'Unknown timestamp')
+        checkpoint_info += f"- {desc} (Timestamp: {timestamp})\n"
+    else:
+        checkpoint_info += "\nLatest Checkpoint Task:\n- No checkpoint found\n"
 
     file_summary = "\nCritical Files (Feb 28, 2025):\n"
     for filename, info in sorted(CRITICAL_FILES.items()):
@@ -142,12 +170,35 @@ def generate_prompt(git_interface, include_main=False):
             file_summary += "  Functions:\n"
             for func_sig, desc in info["functions"]:
                 file_summary += f"    - {func_sig}: {desc}\n"
-    
+
     git_tree = "\n" + git_interface.get_file_tree() + "\n"
 
-    instructions = "\nInstructions:\n- Fetch files from git@github.com:imars/grok-local.git (e.g., `git show HEAD:<filename>`) or local disk.\n- Run `python grok_bootstrap.py --dump` for full contents.\n- Execute tests/tasks from `scripts/` (e.g., `chmod +x scripts/test_<feature>.sh && ./scripts/test_<feature>.sh`).\n"
+    merge_instructions = (
+        "\nInstructions for New Agents:\n"
+        "- You start with no knowledge of file contents. Any files you generate (e.g., via "
+        "`cat << 'EOF' > <filename>`) must be merged with the existing repo at "
+        "git@github.com:imars/grok-local.git. Steps:\n"
+        "  1. Fetch the latest repo: `git pull origin main`\n"
+        "  2. Check if the file exists (e.g., `ls <filename>`). If it does, manually merge your "
+        "changes with the existing content. If not, create the new file.\n"
+        "  3. Commit your changes: `git add <filename> && git commit -m 'Merged <filename> from "
+        "bootstrap'`\n"
+        "  4. Push to the repo: `git push origin main`\n"
+        "- Use `git diff` or a text editor to resolve conflicts if needed.\n"
+    )
 
-    prompt = preamble + header + agent_bootstrap + setup + workflow + checkpoint_info + file_summary + git_tree + instructions
+    instructions = (
+        "\nAdditional Instructions:\n"
+        "- Fetch files from git@github.com:imars/grok-local.git (e.g., `git show HEAD:<filename>`).\n"
+        "- Run `python grok_bootstrap.py --dump` for full contents.\n"
+        "- Execute tests/tasks from `scripts/` (e.g., `chmod +x scripts/test_<feature>.sh && "
+        "./scripts/test_<feature>.sh`).\n"
+    )
+
+    prompt = (
+        preamble + header + agent_bootstrap + setup + workflow + 
+        checkpoint_info + file_summary + git_tree + merge_instructions + instructions
+    )
 
     if include_main:
         prompt += "\nMain File (grok_local.py):\n```\n"
@@ -162,7 +213,6 @@ def generate_prompt(git_interface, include_main=False):
     return prompt
 
 def start_session(git_interface, debug=False, command=None, dump=False, prompt=False, include_main=False):
-    """Start or manage a grok-local session with configurable Git interface."""
     if dump:
         dump_critical_files(chat_mode=False)
         return
