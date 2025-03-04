@@ -40,14 +40,19 @@ def discover_dom(url, output_json, html_file=None, use_browser=False, force=Fals
     html = None
     start_time = time.time()
 
-    if html_file:
-        html_file = os.path.abspath(html_file)
+    # Derive default HTML file path from URL if not explicitly provided
+    if not html_file:
+        domain = url.split("://")[-1].split("/")[0].replace(".", "_")
+        html_file = f"grok_local/html/{domain}.html"
+    html_file = os.path.abspath(html_file)
 
-    if html_file and os.path.exists(html_file) and not force:
+    # Use stored HTML if it exists and --force isn't set
+    if os.path.exists(html_file) and not force:
         logger.info(f"Using existing HTML file: {html_file}")
         with open(html_file, 'r', encoding='utf-8') as f:
             html = f.read()
     else:
+        logger.info(f"No suitable HTML file found at {html_file} or --force specified; attempting to fetch from {url}")
         if use_browser:
             for attempt in range(retries):
                 try:
@@ -77,17 +82,17 @@ def discover_dom(url, output_json, html_file=None, use_browser=False, force=Fals
             if not html:
                 return
 
-        if html and html_file:
+        if html:
             os.makedirs(os.path.dirname(html_file), exist_ok=True)
             with open(html_file, 'w', encoding='utf-8') as f:
                 f.write(html)
-            logger.info(f"Saved HTML to {html_file}")
+            logger.info(f"Saved fetched HTML to {html_file}")
 
     if not html:
         logger.error("No HTML content available to process")
         return
 
-    logger.info(f"HTML fetched in {time.time() - start_time:.2f}s")
+    logger.info(f"HTML loaded in {time.time() - start_time:.2f}s")
     parse_start = time.time()
     soup = BeautifulSoup(html, 'html.parser')
 
@@ -118,8 +123,10 @@ def fetch_static(url):
     try:
         logger.info(f"Fetching {url} statically")
         start_time = time.time()
-        # Increased timeout from 10s to 60s
-        response = requests.get(url, timeout=60)
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+        response = requests.get(url, headers=headers, timeout=60)
         response.raise_for_status()
         logger.info(f"Static fetch completed in {time.time() - start_time:.2f}s")
         return response.text
@@ -180,7 +187,6 @@ def _identify_candidate_role(tag):
 
 def _get_agent_suggestions(url, html, elements, model):
     agent = get_ai_adapter("LOCAL_DEEPSEEK", model=model)
-    # Filter top candidates to reduce prompt size
     top_elements = sorted(elements, key=lambda x: x["candidate_role"]["confidence"], reverse=True)[:10]
     prompt = (
         f"Analyze this HTML snippet from {url} (truncated):\n\n{html[:500]}\n\n"
@@ -193,22 +199,26 @@ def _get_agent_suggestions(url, html, elements, model):
     )
     try:
         start_time = time.time()
-        # Assuming delegate() supports a timeout parameter; if not, this depends on adapter implementation
-        response = agent.delegate(prompt)  # Add timeout=60 here if supported
-        logger.info(f"Agent suggestions received in {time.time() - start_time:.2f}s: {response}")
+        # Attempt to set a 600-second timeout; adjust if delegate doesn't support it
+        response = agent.delegate(prompt, timeout=600)
+        duration = time.time() - start_time
+        logger.info(f"Agent suggestions received in {duration:.2f}s: {response}")
+        if duration > 300:
+            logger.warning(f"Agent processing took {duration:.2f}s, consider optimizing prompt or model")
         return {"raw_response": response}
     except Exception as e:
-        logger.error(f"Agent analysis failed after {time.time() - start_time:.2f}s: {str(e)}")
+        duration = time.time() - start_time
+        logger.error(f"Agent analysis failed after {duration:.2f}s: {str(e)}")
         return {"error": str(e)}
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(
         description="Discover DOM elements from a webpage with agent suggestions.",
-        epilog="Example: python -m grok_local.dom_discovery --url https://grok.com --html grok_com.html --output grok_elements.json --model deepseek-r1 --info"
+        epilog="Example: python -m grok_local.dom_discovery --url https://grok.com --output grok_elements.json --model deepseek-r1 --info"
     )
-    parser.add_argument("--url", required=True, help="Target URL to analyze")
-    parser.add_argument("--html", help="Existing HTML file to use instead of fetching")
+    parser.add_argument("--url", required=True, help="Target URL (for context and default HTML path)")
+    parser.add_argument("--html", help="Custom HTML file to use instead of default or fetching")
     parser.add_argument("--output", default="elements.json", help="Output JSON file")
     parser.add_argument("--browser", action="store_true", help="Use browser for dynamic DOM if fetching")
     parser.add_argument("--force", action="store_true", help="Force fetch even if HTML exists")

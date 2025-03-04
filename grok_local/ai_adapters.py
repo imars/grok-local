@@ -100,6 +100,8 @@ class DeepSeekAI(AIAdapter):
 class LocalDeepSeekAI(AIAdapter):
     def __init__(self, model="deepseek-r1"):
         self.model = model
+        # Warm-up call to ensure model is ready
+        self.delegate("Warm-up prompt: Hello, are you ready?")
 
     def delegate(self, request):
         try:
@@ -109,7 +111,7 @@ class LocalDeepSeekAI(AIAdapter):
                 "prompt": request,
                 "stream": False
             }
-            response = requests.post(url, json=payload, timeout=30)
+            response = requests.post(url, json=payload, timeout=60)  # Increased timeout
             response.raise_for_status()
             result = response.json()["response"]
             logger.info(f"Local {self.model} response: {result}")
