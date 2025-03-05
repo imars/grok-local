@@ -4,7 +4,7 @@ from .commands import git_commands, file_commands, checkpoint_commands, misc_com
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
 def execute_command(command, git_interface, ai_adapter, use_git=True):
-    """Execute a command via the local agent's tools, with Ollama inference when available."""
+    """Execute a command via the local agent's tools, with Ollama inference using llama3.2:latest by default."""
     command = command.strip().lower()
     
     # Restricted commands: no external calls unless whitelisted
@@ -25,14 +25,21 @@ def execute_command(command, git_interface, ai_adapter, use_git=True):
          command.startswith(("create spaceship fuel script", "create x login stub")):
         return misc_commands.misc_command(command, ai_adapter, git_interface)
     else:
+        # Determine model based on command complexity
+        model = "llama3.2:latest"  # Lightweight default
+        if command.startswith("heavy "):
+            model = "deepseek-r1:8b"
+            command = command[6:].strip()  # Strip "heavy" prefix
+        
         # Try Ollama for local inference
         try:
             payload = {
-                "model": "llama3.1:latest",  # Adjust to your Ollama model
+                "model": model,
                 "prompt": (
-                    f"Act as Grok-Local, a CLI agent. Respond to this command: '{command}'. "
-                    f"You have tools for git, file operations, checkpoints, and misc commands (time, version, etc.). "
-                    f"No external calls (e.g., weather) unless escalated. Return a concise response."
+                    f"Act as Grok-Local, a CLI agent built by xAI. Respond to this command or query: '{command}'. "
+                    f"You have tools for git, file operations (create, read, write, delete), checkpoints, and misc commands (time, version, etc.). "
+                    f"No external calls (e.g., weather, http) unless escalated with 'grok <command>'. "
+                    f"Return a concise, friendly response."
                 ),
                 "stream": False
             }
