@@ -1,6 +1,7 @@
 import subprocess
 import atexit
 import argparse
+import time
 from .command_handler import ask_local
 from git_ops import get_git_interface
 from .ai_adapters.stub_ai import StubAI
@@ -11,6 +12,7 @@ def start_bridge():
     global BRIDGE_PROCESS
     BRIDGE_PROCESS = subprocess.Popen(["python", "grok_local/grok_bridge.py"])
     print("Started grok_bridge at http://0.0.0.0:5000")
+    time.sleep(2)  # Wait 2 seconds for Flask to initialize
 
 def stop_bridge():
     global BRIDGE_PROCESS
