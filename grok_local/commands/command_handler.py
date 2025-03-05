@@ -26,7 +26,7 @@ def ask_local(command, ai_adapter, git_interface, debug=False, use_git=True):
         return file_commands.file_command(command)
     elif re.match(r'^send\s+to\s+grok\s+', command):
         start_bridge()
-        return send_to_grok(command, ai_adapter)
+        return send_to_grok(command, ai_adapter)  # Use aliased function directly
     elif re.match(r'^checkpoint\s+', command):
         return checkpoint_commands.checkpoint_command(command, git_interface, use_git)
     elif command == "list checkpoints":
