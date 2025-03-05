@@ -2,7 +2,8 @@ import re
 import requests
 import time
 import subprocess
-from .commands import git_commands, file_commands, bridge_commands, checkpoint_commands, misc_commands
+import uuid
+from .commands import git_commands, file_commands, send_to_grok, checkpoint_commands, misc_commands
 
 BRIDGE_URL = "http://0.0.0.0:5000"
 BRIDGE_PROCESS = None
@@ -25,7 +26,7 @@ def ask_local(command, ai_adapter, git_interface, debug=False, use_git=True):
         return file_commands.file_command(command)
     elif re.match(r'^send\s+to\s+grok\s+', command):
         start_bridge()
-        return bridge_commands.send_to_grok(command, ai_adapter)
+        return send_to_grok(command, ai_adapter)
     elif re.match(r'^checkpoint\s+', command):
         return checkpoint_commands.checkpoint_command(command, git_interface, use_git)
     elif command == "list checkpoints":
@@ -52,4 +53,3 @@ def ask_local(command, ai_adapter, git_interface, debug=False, use_git=True):
             return "No inference response from Grok within timeout"
         except requests.RequestException as e:
             return f"Error connecting to bridge for inference: {e}"
-
