@@ -2,6 +2,7 @@ import subprocess
 import atexit
 import argparse
 import time
+import signal
 from .command_handler import ask_local
 from git_ops import get_git_interface
 from .ai_adapters.stub_ai import StubAI
@@ -10,38 +11,37 @@ BRIDGE_PROCESS = None
 
 def start_bridge():
     global BRIDGE_PROCESS
-    if BRIDGE_PROCESS is None:
+    if BRIDGE_PROCESS is None or BRIDGE_PROCESS.poll() is not None:
         BRIDGE_PROCESS = subprocess.Popen(["python", "grok_local/grok_bridge.py"])
         print("Started grok_bridge at http://0.0.0.0:5000")
         time.sleep(2)
 
 def stop_bridge():
     global BRIDGE_PROCESS
-    if BRIDGE_PROCESS:
-        BRIDGE_PROCESS.terminate()
-        BRIDGE_PROCESS.wait()
+    if BRIDGE_PROCESS and BRIDGE_PROCESS.poll() is None:
+        BRIDGE_PROCESS.send_signal(signal.SIGTERM)
+        try:
+            BRIDGE_PROCESS.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            BRIDGE_PROCESS.kill()
         print("Stopped grok_bridge")
         BRIDGE_PROCESS = None
 
 def main():
     parser = argparse.ArgumentParser(description="Grok-Local CLI: Autonomous agent for file, Git, and agent tasks.")
-    parser.add_argument("--ask", type=str, help="Run a command and exit (e.g., 'checkpoint \"Update\"')")
-    parser.add_argument("--no-git", action="store_true", help="Disable Git integration for commands (default: Git enabled)")
+    parser.add_argument("command", nargs="?", type=str, help="Command to run (e.g., 'checkpoint \"Update\"')")
+    parser.add_argument("--no-git", action="store_true", help="Disable Git integration (default: enabled)")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args()
 
     git_interface = get_git_interface()
     ai_adapter = StubAI()
+    atexit.register(stop_bridge)  # Cleanup on exit
 
-    # Start bridge only for bridge-related commands
-    if args.ask and "send to grok" in args.ask.lower():
-        start_bridge()
-        atexit.register(stop_bridge)
-
-    if args.ask:
-        print(ask_local(args.ask, ai_adapter, git_interface, args.debug, use_git=not args.no_git))
+    if args.command:
+        print(ask_local(args.command, ai_adapter, git_interface, args.debug, use_git=not args.no_git))
     else:
-        print("Interactive mode not implemented yet. Use --ask.")
+        print("Interactive mode not implemented yet. Provide a command.")
 
 if __name__ == "__main__":
     main()
