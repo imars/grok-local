@@ -11,7 +11,7 @@ BRIDGE_PROCESS = None
 
 def start_bridge():
     global BRIDGE_PROCESS
-    if BRIDGE_PROCESS is None or BRIDGE_PROCESS.poll() is not None:
+    if BRIDGE_PROCESS is None:
         BRIDGE_PROCESS = subprocess.Popen(["python", "grok_local/grok_bridge.py"])
         print("Started grok_bridge at http://0.0.0.0:5000")
         time.sleep(2)
@@ -30,16 +30,17 @@ def stop_bridge():
 def main():
     parser = argparse.ArgumentParser(description="Grok-Local CLI: Autonomous agent for file, Git, and agent tasks.")
     parser.add_argument("command", nargs="?", type=str, help="Command to run (e.g., 'checkpoint \"Update\"')")
+    parser.add_argument("--do", action="store_true", help="Execute command directly with local inference fallback")
     parser.add_argument("--no-git", action="store_true", help="Disable Git integration (default: enabled)")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args()
 
     git_interface = get_git_interface()
     ai_adapter = StubAI()
-    atexit.register(stop_bridge)  # Cleanup on exit
+    atexit.register(stop_bridge)
 
     if args.command:
-        print(ask_local(args.command, ai_adapter, git_interface, args.debug, use_git=not args.no_git))
+        print(ask_local(args.command, ai_adapter, git_interface, args.debug, use_git=not args.no_git, direct=args.do))
     else:
         print("Interactive mode not implemented yet. Provide a command.")
 
