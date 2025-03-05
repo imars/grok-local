@@ -1,7 +1,10 @@
+import requests
 from .commands import git_commands, file_commands, checkpoint_commands, misc_commands
 
+OLLAMA_URL = "http://localhost:11434/api/generate"
+
 def execute_command(command, git_interface, ai_adapter, use_git=True):
-    """Execute a command via the local agent's tools, with restrictions and conversational responses."""
+    """Execute a command via the local agent's tools, with Ollama inference when available."""
     command = command.strip().lower()
     
     # Restricted commands: no external calls unless whitelisted
@@ -22,7 +25,26 @@ def execute_command(command, git_interface, ai_adapter, use_git=True):
          command.startswith(("create spaceship fuel script", "create x login stub")):
         return misc_commands.misc_command(command, ai_adapter, git_interface)
     else:
-        # Smarter local inference with conversational responses
+        # Try Ollama for local inference
+        try:
+            payload = {
+                "model": "llama3.1:latest",  # Adjust to your Ollama model
+                "prompt": (
+                    f"Act as Grok-Local, a CLI agent. Respond to this command: '{command}'. "
+                    f"You have tools for git, file operations, checkpoints, and misc commands (time, version, etc.). "
+                    f"No external calls (e.g., weather) unless escalated. Return a concise response."
+                ),
+                "stream": False
+            }
+            resp = requests.post(OLLAMA_URL, json=payload, timeout=10)
+            if resp.status_code == 200:
+                return resp.json().get("response", "I processed your request, but got no clear answer.")
+            else:
+                print(f"Debug: Ollama failed with {resp.status_code} - {resp.text}")
+        except requests.RequestException as e:
+            print(f"Debug: Ollama not running or failed: {e}")
+        
+        # Fallback to static conversational responses
         if "weather" in command:
             return "I don’t have weather data locally. Try 'grok \"get weather\"' to escalate this to the bridge."
         elif "time" in command and "what" not in command:
