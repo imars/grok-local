@@ -1,9 +1,9 @@
 import subprocess
 import atexit
 import argparse
-from command_handler import ask_local
+from .command_handler import ask_local
 from git_ops import get_git_interface
-from ai_adapters.stub_ai import StubAI
+from .ai_adapters.stub_ai import StubAI  # Changed to relative import
 
 BRIDGE_PROCESS = None
 
