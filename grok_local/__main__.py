@@ -10,9 +10,10 @@ BRIDGE_PROCESS = None
 
 def start_bridge():
     global BRIDGE_PROCESS
-    BRIDGE_PROCESS = subprocess.Popen(["python", "grok_local/grok_bridge.py"])
-    print("Started grok_bridge at http://0.0.0.0:5000")
-    time.sleep(2)
+    if BRIDGE_PROCESS is None:
+        BRIDGE_PROCESS = subprocess.Popen(["python", "grok_local/grok_bridge.py"])
+        print("Started grok_bridge at http://0.0.0.0:5000")
+        time.sleep(2)
 
 def stop_bridge():
     global BRIDGE_PROCESS
@@ -20,18 +21,22 @@ def stop_bridge():
         BRIDGE_PROCESS.terminate()
         BRIDGE_PROCESS.wait()
         print("Stopped grok_bridge")
+        BRIDGE_PROCESS = None
 
 def main():
     parser = argparse.ArgumentParser(description="Grok-Local CLI: Autonomous agent for file, Git, and agent tasks.")
-    parser.add_argument("--ask", type=str, help="Run a command and exit (e.g., 'checkpoint \"Update\" --git')")
+    parser.add_argument("--ask", type=str, help="Run a command and exit (e.g., 'checkpoint \"Update\"')")
     parser.add_argument("--no-git", action="store_true", help="Disable Git integration for commands (default: Git enabled)")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args()
 
     git_interface = get_git_interface()
     ai_adapter = StubAI()
-    start_bridge()
-    atexit.register(stop_bridge)
+
+    # Start bridge only for bridge-related commands
+    if args.ask and "send to grok" in args.ask.lower():
+        start_bridge()
+        atexit.register(stop_bridge)
 
     if args.ask:
         print(ask_local(args.ask, ai_adapter, git_interface, args.debug, use_git=not args.no_git))
