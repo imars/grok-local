@@ -86,4 +86,3 @@ class GitInterface:
 
 def get_git_interface(use_stub=False):
     return GitInterface(use_stub=use_stub)
-print('GitInterface methods:', [m for m in dir(GitInterface) if not m.startswith('__')])
