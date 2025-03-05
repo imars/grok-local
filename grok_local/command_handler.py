@@ -73,7 +73,7 @@ def ask_local(command, ai_adapter, git_interface, debug=False, use_git=True, dir
             except requests.RequestException as e:
                 return f"Error connecting to bridge: {e}"
         else:
-            return execute_command(command, git_interface, ai_adapter, use_git, model=model)
+            return execute_command(command, git_interface, ai_adapter, use_git, model=model, debug=debug)
     else:
         # Inference mode: use local agent directly
-        return execute_command(command, git_interface, ai_adapter, use_git, model=model)
+        return execute_command(command, git_interface, ai_adapter, use_git, model=model, debug=debug)

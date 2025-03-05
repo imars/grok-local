@@ -3,7 +3,7 @@ from .commands import git_commands, file_commands, checkpoint_commands, misc_com
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 
-def execute_command(command, git_interface, ai_adapter, use_git=True, model=None):
+def execute_command(command, git_interface, ai_adapter, use_git=True, model=None, debug=False):
     """Execute a command via the local agent's tools, with hybrid Ollama inference."""
     command = command.strip().lower()
     
@@ -44,13 +44,17 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
                         ),
                         "stream": False
                     }
-                    resp = requests.post(OLLAMA_URL, json=payload, timeout=30)  # Increased to 30s
+                    resp = requests.post(OLLAMA_URL, json=payload, timeout=30)
                     if resp.status_code == 200:
                         complexity = resp.json().get("response", "simple").strip().lower()
                         selected_model = "deepseek-r1:8b" if complexity == "complex" else "llama3.2:latest"
                     else:
+                        if debug:
+                            print(f"Debug: Ollama complexity check failed with {resp.status_code} - {resp.text}")
                         selected_model = "llama3.2:latest"  # Default to light if assessment fails
-                except requests.RequestException:
+                except requests.RequestException as e:
+                    if debug:
+                        print(f"Debug: Ollama complexity check not running or failed: {e}")
                     selected_model = "llama3.2:latest"  # Fallback to light if Ollama down
 
         # Execute with selected model
@@ -68,7 +72,7 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
                 ),
                 "stream": False
             }
-            resp = requests.post(OLLAMA_URL, json=payload, timeout=30)  # Increased to 30s
+            resp = requests.post(OLLAMA_URL, json=payload, timeout=30)
             if resp.status_code == 200:
                 response = resp.json().get("response", "I processed your request, but got no clear answer.")
                 if "[insert current time]" in response:
@@ -76,9 +80,11 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
                     response = response.replace("[insert current time]", time_response.split("is ")[-1])
                 return response
             else:
-                print(f"Debug: Ollama failed with {resp.status_code} - {resp.text}")
+                if debug:
+                    print(f"Debug: Ollama failed with {resp.status_code} - {resp.text}")
         except requests.RequestException as e:
-            print(f"Debug: Ollama not running or failed: {e}")
+            if debug:
+                print(f"Debug: Ollama not running or failed: {e}")
         
         # Fallback to static responses
         if "weather" in command:
