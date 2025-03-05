@@ -20,11 +20,7 @@ def ask_local(command, ai_adapter, git_interface, debug=False, use_git=True):
         return checkpoint_commands.checkpoint_command(command, git_interface, use_git)
     elif command == "list checkpoints":
         return checkpoint_commands.list_checkpoints_command(command)
-    elif command == "what time is it":
-        return misc_commands.time_command()
-    elif command == "version":
-        return misc_commands.version_command()
-    elif command.startswith("x login "):
-        return misc_commands.x_login_stub(command)
+    elif re.match(r'^(what time is it|version|x login|clean repo|list files|create spaceship fuel script|create x login stub)', command.lower()):
+        return misc_commands.misc_command(command, ai_adapter, git_interface)
     else:
         return f"Unknown command: {command}"

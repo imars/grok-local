@@ -22,8 +22,9 @@ def stop_bridge():
         print("Stopped grok_bridge")
 
 def main():
-    parser = argparse.ArgumentParser(description="Grok-Local CLI")
-    parser.add_argument("--ask", type=str, help="Run a command and exit")
+    parser = argparse.ArgumentParser(description="Grok-Local CLI: Autonomous agent for file, Git, and agent tasks.")
+    parser.add_argument("--ask", type=str, help="Run a command and exit (e.g., 'checkpoint \"Update\" --git')")
+    parser.add_argument("--no-git", action="store_true", help="Disable Git integration for commands (default: Git enabled)")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args()
 
@@ -33,7 +34,7 @@ def main():
     atexit.register(stop_bridge)
 
     if args.ask:
-        print(ask_local(args.ask, ai_adapter, git_interface, args.debug))
+        print(ask_local(args.ask, ai_adapter, git_interface, args.debug, use_git=not args.no_git))
     else:
         print("Interactive mode not implemented yet. Use --ask.")
 

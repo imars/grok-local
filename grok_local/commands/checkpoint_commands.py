@@ -1,39 +1,46 @@
-# grok_local/commands/checkpoint_commands.py
-import logging
-from grok_checkpoint import save_checkpoint, list_checkpoints
-from ..utils import report
+import json
+import os
+import uuid
+from datetime import datetime
+from grok_checkpoint import save_checkpoint
 
-logger = logging.getLogger(__name__)
+def checkpoint_command(command, git_interface, use_git=True):
+    parts = command.split(maxsplit=1)
+    if len(parts) < 2:
+        return "Error: Checkpoint requires a message (e.g., 'checkpoint \"Update\"')"
+    
+    message = parts[1].strip()
+    if message.startswith('"') and message.endswith('"'):
+        message = message[1:-1]
+    
+    chat_id = str(uuid.uuid4())
+    checkpoint_data = {
+        "message": message,
+        "timestamp": datetime.now().isoformat(),
+        "chat_id": chat_id,
+        "group": "default"
+    }
+    filepath = os.path.join("checkpoints", "checkpoint.json")
+    os.makedirs("checkpoints", exist_ok=True)
+    save_checkpoint(checkpoint_data, filepath)
+    report = f"Checkpoint saved: \"{message}\" to {filepath}"
+    
+    if use_git and git_interface:
+        commit_message = f"Checkpoint: \"{message}\" (Chat: {chat_id}, Group: default)"
+        result = git_interface.commit_and_push(commit_message)  # Fixed: only message
+        report += f"\n{result}"
+    
+    return report
 
-def handle_checkpoint_command(request, git_interface):
-    req_lower = request.lower()
-    if req_lower == "list checkpoints":
-        return report(list_checkpoints())
-    elif req_lower.startswith("checkpoint "):
-        description = request[10:].strip()
-        if not description:
-            return "Error: Checkpoint requires a description"
-        parts = description.split(" --file ")
-        desc = parts[0].strip("'")
-        filename = parts[1].split()[0].strip("'") if len(parts) > 1 else "checkpoint.json"
-        content = None
-        chat_url = None
-        git_update = "--git" in description
-        if git_update:
-            desc = desc.replace(" --git", "").strip()
-
-        params = " ".join(parts[1:]) if len(parts) > 1 else parts[0]
-        if "with current x_poller.py content" in params:
-            try:
-                with open("x_poller.py", "r") as f:
-                    content = f.read()
-            except FileNotFoundError:
-                logger.error("x_poller.py not found for checkpoint")
-                return "Error: x_poller.py not found"
-        for param in params.split():
-            if param.startswith("chat_url="):
-                chat_url = param.split("=", 1)[1].strip("'")
-
-        return report(save_checkpoint(desc, git_interface, filename=filename, file_content=content, chat_url=chat_url, git_update=git_update))
+def list_checkpoints_command(command):
+    filepath = os.path.join("checkpoints", "checkpoint.json")
+    if not os.path.exists(filepath):
+        return "No checkpoints found."
+    
+    with open(filepath, 'r') as f:
+        checkpoints = json.load(f)
+    
+    if isinstance(checkpoints, list):
+        return "\n".join([f"- {cp['timestamp']}: {cp['message']} (Chat: {cp['chat_id']})" for cp in checkpoints])
     else:
-        return f"Unknown checkpoint command: {request}"
+        return f"- {checkpoints['timestamp']}: {checkpoints['message']} (Chat: {checkpoints['chat_id']})"
