@@ -29,7 +29,7 @@ def execute_command(command, git_interface, ai_adapter, use_git=True):
         model = "llama3.2:latest"  # Lightweight default
         if command.startswith("heavy "):
             model = "deepseek-r1:8b"
-            command = command[6:].strip()  # Strip "heavy" prefix
+            command = command[6:].strip()
         
         # Try Ollama for local inference
         try:
@@ -37,21 +37,29 @@ def execute_command(command, git_interface, ai_adapter, use_git=True):
                 "model": model,
                 "prompt": (
                     f"Act as Grok-Local, a CLI agent built by xAI. Respond to this command or query: '{command}'. "
-                    f"You have tools for git, file operations (create, read, write, delete), checkpoints, and misc commands (time, version, etc.). "
-                    f"No external calls (e.g., weather, http) unless escalated with 'grok <command>'. "
-                    f"Return a concise, friendly response."
+                    f"You have tools: 'git <command>' for Git ops, 'create file <name>', 'read file <name>', "
+                    f"'write <name> <content>', 'append <name> <content>', 'delete file <name>' for file ops, "
+                    f"'checkpoint <msg>' to save progress, 'list checkpoints' to see saved points, "
+                    f"'what time is it' for current time, 'version' for agent version, 'clean repo' to reset Git, "
+                    f"'list files' for dir listing. No external calls (e.g., weather) unless escalated with 'grok <command>'. "
+                    f"Use 'what time is it' tool for time queries and return a concise, friendly response."
                 ),
                 "stream": False
             }
             resp = requests.post(OLLAMA_URL, json=payload, timeout=10)
             if resp.status_code == 200:
-                return resp.json().get("response", "I processed your request, but got no clear answer.")
+                response = resp.json().get("response", "I processed your request, but got no clear answer.")
+                # Post-process to insert real time if placeholder present
+                if "[insert current time]" in response:
+                    time_response = misc_commands.misc_command("what time is it", ai_adapter, git_interface)
+                    response = response.replace("[insert current time]", time_response.split("is ")[-1])
+                return response
             else:
                 print(f"Debug: Ollama failed with {resp.status_code} - {resp.text}")
         except requests.RequestException as e:
             print(f"Debug: Ollama not running or failed: {e}")
         
-        # Fallback to static conversational responses
+        # Fallback to static responses
         if "weather" in command:
             return "I don’t have weather data locally. Try 'grok \"get weather\"' to escalate this to the bridge."
         elif "time" in command and "what" not in command:
