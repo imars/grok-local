@@ -2,17 +2,12 @@
 # grok_local/command_handler.py
 import os
 import logging
-import requests
-import uuid
 from .config import PROJECT_DIR, LOCAL_DIR  # Relative import within grok_local/
 logger = logging.getLogger()  # Use root logger
 from file_ops import create_file, delete_file, move_file, copy_file, read_file, write_file, list_files, rename_file, clean_cruft  # Absolute import from repo root
 from git_ops import get_git_interface  # Absolute import from repo root
 from grok_checkpoint import save_checkpoint, list_checkpoints  # Absolute import from repo root
 from .utils import what_time_is_it, report  # Relative import within grok_local/
-
-# Use the same BRIDGE_URL as __main__.py
-BRIDGE_URL = "http://0.0.0.0:5000"
 
 def process_multi_command(request, ai_adapter, git_interface, debug=False):
     commands = request.split("&&")
@@ -177,31 +172,6 @@ def ask_local(request, ai_adapter, git_interface, debug=False):
             git_interface.commit_and_push("Added X login stub for testing")
             return report(f"Created {filename} with X login stub and committed.")
         return report(response)
-    # Bridge-specific commands (moved before else)
-    elif req_lower.startswith("send to grok "):
-        message = request[12:].strip()
-        req_id = str(uuid.uuid4())  # Unique ID for each request
-        try:
-            response = requests.post(f"{BRIDGE_URL}/channel", json={"input": message, "id": req_id}, timeout=5)
-            if response.status_code == 200:
-                return report(f"Sent to Grok: {message}\nRequest ID: {req_id}\nAwaiting response at {BRIDGE_URL}/get-response?id={req_id}")
-            return report(f"Failed to send to Grok: {response.text}")
-        except requests.RequestException as e:
-            logger.error(f"Failed to send to bridge: {e}")
-            return report(f"Error: Could not connect to bridge at {BRIDGE_URL}")
-    elif req_lower.startswith("get grok response "):
-        req_id = request[17:].strip()
-        try:
-            response = requests.get(f"{BRIDGE_URL}/get-response", params={"id": req_id}, timeout=5)
-            if response.status_code == 200:
-                return report(f"Grok response: {response.text}")
-            elif response.status_code == 404:
-                return report("No response from Grok yet")
-            return report(f"Error fetching response: {response.text}")
-        except requests.RequestException as e:
-            logger.error(f"Failed to fetch from bridge: {e}")
-            return report(f"Error: Could not connect to bridge at {BRIDGE_URL}")
     else:
         logger.warning(f"Unknown command received: {request}")
         return f"Unknown command: {request}"
-
