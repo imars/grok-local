@@ -6,8 +6,9 @@ import argparse
 import sys
 import os
 import datetime
+import subprocess
 
-# Critical files to include in prompt
+# Critical files to include in prompt (curated core list)
 CRITICAL_FILES = [
     "grok_local/__main__.py",
     "grok_local/command_handler.py",
@@ -24,19 +25,27 @@ CRITICAL_FILES = [
     "file_ops.py",
 ]
 
-# Files changed or added in this session (Mar 05, 2025)
-RECENT_FILES = [
-    "grok_local/command_handler.py",
-    "grok_local/__main__.py",
-    "grok_local/grok_bridge.py",
-    "scripts/test_bridge_e2e.sh",
-    "grok_local/commands/__init__.py",
-    "grok_local/commands/git_commands.py",
-    "grok_local/commands/file_commands.py",
-    "grok_local/commands/bridge_commands.py",
-    "grok_local/commands/checkpoint_commands.py",
-    "grok_local/commands/misc_commands.py",
-]
+def get_recent_files():
+    # Get files changed in the last day via git log
+    try:
+        cmd = ["git", "log", "--since=1.day", "--name-only", "--pretty=format:"]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        files = set(result.stdout.splitlines())  # Unique files
+        return [f for f in files if f and os.path.exists(f)]  # Filter existing files
+    except subprocess.CalledProcessError:
+        print("Warning: Failed to fetch recent files from Git, using static list.", file=sys.stderr)
+        return [
+            "grok_local/command_handler.py",
+            "grok_local/__main__.py",
+            "grok_local/grok_bridge.py",
+            "scripts/test_bridge_e2e.sh",
+            "grok_local/commands/__init__.py",
+            "grok_local/commands/git_commands.py",
+            "grok_local/commands/file_commands.py",
+            "grok_local/commands/bridge_commands.py",
+            "grok_local/commands/checkpoint_commands.py",
+            "grok_local/commands/misc_commands.py",
+        ]
 
 def generate_prompt(most_recent=False):
     preamble = (
@@ -56,7 +65,7 @@ def generate_prompt(most_recent=False):
         "- Integrated `grok_bridge.py` with CLI for autonomous agent communication.\n"
         "- Added `test_bridge_e2e.sh` for end-to-end testing of bridge and checkpoint flows.\n\n"
         "## Current Task\n"
-        "- Enhanced `grok_bootstrap.py --most-recent` to include recent file contents with preamble.\n\n"
+        "- Use Git to dynamically track recent changes in `grok_bootstrap.py`.\n\n"
         "## Critical Files\n"
     )
     for file in CRITICAL_FILES:
@@ -71,8 +80,9 @@ def generate_prompt(most_recent=False):
     )
     
     if most_recent:
+        recent_files = get_recent_files()
         prompt += "\n## Recently Changed/Added Files (Mar 05, 2025)\n"
-        for file in RECENT_FILES:
+        for file in recent_files:
             if os.path.exists(file):
                 prompt += f"\n### {file}\n```python\n"
                 with open(file, 'r') as f:
