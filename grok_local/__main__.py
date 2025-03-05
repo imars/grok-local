@@ -33,6 +33,8 @@ def main():
     parser.add_argument("--do", action="store_true", help="Execute command directly with local inference fallback")
     parser.add_argument("--no-git", action="store_true", help="Disable Git integration (default: enabled)")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
+    parser.add_argument("--model", type=str, choices=["llama3.2:latest", "deepseek-r1:8b", "deepseek-r1:latest"], 
+                        help="Override default model selection (default: auto based on command length)")
     args = parser.parse_args()
 
     git_interface = get_git_interface()
@@ -40,7 +42,7 @@ def main():
     atexit.register(stop_bridge)
 
     if args.command:
-        print(ask_local(args.command, ai_adapter, git_interface, args.debug, use_git=not args.no_git, direct=args.do))
+        print(ask_local(args.command, ai_adapter, git_interface, args.debug, use_git=not args.no_git, direct=args.do, model=args.model))
     else:
         print("Interactive mode not implemented yet. Provide a command.")
 

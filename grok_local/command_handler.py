@@ -16,7 +16,7 @@ def start_bridge():
         print("Started grok_bridge at http://0.0.0.0:5000")
         time.sleep(2)
 
-def ask_local(command, ai_adapter, git_interface, debug=False, use_git=True, direct=False):
+def ask_local(command, ai_adapter, git_interface, debug=False, use_git=True, direct=False, model=None):
     command = command.strip()
     if debug:
         print(f"Debug: Processing command: {command}")
@@ -73,7 +73,7 @@ def ask_local(command, ai_adapter, git_interface, debug=False, use_git=True, dir
             except requests.RequestException as e:
                 return f"Error connecting to bridge: {e}"
         else:
-            return execute_command(command, git_interface, ai_adapter, use_git)
+            return execute_command(command, git_interface, ai_adapter, use_git, model=model)
     else:
         # Inference mode: use local agent directly
-        return execute_command(command, git_interface, ai_adapter, use_git)
+        return execute_command(command, git_interface, ai_adapter, use_git, model=model)
