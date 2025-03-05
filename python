@@ -1,0 +1,11 @@
+==> grok_bootstrap.py <==
+    args = parser.parse_args()
+
+    if args.dump:
+        dump_files()
+    elif args.prompt:
+        print(generate_prompt(most_recent=False))
+    elif args.most_recent:
+        print(generate_prompt(most_recent=True))
+    else:
+        print("Run with --dump, --prompt, or --most-recent for output.")
