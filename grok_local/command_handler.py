@@ -4,14 +4,14 @@ import os
 import logging
 import requests
 import uuid
-from .config import PROJECT_DIR, LOCAL_DIR  # Relative import within grok_local/
-logger = logging.getLogger()  # Use root logger
-from file_ops import create_file, delete_file, move_file, copy_file, read_file, write_file, list_files, rename_file, clean_cruft  # Absolute import from repo root
-from git_ops import get_git_interface  # Absolute import from repo root
-from grok_checkpoint import save_checkpoint, list_checkpoints  # Absolute import from repo root
-from .utils import what_time_is_it, report  # Relative import within grok_local/
+import time
+from .config import PROJECT_DIR, LOCAL_DIR
+logger = logging.getLogger()
+from file_ops import create_file, delete_file, move_file, copy_file, read_file, write_file, list_files, rename_file, clean_cruft
+from git_ops import get_git_interface
+from grok_checkpoint import save_checkpoint, list_checkpoints
+from .utils import what_time_is_it, report
 
-# Use the same BRIDGE_URL as __main__.py
 BRIDGE_URL = "http://0.0.0.0:5000"
 
 def process_multi_command(request, ai_adapter, git_interface, debug=False):
@@ -40,14 +40,37 @@ def ask_local(request, ai_adapter, git_interface, debug=False):
     if req_lower.startswith("grok "):
         prompt = request[5:].strip()
         return report(ai_adapter.delegate(prompt))
-    
-    if req_lower in ["what time is it", "ask what time is it"]:
+    elif req_lower.startswith("send to grok "):
+        message = request[12:].strip()
+        req_id = str(uuid.uuid4())
+        try:
+            response = requests.post(f"{BRIDGE_URL}/channel", json={"input": message, "id": req_id}, timeout=5)
+            if response.status_code != 200:
+                logger.error(f"Bridge POST failed: {response.text}")
+                return report(f"Failed to send to Grok: {response.text}")
+            # Poll for response
+            max_attempts = 10
+            delay = 2  # seconds
+            for attempt in range(max_attempts):
+                resp = requests.get(f"{BRIDGE_URL}/get-response", params={"id": req_id}, timeout=5)
+                if resp.status_code == 200:
+                    return report(f"Grok response: {resp.text}")
+                elif resp.status_code != 404:
+                    logger.error(f"Bridge GET failed: {resp.text}")
+                    return report(f"Error fetching response: {resp.text}")
+                logger.info(f"Waiting for Grok response (attempt {attempt + 1}/{max_attempts})")
+                time.sleep(delay)
+            return report("No response from Grok within timeout")
+        except requests.RequestException as e:
+            logger.error(f"Bridge connection failed: {e}")
+            return report(f"Error: Could not connect to bridge at {BRIDGE_URL}")
+    elif req_lower in ["what time is it", "ask what time is it"]:
         return report(what_time_is_it())
     elif req_lower == "version":
         return report("grok-local v0.1")
     elif req_lower == "clean repo":
         cruft_result = clean_cruft()
-        git_result = git_interface.git_clean_repo()  # Use git_interface
+        git_result = git_interface.git_clean_repo()
         return report(f"{cruft_result}\n{git_result}")
     elif req_lower == "list files":
         return report(list_files())
@@ -65,7 +88,7 @@ def ask_local(request, ai_adapter, git_interface, debug=False):
         git_update = "--git" in description
         if git_update:
             desc = desc.replace(" --git", "").strip()
-        
+
         params = " ".join(parts[1:]) if len(parts) > 1 else parts[0]
         if "with current x_poller.py content" in params:
             try:
@@ -77,7 +100,7 @@ def ask_local(request, ai_adapter, git_interface, debug=False):
         for param in params.split():
             if param.startswith("chat_url="):
                 chat_url = param.split("=", 1)[1].strip("'")
-        
+
         return report(save_checkpoint(desc, git_interface, filename=filename, file_content=content, chat_url=chat_url, git_update=git_update))
     elif req_lower.startswith("commit "):
         full_message = request[6:].strip()
@@ -88,7 +111,7 @@ def ask_local(request, ai_adapter, git_interface, debug=False):
         parts = full_message.split("|")
         message = parts[0] or "Automated commit"
         commit_message = full_message if len(parts) == 1 else message
-        result = git_interface.commit_and_push(commit_message)  # Already correct
+        result = git_interface.commit_and_push(commit_message)
         if "failed" in result.lower():
             logger.error(result)
             return result
@@ -97,24 +120,24 @@ def ask_local(request, ai_adapter, git_interface, debug=False):
         parts = request.split()
         if len(parts) >= 4 and parts[2] == "origin":
             branch = parts[3]
-            return report(git_interface.git_push(branch))  # Use git_interface
+            return report(git_interface.git_push(branch))
         return report("Error: Invalid git push command format. Use 'git push origin <branch>'")
     elif req_lower == "git status":
-        return report(git_interface.git_status())  # Use git_interface
+        return report(git_interface.git_status())
     elif req_lower == "git pull":
-        return report(git_interface.git_pull())  # Use git_interface
+        return report(git_interface.git_pull())
     elif req_lower.startswith("git log"):
         count = request[7:].strip()
         count = int(count) if count.isdigit() else 1
-        return report(git_interface.git_log(count))  # Use git_interface
+        return report(git_interface.git_log(count))
     elif req_lower == "git branch":
-        return report(git_interface.git_branch())  # Use git_interface
+        return report(git_interface.git_branch())
     elif req_lower.startswith("git checkout "):
         branch = request[12:].strip()
-        return report(git_interface.git_checkout(branch))  # Use git_interface
+        return report(git_interface.git_checkout(branch))
     elif req_lower.startswith("git rm "):
         filename = request[6:].strip()
-        return report(git_interface.git_rm(filename))  # Use git_interface
+        return report(git_interface.git_rm(filename))
     elif req_lower.startswith("create file "):
         filename = request[11:].strip()
         path, fname = os.path.split(filename)
@@ -177,31 +200,6 @@ def ask_local(request, ai_adapter, git_interface, debug=False):
             git_interface.commit_and_push("Added X login stub for testing")
             return report(f"Created {filename} with X login stub and committed.")
         return report(response)
-    # Bridge-specific commands (moved before else)
-    elif req_lower.startswith("send to grok "):
-        message = request[12:].strip()
-        req_id = str(uuid.uuid4())  # Unique ID for each request
-        try:
-            response = requests.post(f"{BRIDGE_URL}/channel", json={"input": message, "id": req_id}, timeout=5)
-            if response.status_code == 200:
-                return report(f"Sent to Grok: {message}\nRequest ID: {req_id}\nAwaiting response at {BRIDGE_URL}/get-response?id={req_id}")
-            return report(f"Failed to send to Grok: {response.text}")
-        except requests.RequestException as e:
-            logger.error(f"Failed to send to bridge: {e}")
-            return report(f"Error: Could not connect to bridge at {BRIDGE_URL}")
-    elif req_lower.startswith("get grok response "):
-        req_id = request[17:].strip()
-        try:
-            response = requests.get(f"{BRIDGE_URL}/get-response", params={"id": req_id}, timeout=5)
-            if response.status_code == 200:
-                return report(f"Grok response: {response.text}")
-            elif response.status_code == 404:
-                return report("No response from Grok yet")
-            return report(f"Error fetching response: {response.text}")
-        except requests.RequestException as e:
-            logger.error(f"Failed to fetch from bridge: {e}")
-            return report(f"Error: Could not connect to bridge at {BRIDGE_URL}")
     else:
         logger.warning(f"Unknown command received: {request}")
         return f"Unknown command: {request}"
-
