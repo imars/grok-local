@@ -24,6 +24,7 @@ CRITICAL_FILES = [
     "grok_local/commands/bridge_commands.py",
     "grok_local/commands/checkpoint_commands.py",
     "grok_local/commands/misc_commands.py",
+    "grok_local/tools.py",
     "scripts/test_bridge_e2e.sh",
     "grok_checkpoint.py",
     "git_ops.py",
@@ -31,12 +32,11 @@ CRITICAL_FILES = [
 ]
 
 def get_recent_files():
-    # Get files changed in the last day via direct git log (low-level for bootstrap stability)
     try:
         cmd = ["git", "log", "--since=1.day", "--name-only", "--pretty=format:"]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        files = set(result.stdout.splitlines())  # Unique files
-        return [f for f in files if f and os.path.exists(f)]  # Filter existing files
+        files = set(result.stdout.splitlines())
+        return [f for f in files if f and os.path.exists(f)]
     except subprocess.CalledProcessError:
         print("Warning: Failed to fetch recent files from Git, using static list.", file=sys.stderr)
         return [
@@ -50,37 +50,37 @@ def get_recent_files():
             "grok_local/commands/bridge_commands.py",
             "grok_local/commands/checkpoint_commands.py",
             "grok_local/commands/misc_commands.py",
+            "grok_local/tools.py",
         ]
 
 def generate_prompt(most_recent=False):
     preamble = (
         "The following contains information to restart a Grok 3 chat session for Grok-Local development. "
-        "We are currently enhancing grok_local, a CLI agent for managing files, Git repos, and agent communication. "
-        "We’ve modularized command_handler.py into commands/ submodules and integrated grok_bridge.py for autonomous "
-        "agent interaction, verified by scripts/test_bridge_e2e.sh. Next, we aim to refine CLI features and explore X polling. "
-        "The text below includes project structure, instructions, and recent files to guide you.\n\n"
+        "We are enhancing grok_local, a CLI agent for managing files, Git repos, and agent communication. "
+        "It uses a modular command structure and local inference with Ollama models when available. "
+        "Next, we aim to refine CLI features and explore X polling or DOM discovery.\n\n"
     )
     prompt = preamble + (
         "# Grok-Local Bootstrap Context (Mar 05, 2025)\n"
         "# Mission: Build a fully autonomous local agent for managing project files, Git repos, "
         "communicating with users and agents, and solving problems collaboratively.\n\n"
         "## Agent\n"
-        "Act as Grok-Local, a CLI-based autonomous agent built by xAI. Your role is to assist in managing project files, "
-        "Git repositories, and communicating with users and other agents. Use the modular commands in `grok_local/commands/` "
-        "to execute tasks (e.g., `git_commands.py` for Git ops, `bridge_commands.py` for agent comms). Prioritize clarity, "
-        "efficiency, and collaboration. Leverage recent files for context, propose actionable solutions, and checkpoint "
-        "progress with `checkpoint_commands.py` when significant updates occur. If issues persist (e.g., import errors), "
-        "clear cached `.pyc` files with `find . -name \"*.pyc\" -exec rm -f {} \\;` to avoid stale bytecode conflicts.\n\n"
+        "Act as Grok-Local, a CLI agent built by xAI. Your role is to assist in managing project files, "
+        "Git repositories, and communicating with users and other agents. Use the modular commands in "
+        "`grok_local/commands/` (e.g., `git_commands.py`, `file_commands.py`) and the `execute_command` tool "
+        "in `tools.py` for local operations. For local inference, use Ollama with 'deepseek-r1:8b' when running "
+        "(http://localhost:11434/api/generate). Escalate to the bridge with 'grok <command>' for bigger tasks. "
+        "If issues persist (e.g., import errors), clear cached `.pyc` files with `find . -name \"*.pyc\" -exec rm -f {} \\;`.\n"
+        "### Installed Local Agents (Ollama Models)\n"
+        "- `deepseek-r1:8b` (ID: b06f7ffc236b, 4.9 GB, Modified: 2 weeks ago) - Primary model for local inference.\n"
+        "- `deepseek-r1:latest` (ID: 0a8c26691023, 4.7 GB, Modified: 3 weeks ago)\n"
+        "- `llama3.2:latest` (ID: a80c4f17acd5, 2.0 GB, Modified: 6 weeks ago)\n\n"
         "## Progress\n"
-        "Modular CLI with bridge integration, Git ops, and checkpointing.\n\n"
+        "Modular CLI with direct execution (--do) and local inference via Ollama, bridge for escalation.\n\n"
         "## Recent Work (Mar 05, 2025)\n"
-        "- Modularized `command_handler.py` into `commands/` subpackage for scalability.\n"
-        "- Integrated `grok_bridge.py` with CLI for autonomous agent communication.\n"
-        "- Added `test_bridge_e2e.sh` for end-to-end testing of bridge and checkpoint flows.\n"
-        "- Added clipboard support to `--prompt` with clean output.\n"
-        "- Removed `--ask`, added inference fallback, optimized bridge startup.\n\n"
-        "## Current Task\n"
-        "- Changed `send to grok` to `grok` for simpler command syntax.\n\n"
+        "- Added --do for direct execution with local inference fallback.\n"
+        "- Integrated Ollama for true local inference with deepseek-r1:8b.\n"
+        "- Enhanced conversational responses in tools.py.\n\n"
         "## Critical Files\n"
     )
     for file in CRITICAL_FILES:
@@ -92,6 +92,7 @@ def generate_prompt(most_recent=False):
         "\n## Instructions\n"
         "- Use these files to restart dev chats with current context.\n"
         "- Fetch missing files from git@github.com:imars/grok-local.git if needed.\n"
+        "- Ensure Ollama is running (`ollama serve`) for local inference.\n"
     )
     
     if most_recent:
