@@ -82,6 +82,7 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
             else:
                 if debug:
                     print(f"Debug: Ollama failed with {resp.status_code} - {resp.text}")
+                # No print here—quiet unless debug
         except requests.RequestException as e:
             if debug:
                 print(f"Debug: Ollama not running or failed: {e}")

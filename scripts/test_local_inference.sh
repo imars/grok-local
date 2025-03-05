@@ -14,9 +14,9 @@ find . -name "*.pyc" -exec rm -f {} \;
 echo "Stopping Ollama if running..."
 pkill -f "ollama serve" || echo "No Ollama process to stop."
 
-# Test with Ollama starting fresh (no debug unless needed)
-echo "Starting Ollama fresh..."
-ollama serve &
+# Test with Ollama starting fresh (quiet output)
+echo "Starting Ollama fresh (output redirected)..."
+ollama serve > /dev/null 2>&1 &
 OLLAMA_PID=$!
 sleep 5  # Give Ollama a moment to start
 
