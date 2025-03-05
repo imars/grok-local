@@ -31,7 +31,7 @@ CRITICAL_FILES = [
 ]
 
 def get_recent_files():
-    # Get files changed in the last day via git log
+    # Get files changed in the last day via direct git log (low-level for bootstrap stability)
     try:
         cmd = ["git", "log", "--since=1.day", "--name-only", "--pretty=format:"]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
@@ -75,9 +75,10 @@ def generate_prompt(most_recent=False):
         "## Recent Work (Mar 05, 2025)\n"
         "- Modularized `command_handler.py` into `commands/` subpackage for scalability.\n"
         "- Integrated `grok_bridge.py` with CLI for autonomous agent communication.\n"
-        "- Added `test_bridge_e2e.sh` for end-to-end testing of bridge and checkpoint flows.\n\n"
+        "- Added `test_bridge_e2e.sh` for end-to-end testing of bridge and checkpoint flows.\n"
+        "- Added clipboard support to `--prompt` with clean output.\n\n"
         "## Current Task\n"
-        "- Ensured clean `--prompt` output in `grok_bootstrap.py` with clipboard support.\n\n"
+        "- Use `grok_local --ask` for dev tasks, plan removal of `--ask` with inference fallback.\n\n"
         "## Critical Files\n"
     )
     for file in CRITICAL_FILES:
@@ -125,8 +126,8 @@ if __name__ == "__main__":
         dump_files()
     elif args.prompt:
         output = generate_prompt(most_recent=False)
-        sys.stdout.write(output)  # Explicitly write to stdout
-        sys.stdout.flush()        # Ensure stdout is fully written
+        sys.stdout.write(output)
+        sys.stdout.flush()
         if pyperclip:
             pyperclip.copy(output)
             print("Prompt copied to clipboard!", file=sys.stderr)
