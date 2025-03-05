@@ -24,9 +24,9 @@ def ask_local(command, ai_adapter, git_interface, debug=False, use_git=True):
         return git_commands.git_command(command, git_interface)
     elif re.match(r'^(create|read|write|append|delete)\s+file\s+', command):
         return file_commands.file_command(command)
-    elif re.match(r'^send\s+to\s+grok\s+', command):
+    elif re.match(r'^grok\s+', command):  # Changed from '^send\s+to\s+grok\s+'
         start_bridge()
-        return send_to_grok(command, ai_adapter)
+        return send_to_grok(f"send to grok {command[5:]}", ai_adapter)  # Adjust command for bridge_commands
     elif re.match(r'^checkpoint\s+', command):
         return checkpoint_commands.checkpoint_command(command, git_interface, use_git)
     elif command == "list checkpoints":
