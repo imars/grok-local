@@ -1,13 +1,13 @@
 from .commands import git_commands, file_commands, checkpoint_commands, misc_commands
 
 def execute_command(command, git_interface, ai_adapter, use_git=True):
-    """Execute a command via the local agent's tools, with restrictions."""
+    """Execute a command via the local agent's tools, with restrictions and suggestions."""
     command = command.strip().lower()
     
     # Restricted commands: no external calls unless whitelisted
-    restricted = ["curl", "wget", "http", "weather"]  # Example restrictions
+    restricted = ["curl", "wget", "http"]
     if any(r in command for r in restricted):
-        return "I can't perform external operations like that. Use 'grok' for bigger tasks or specific local commands."
+        return "I can't perform direct external operations like that. Try 'grok <command>' for bridge assistance or specify a local command."
 
     # Route to existing command handlers
     if command.startswith("git "):
@@ -22,4 +22,10 @@ def execute_command(command, git_interface, ai_adapter, use_git=True):
          command.startswith(("create spaceship fuel script", "create x login stub")):
         return misc_commands.misc_command(command, ai_adapter, git_interface)
     else:
-        return f"Command '{command}' not recognized by local tools."
+        # Smarter local inference
+        if "weather" in command:
+            return "I don’t have weather data locally. Try 'grok \"get weather\"' to escalate this to the bridge."
+        elif "time" in command and "what" not in command:
+            return misc_commands.misc_command("what time is it", ai_adapter, git_interface)
+        else:
+            return f"Command '{command}' not recognized by local tools. Try 'grok <command>' for bridge inference or use a specific local command."

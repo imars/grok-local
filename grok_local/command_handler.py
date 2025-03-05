@@ -46,7 +46,7 @@ def ask_local(command, ai_adapter, git_interface, debug=False, use_git=True, dir
                 "input": (
                     f"Execute this command with your tool: '{sub_command}'. "
                     f"Tool: execute_command(command) - runs local commands (git, checkpoint, etc.) and returns results. "
-                    f"Restrictions: no external calls (e.g., weather, http) unless whitelisted. "
+                    f"Restrictions: no external calls (e.g., curl, wget) unless whitelisted. "
                     f"Respond with the tool's output or explain why you can't proceed."
                 ),
                 "id": req_id
