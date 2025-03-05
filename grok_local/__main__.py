@@ -3,13 +3,13 @@ import atexit
 import argparse
 from .command_handler import ask_local
 from git_ops import get_git_interface
-from .ai_adapters.stub_ai import StubAI  # Changed to relative import
+from .ai_adapters.stub_ai import StubAI
 
 BRIDGE_PROCESS = None
 
 def start_bridge():
     global BRIDGE_PROCESS
-    BRIDGE_PROCESS = subprocess.Popen(["python", "grok_bridge.py"])
+    BRIDGE_PROCESS = subprocess.Popen(["python", "grok_local/grok_bridge.py"])
     print("Started grok_bridge at http://0.0.0.0:5000")
 
 def stop_bridge():
