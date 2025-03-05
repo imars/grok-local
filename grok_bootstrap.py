@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 # grok_bootstrap.py (Mar 05, 2025): Restarts dev chat sessions with context.
-# Options: --dump (full file contents), --prompt (chat-ready summary), --most-recent (summary + recent files).
+# Options: --dump (full file contents), --prompt (chat-ready summary to clipboard), --most-recent (summary + recent files).
 
 import argparse
 import sys
 import os
 import datetime
 import subprocess
+try:
+    import pyperclip
+except ImportError:
+    print("Warning: pyperclip not installed. Install with 'pip install pyperclip' for clipboard support.", file=sys.stderr)
+    pyperclip = None
 
 # Critical files to include in prompt (curated core list)
 CRITICAL_FILES = [
@@ -72,7 +77,7 @@ def generate_prompt(most_recent=False):
         "- Integrated `grok_bridge.py` with CLI for autonomous agent communication.\n"
         "- Added `test_bridge_e2e.sh` for end-to-end testing of bridge and checkpoint flows.\n\n"
         "## Current Task\n"
-        "- Added Agent section to `grok_bootstrap.py` as a system prompt.\n\n"
+        "- Ensured clean `--prompt` output in `grok_bootstrap.py` with clipboard support.\n\n"
         "## Critical Files\n"
     )
     for file in CRITICAL_FILES:
@@ -112,14 +117,21 @@ def dump_files():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Grok-Local Bootstrap: Restart dev chats with context.")
     parser.add_argument("--dump", action="store_true", help="Dump full contents of critical files.")
-    parser.add_argument("--prompt", action="store_true", help="Generate chat-ready summary.")
+    parser.add_argument("--prompt", action="store_true", help="Generate chat-ready summary and copy to clipboard.")
     parser.add_argument("--most-recent", action="store_true", help="Include summary and contents of recently changed/added files.")
     args = parser.parse_args()
 
     if args.dump:
         dump_files()
     elif args.prompt:
-        print(generate_prompt(most_recent=False))
+        output = generate_prompt(most_recent=False)
+        sys.stdout.write(output)  # Explicitly write to stdout
+        sys.stdout.flush()        # Ensure stdout is fully written
+        if pyperclip:
+            pyperclip.copy(output)
+            print("Prompt copied to clipboard!", file=sys.stderr)
+        else:
+            print("Clipboard not available without pyperclip.", file=sys.stderr)
     elif args.most_recent:
         print(generate_prompt(most_recent=True))
     else:
