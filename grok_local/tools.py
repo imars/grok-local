@@ -37,7 +37,7 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
                 "prompt": f"Assess the complexity of this command: '{command}'. Respond with 'simple' for basic tasks or 'complex' for reasoning-heavy tasks.",
                 "stream": False
             }
-            resp = requests.post(OLLAMA_URL, json=payload, timeout=30)  # Increased to 30s
+            resp = requests.post(OLLAMA_URL, json=payload, timeout=30)
             if resp.status_code == 200:
                 complexity = resp.json().get("response", "simple").strip().lower()
                 if debug:
@@ -70,6 +70,7 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
 
         if debug:
             print(f"Debug: Selected model: {selected_model}", file=sys.stderr)
+            print(f"Debug: Processing command: {command}", file=sys.stderr)
 
         # Execute with selected model
         try:
@@ -83,7 +84,7 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
                 ),
                 "stream": False
             }
-            resp = requests.post(OLLAMA_URL, json=payload, timeout=120)  # Increased to 120s
+            resp = requests.post(OLLAMA_URL, json=payload, timeout=300)  # Increased to 300s
             if resp.status_code == 200:
                 response = resp.json().get("response", "No clear answer.")
                 if "```python" in response and "asteroids" in command:

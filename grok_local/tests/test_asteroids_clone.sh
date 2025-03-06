@@ -16,7 +16,8 @@ find . -name "*.pyc" -exec rm -f {} \;
 echo "Stopping Ollama if running..."
 pkill -f "ollama serve" || echo "No Ollama process to stop."
 
-echo "Starting Ollama, logging to $LOG_FILE..."
+echo "Starting Ollama with extended timeout, logging to $LOG_FILE..."
+export OLLAMA_LOAD_TIMEOUT=10m  # Extend to 10 minutes
 ollama serve >> "$LOG_FILE" 2>&1 &
 OLLAMA_PID=$!
 sleep 5  # Initial wait
@@ -30,8 +31,8 @@ echo "Ollama running with PID $OLLAMA_PID"
 echo "Pre-loading deepseek-r1:8b..."
 curl -X POST http://localhost:11434/api/generate -d '{"model": "deepseek-r1:8b", "prompt": "Warm-up", "stream": false}' >> "$LOG_FILE" 2>&1
 
-echo "Waiting 90s for deepseek-r1:8b to be ready..."
-sleep 85  # Total 90s
+echo "Waiting 300s for deepseek-r1:8b to be fully ready..."
+sleep 295  # Total 300s
 
 echo "Checking available models..."
 ollama list >> "$LOG_FILE" 2>&1
