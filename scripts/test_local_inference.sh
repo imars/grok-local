@@ -26,7 +26,7 @@ python -m grok_local "Hi there" || echo "Short command failed, continuing..."
 echo "Testing conversational command with fresh Ollama..."
 python -m grok_local "How are you today?" || echo "Conversational command failed, continuing..."
 
-# Test with Ollama running (with debug for Git summary)
+# Test Git summary
 echo "Testing Git summary command with running Ollama (debug on)..."
 python -m grok_local --debug "Can you summarize the latest changes in this repo?" || echo "Git summary failed, continuing..."
 
@@ -36,7 +36,7 @@ python -m grok_local "git log -n 3 --oneline" || echo "Raw Git log failed, conti
 
 # Test direct mode checkpoint
 echo "Testing direct mode checkpoint..."
-python -m grok_local --do "checkpoint 'Extended timeout test'" || echo "Direct mode failed, continuing..."
+python -m grok_local --do "checkpoint 'Baseline inference test'" || echo "Direct mode failed, continuing..."
 
 # Clean up
 echo "Stopping Ollama..."

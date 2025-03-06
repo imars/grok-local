@@ -20,9 +20,17 @@ ollama serve > /dev/null 2>&1 &
 OLLAMA_PID=$!
 sleep 10  # 10s for Ollama startup
 
-# Test Asteroids clone
+# Test Asteroids clone with debug
 echo "Testing Asteroids clone command with running Ollama (debug on)..."
 python -m grok_local --debug "Clone the Asteroids game" || echo "Asteroids clone failed, continuing..."
+
+# Verify file creation
+echo "Checking for Asteroids game file..."
+if [ -f "grok_local/projects/asteroids/asteroids.py" ]; then
+    echo "Asteroids game file created successfully at grok_local/projects/asteroids/asteroids.py!"
+else
+    echo "Asteroids game file not found—check output!"
+fi
 
 # Test direct mode checkpoint
 echo "Testing direct mode checkpoint..."
