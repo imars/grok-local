@@ -18,7 +18,7 @@ pkill -f "ollama serve" || echo "No Ollama process to stop."
 echo "Starting Ollama fresh (output redirected)..."
 ollama serve > /dev/null 2>&1 &
 OLLAMA_PID=$!
-sleep 5  # Give Ollama a moment to start
+sleep 10  # Increased to 10s for Ollama startup
 
 echo "Testing short command with fresh Ollama..."
 python -m grok_local "Hi there" || echo "Short command failed, continuing..."
@@ -36,7 +36,7 @@ python -m grok_local "git log -n 3 --oneline" || echo "Raw Git log failed, conti
 
 # Test direct mode (no debug)
 echo "Testing direct mode checkpoint..."
-python -m grok_local --do "checkpoint 'Git function alignment test'" || echo "Direct mode failed, continuing..."
+python -m grok_local --do "checkpoint 'Extended timeout test'" || echo "Direct mode failed, continuing..."
 
 # Clean up
 echo "Stopping Ollama..."

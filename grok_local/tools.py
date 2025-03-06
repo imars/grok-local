@@ -28,8 +28,7 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
         # Check for Git summary requests
         git_summary_keywords = ["summarize", "changes", "log", "recent"]
         if any(keyword in command for keyword in git_summary_keywords) and ("repo" in command or "repository" in command):
-            # Use handle_git_command with a concise log request
-            git_log = git_commands.handle_git_command("git log 3", git_interface)  # Default to last 3 commits
+            git_log = git_commands.handle_git_command("git log 3", git_interface)  # Last 3 commits
             if debug:
                 print(f"Debug: Raw git log output: {git_log}")
             try:
@@ -43,7 +42,7 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
                     ),
                     "stream": False
                 }
-                resp = requests.post(OLLAMA_URL, json=payload, timeout=30)
+                resp = requests.post(OLLAMA_URL, json=payload, timeout=60)  # Increased to 60s
                 if resp.status_code == 200:
                     return resp.json().get("response", "I processed the Git log, but got no clear summary.")
                 else:
@@ -74,7 +73,7 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
                         ),
                         "stream": False
                     }
-                    resp = requests.post(OLLAMA_URL, json=payload, timeout=30)
+                    resp = requests.post(OLLAMA_URL, json=payload, timeout=60)  # Increased to 60s
                     if resp.status_code == 200:
                         complexity = resp.json().get("response", "simple").strip().lower()
                         selected_model = "deepseek-r1:8b" if complexity == "complex" else "llama3.2:latest"
@@ -102,7 +101,7 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
                 ),
                 "stream": False
             }
-            resp = requests.post(OLLAMA_URL, json=payload, timeout=30)
+            resp = requests.post(OLLAMA_URL, json=payload, timeout=60)  # Increased to 60s
             if resp.status_code == 200:
                 response = resp.json().get("response", "I processed your request, but got no clear answer.")
                 if "[insert current time]" in response:
