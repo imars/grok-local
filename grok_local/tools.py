@@ -1,7 +1,9 @@
 import requests
+import os
 from .commands import git_commands, file_commands, checkpoint_commands, misc_commands
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
+PROJECTS_DIR = os.path.join(os.path.dirname(__file__), "projects")
 
 def execute_command(command, git_interface, ai_adapter, use_git=True, model=None, debug=False):
     """Execute a command via the local agent's tools, with hybrid Ollama inference."""
@@ -25,10 +27,12 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
          command.startswith(("create spaceship fuel script", "create x login stub")):
         return misc_commands.misc_command(command, ai_adapter, git_interface)
     else:
-        # Check for Git summary requests
+        # Check for Git summary or coding tasks
         git_summary_keywords = ["summarize", "changes", "log", "recent"]
+        coding_keywords = ["clone", "game", "code", "build"]
+        
         if any(keyword in command for keyword in git_summary_keywords) and ("repo" in command or "repository" in command):
-            git_log = git_commands.handle_git_command("git log 3", git_interface)  # Last 3 commits
+            git_log = git_commands.handle_git_command("git log 3", git_interface)
             if debug:
                 print(f"Debug: Raw git log output: {git_log}")
             try:
@@ -42,7 +46,7 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
                     ),
                     "stream": False
                 }
-                resp = requests.post(OLLAMA_URL, json=payload, timeout=60)  # Increased to 60s
+                resp = requests.post(OLLAMA_URL, json=payload, timeout=60)
                 if resp.status_code == 200:
                     return resp.json().get("response", "I processed the Git log, but got no clear summary.")
                 else:
@@ -59,11 +63,13 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
             selected_model = model
         else:
             cmd_length = len(command)
-            if cmd_length < 50:  # Short: lightweight model
+            if any(keyword in command for keyword in coding_keywords):  # Coding tasks favor deepseek-r1:8b
+                selected_model = "deepseek-r1:8b"
+            elif cmd_length < 50:  # Short: lightweight model
                 selected_model = "llama3.2:latest"
             elif cmd_length > 200:  # Long: reasoning model
                 selected_model = "deepseek-r1:8b"
-            else:  # Medium: assess complexity with lightweight model
+            else:  # Medium: assess complexity
                 try:
                     payload = {
                         "model": "llama3.2:latest",
@@ -73,7 +79,7 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
                         ),
                         "stream": False
                     }
-                    resp = requests.post(OLLAMA_URL, json=payload, timeout=60)  # Increased to 60s
+                    resp = requests.post(OLLAMA_URL, json=payload, timeout=60)
                     if resp.status_code == 200:
                         complexity = resp.json().get("response", "simple").strip().lower()
                         selected_model = "deepseek-r1:8b" if complexity == "complex" else "llama3.2:latest"
@@ -97,13 +103,24 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
                     f"'checkpoint <msg>' to save progress, 'list checkpoints' to see saved points, "
                     f"'what time is it' for current time, 'version' for agent version, 'clean repo' to reset Git, "
                     f"'list files' for dir listing. No external calls (e.g., weather) unless escalated with 'grok <command>'. "
-                    f"Use 'what time is it' tool for time queries. Return a concise, friendly response."
+                    f"Use 'what time is it' tool for time queries. For coding tasks, generate complete Python code "
+                    f"and wrap it in ```python\n<code>\n```. Save files to 'projects/<project_name>/' if a project "
+                    f"(e.g., 'asteroids') is mentioned. Return a concise, friendly response."
                 ),
                 "stream": False
             }
-            resp = requests.post(OLLAMA_URL, json=payload, timeout=60)  # Increased to 60s
+            if debug:
+                print(f"Debug: Using model {selected_model} for command: {command}")
+            resp = requests.post(OLLAMA_URL, json=payload, timeout=60)
             if resp.status_code == 200:
                 response = resp.json().get("response", "I processed your request, but got no clear answer.")
+                if "```python" in response and "asteroids" in command:
+                    code_block = response.split("```python")[1].split("```")[0].strip()
+                    project_dir = os.path.join(PROJECTS_DIR, "asteroids")
+                    os.makedirs(project_dir, exist_ok=True)
+                    with open(os.path.join(project_dir, "asteroids.py"), "w") as f:
+                        f.write(code_block)
+                    response += f"\nSaved game code to 'projects/asteroids/asteroids.py'!"
                 if "[insert current time]" in response:
                     time_response = misc_commands.misc_command("what time is it", ai_adapter, git_interface)
                     response = response.replace("[insert current time]", time_response.split("is ")[-1])

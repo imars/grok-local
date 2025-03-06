@@ -1,5 +1,5 @@
 #!/bin/bash
-# test_local_inference.sh: Batch tests for grok_local inference with Ollama, quieter output
+# test_asteroids_clone.sh: Test grok_local cloning Asteroids with deepseek-r1:8b
 
 set -e  # Exit on error
 
@@ -14,29 +14,28 @@ find . -name "*.pyc" -exec rm -f {} \;
 echo "Stopping Ollama if running..."
 pkill -f "ollama serve" || echo "No Ollama process to stop."
 
-# Test with Ollama starting fresh (quiet output)
+# Clean up previous Asteroids project
+echo "Removing previous Asteroids project if exists..."
+rm -rf grok_local/projects/asteroids
+
+# Start Ollama
 echo "Starting Ollama fresh (output redirected)..."
 ollama serve > /dev/null 2>&1 &
 OLLAMA_PID=$!
 sleep 10  # 10s for Ollama startup
 
-echo "Testing short command with fresh Ollama..."
-python -m grok_local "Hi there" || echo "Short command failed, continuing..."
-
-echo "Testing conversational command with fresh Ollama..."
-python -m grok_local "How are you today?" || echo "Conversational command failed, continuing..."
-
-# Test Git summary
-echo "Testing Git summary command with running Ollama (debug on)..."
-python -m grok_local --debug "Can you summarize the latest changes in this repo?" || echo "Git summary failed, continuing..."
-
-# Test Asteroids clone
+# Test Asteroids clone with debug
 echo "Testing Asteroids clone command with running Ollama (debug on)..."
 python -m grok_local --debug "Clone the Asteroids game" || echo "Asteroids clone failed, continuing..."
 
-# Test raw Git log for comparison
-echo "Testing raw Git log command..."
-python -m grok_local "git log -n 3 --oneline" || echo "Raw Git log failed, continuing..."
+# Verify file creation
+echo "Checking if Asteroids game file was created..."
+if [ -f "grok_local/projects/asteroids/asteroids.py" ]; then
+    echo "Success: Asteroids game file found at grok_local/projects/asteroids/asteroids.py"
+    head -n 10 grok_local/projects/asteroids/asteroids.py
+else
+    echo "Error: Asteroids game file not found!"
+fi
 
 # Test direct mode checkpoint
 echo "Testing direct mode checkpoint..."
