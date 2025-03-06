@@ -17,7 +17,7 @@ echo "Stopping Ollama if running..."
 pkill -f "ollama serve" || echo "No Ollama process to stop."
 
 echo "Starting Ollama with extended timeout, logging to $LOG_FILE..."
-export OLLAMA_LOAD_TIMEOUT=10m  # Extend to 10 minutes
+export OLLAMA_LOAD_TIMEOUT=10m
 ollama serve >> "$LOG_FILE" 2>&1 &
 OLLAMA_PID=$!
 sleep 5  # Initial wait

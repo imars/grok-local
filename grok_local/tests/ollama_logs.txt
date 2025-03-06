@@ -560,3 +560,8 @@ llm_load_print_meta: EOG token        = 128009 '<|eot_id|>'
 llm_load_print_meta: max token length = 256
 llama_model_load: vocab only - skipping tensors
 [GIN] 2025/03/06 - 05:39:12 | 200 |         4m13s |       127.0.0.1 | POST     "/api/generate"
+[GIN] 2025/03/06 - 05:39:17 | 200 |      26.149µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2025/03/06 - 05:39:17 | 200 |      32.914µs |       127.0.0.1 | GET      "/api/ps"
+NAME               ID              SIZE      PROCESSOR    UNTIL               
+deepseek-r1:8b     b06f7ffc236b    6.5 GB    100% CPU     4 minutes from now     
+llama3.2:latest    a80c4f17acd5    3.5 GB    100% CPU     40 seconds from now    
