@@ -1,0 +1,270 @@
+{
+  "url": "https://grok.com",
+  "elements": [
+    {
+      "tag": "div",
+      "text": "grok.comVerifying you are human. This may take a f",
+      "attributes": {
+        "class": [
+          "main-wrapper"
+        ],
+        "role": "main"
+      },
+      "selector": "div.main-wrapper",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "grok.comVerifying you are human. This may take a f",
+      "attributes": {
+        "class": [
+          "main-content"
+        ]
+      },
+      "selector": "div.main-content",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "p",
+      "text": "Verifying you are human. This may take a few secon",
+      "attributes": {
+        "id": "LLeF5",
+        "class": [
+          "h2",
+          "spacer-bottom"
+        ]
+      },
+      "selector": "#LLeF5",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "",
+      "attributes": {
+        "id": "ihOWn1",
+        "style": "display: grid;"
+      },
+      "selector": "#ihOWn1",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "input",
+      "text": "",
+      "attributes": {
+        "type": "hidden",
+        "name": "cf-turnstile-response",
+        "id": "cf-chl-widget-quty2_response"
+      },
+      "selector": "#cf-chl-widget-quty2_response",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "",
+      "attributes": {
+        "id": "Xoyc5",
+        "class": [
+          "spacer",
+          "loading-spinner"
+        ],
+        "style": "display: none; visibility: hidden;"
+      },
+      "selector": "#Xoyc5",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "",
+      "attributes": {
+        "class": [
+          "lds-ring"
+        ]
+      },
+      "selector": "div.lds-ring",
+      "candidate_role": {
+        "role": null,
+        "confidence": 0.0
+      }
+    },
+    {
+      "tag": "div",
+      "text": "grok.com needs to review the security of your conn",
+      "attributes": {
+        "id": "JJfCt2",
+        "class": [
+          "core-msg",
+          "spacer",
+          "spacer-top"
+        ]
+      },
+      "selector": "#JJfCt2",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Verification successfulWaiting for grok.com to res",
+      "attributes": {
+        "id": "PZFW8",
+        "style": "display: none;"
+      },
+      "selector": "#PZFW8",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Verification successful",
+      "attributes": {
+        "id": "challenge-success-text",
+        "class": [
+          "h2"
+        ]
+      },
+      "selector": "#challenge-success-text",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Waiting for grok.com to respond...",
+      "attributes": {
+        "class": [
+          "core-msg",
+          "spacer"
+        ]
+      },
+      "selector": "div.core-msg.spacer",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Enable JavaScript and cookies to continue",
+      "attributes": {
+        "class": [
+          "h2"
+        ]
+      },
+      "selector": "div.h2",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "span",
+      "text": "Enable JavaScript and cookies to continue",
+      "attributes": {
+        "id": "challenge-error-text"
+      },
+      "selector": "#challenge-error-text",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Ray ID:91ae61db3c1dd1fdPerformance & security byCl",
+      "attributes": {
+        "class": [
+          "footer"
+        ],
+        "role": "contentinfo"
+      },
+      "selector": "div.footer",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Ray ID:91ae61db3c1dd1fdPerformance & security byCl",
+      "attributes": {
+        "class": [
+          "footer-inner"
+        ]
+      },
+      "selector": "div.footer-inner",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Ray ID:91ae61db3c1dd1fd",
+      "attributes": {
+        "class": [
+          "clearfix",
+          "diagnostic-wrapper"
+        ]
+      },
+      "selector": "div.clearfix.diagnostic-wrapper",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Ray ID:91ae61db3c1dd1fd",
+      "attributes": {
+        "class": [
+          "ray-id"
+        ]
+      },
+      "selector": "div.ray-id",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    },
+    {
+      "tag": "div",
+      "text": "Performance & security byCloudflare",
+      "attributes": {
+        "class": [
+          "text-center"
+        ],
+        "id": "footer-text"
+      },
+      "selector": "#footer-text",
+      "candidate_role": {
+        "role": "response_output",
+        "confidence": 0.6
+      }
+    }
+  ],
+  "agent_suggestions": {
+    "error": "LocalDeepSeekAI.delegate() got an unexpected keyword argument 'timeout'"
+  }
+}

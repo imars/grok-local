@@ -1,6 +1,7 @@
 import requests
 import os
-from .commands import git_commands, file_commands, checkpoint_commands, misc_commands
+import sys
+from .commands import git_commands, file_commands, checkpoint_commands, bridge_commands, misc_commands
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 PROJECTS_DIR = os.path.join(os.path.dirname(__file__), "projects")
@@ -8,7 +9,7 @@ PROJECTS_DIR = os.path.join(os.path.dirname(__file__), "projects")
 def execute_command(command, git_interface, ai_adapter, use_git=True, model=None, debug=False):
     """Execute a command via the local agent's tools, with hybrid Ollama inference."""
     command = command.strip().lower()
-    
+
     # Restricted commands: no external calls unless whitelisted
     restricted = ["curl", "wget", "http"]
     if any(r in command for r in restricted):
@@ -23,95 +24,68 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
         return checkpoint_commands.checkpoint_command(command, git_interface, use_git)
     elif command == "list checkpoints":
         return checkpoint_commands.list_checkpoints_command(command)
+    elif command.startswith("grok "):
+        return bridge_commands.bridge_command(command, ai_adapter)
     elif command in ["what time is it", "version", "clean repo", "list files"] or \
          command.startswith(("create spaceship fuel script", "create x login stub")):
         return misc_commands.misc_command(command, ai_adapter, git_interface)
     else:
-        # Check for Git summary or coding tasks
-        git_summary_keywords = ["summarize", "changes", "log", "recent"]
-        coding_keywords = ["clone", "game", "code", "build"]
-        
-        if any(keyword in command for keyword in git_summary_keywords) and ("repo" in command or "repository" in command):
-            git_log = git_commands.handle_git_command("git log 3", git_interface)
-            if debug:
-                print(f"Debug: Raw git log output: {git_log}")
-            try:
-                payload = {
-                    "model": "llama3.2:latest",
-                    "prompt": (
-                        f"Act as Grok-Local, a CLI agent built by xAI. The user asked: '{command}'. "
-                        f"Here’s the real Git log output for the last 3 commits:\n{git_log}\n"
-                        f"Summarize this Git log data concisely and truthfully—do not invent commits or details. "
-                        f"Return a friendly response with the summary."
-                    ),
-                    "stream": False
-                }
-                resp = requests.post(OLLAMA_URL, json=payload, timeout=60)
-                if resp.status_code == 200:
-                    return resp.json().get("response", "I processed the Git log, but got no clear summary.")
-                else:
-                    if debug:
-                        print(f"Debug: Ollama failed with {resp.status_code} - {resp.text}")
-                    return f"Got Git log:\n{git_log}\nBut couldn’t summarize it with Ollama."
-            except requests.RequestException as e:
+        # Pre-check complexity for all commands
+        try:
+            payload = {
+                "model": "llama3.2:latest",
+                "prompt": f"Assess the complexity of this command: '{command}'. Respond with 'simple' for basic tasks or 'complex' for reasoning-heavy tasks.",
+                "stream": False
+            }
+            resp = requests.post(OLLAMA_URL, json=payload, timeout=30)  # Increased to 30s
+            if resp.status_code == 200:
+                complexity = resp.json().get("response", "simple").strip().lower()
                 if debug:
-                    print(f"Debug: Ollama not running or failed for Git summary: {e}")
-                return f"Got Git log:\n{git_log}\nBut Ollama isn’t available to summarize it."
+                    print(f"Debug: Command complexity assessed as '{complexity}'", file=sys.stderr)
+            else:
+                complexity = "simple"
+        except requests.RequestException as e:
+            complexity = "simple"
+            if debug:
+                print(f"Debug: Complexity check failed: {str(e)}, defaulting to 'simple'", file=sys.stderr)
 
-        # Model selection: override or hybrid auto-selection
+        # Model selection: override, complexity, or keywords
         if model:
             selected_model = model
+        elif complexity == "complex":
+            selected_model = "deepseek-r1:8b"
         else:
             cmd_length = len(command)
-            if any(keyword in command for keyword in coding_keywords):  # Coding tasks favor deepseek-r1:8b
+            coding_keywords = ["clone", "game", "code", "build"]
+            if any(keyword in command for keyword in coding_keywords):
                 selected_model = "deepseek-r1:8b"
-            elif cmd_length < 50:  # Short: lightweight model
+                if debug:
+                    print("Debug: Coding keywords detected, using 'deepseek-r1:8b'", file=sys.stderr)
+            elif cmd_length < 50:
                 selected_model = "llama3.2:latest"
-            elif cmd_length > 200:  # Long: reasoning model
+            elif cmd_length > 200:
                 selected_model = "deepseek-r1:8b"
-            else:  # Medium: assess complexity
-                try:
-                    payload = {
-                        "model": "llama3.2:latest",
-                        "prompt": (
-                            f"Assess the complexity of this command: '{command}'. "
-                            f"Respond with 'simple' for basic tasks or 'complex' for reasoning-heavy tasks."
-                        ),
-                        "stream": False
-                    }
-                    resp = requests.post(OLLAMA_URL, json=payload, timeout=60)
-                    if resp.status_code == 200:
-                        complexity = resp.json().get("response", "simple").strip().lower()
-                        selected_model = "deepseek-r1:8b" if complexity == "complex" else "llama3.2:latest"
-                    else:
-                        if debug:
-                            print(f"Debug: Ollama complexity check failed with {resp.status_code} - {resp.text}")
-                        selected_model = "llama3.2:latest"
-                except requests.RequestException as e:
-                    if debug:
-                        print(f"Debug: Ollama complexity check not running or failed: {e}")
-                    selected_model = "llama3.2:latest"
+            else:
+                selected_model = "llama3.2:latest"
+
+        if debug:
+            print(f"Debug: Selected model: {selected_model}", file=sys.stderr)
 
         # Execute with selected model
         try:
             payload = {
                 "model": selected_model,
                 "prompt": (
-                    f"Act as Grok-Local, a CLI agent built by xAI. Respond to this command or query: '{command}'. "
-                    f"You have tools: 'git <command>' for Git ops, 'create file <name>', 'read file <name>', "
-                    f"'write <name> <content>', 'append <name> <content>', 'delete file <name>' for file ops, "
-                    f"'checkpoint <msg>' to save progress, 'list checkpoints' to see saved points, "
-                    f"'what time is it' for current time, 'version' for agent version, 'clean repo' to reset Git, "
-                    f"'list files' for dir listing. No external calls (e.g., weather) unless escalated with 'grok <command>'. "
-                    f"Use 'what time is it' tool for time queries. For coding tasks, generate complete Python code "
-                    f"and wrap it in ```python\n<code>\n```. Save files to 'projects/<project_name>/' if a project "
-                    f"(e.g., 'asteroids') is mentioned. Return a concise, friendly response."
+                    f"Act as Grok-Local, a CLI agent. Respond to this command: '{command}'. "
+                    f"You have tools: 'git <command>', 'create file <name>', 'checkpoint <msg>', etc. "
+                    f"For coding tasks, generate complete Python code in ```python\n<code>\n``` and save to 'projects/<project_name>/'. "
+                    f"Return a concise response."
                 ),
                 "stream": False
             }
-            resp = requests.post(OLLAMA_URL, json=payload, timeout=60)
+            resp = requests.post(OLLAMA_URL, json=payload, timeout=120)  # Increased to 120s
             if resp.status_code == 200:
-                response = resp.json().get("response", "I processed your request, but got no clear answer.")
+                response = resp.json().get("response", "No clear answer.")
                 if "```python" in response and "asteroids" in command:
                     code_block = response.split("```python")[1].split("```")[0].strip()
                     project_dir = os.path.join(PROJECTS_DIR, "asteroids")
@@ -119,25 +93,8 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
                     with open(os.path.join(project_dir, "asteroids.py"), "w") as f:
                         f.write(code_block)
                     response += f"\nSaved game code to 'projects/asteroids/asteroids.py'!"
-                if "[insert current time]" in response:
-                    time_response = misc_commands.misc_command("what time is it", ai_adapter, git_interface)
-                    response = response.replace("[insert current time]", time_response.split("is ")[-1])
                 return response
             else:
-                if debug:
-                    print(f"Debug: Ollama failed with {resp.status_code} - {resp.text}")
+                return "Failed to process with local inference. Try 'grok <command>' to escalate."
         except requests.RequestException as e:
-            if debug:
-                print(f"Debug: Ollama not running or failed: {e}")
-        
-        # Fallback to static responses
-        if "weather" in command:
-            return "I don’t have weather data locally. Try 'grok \"get weather\"' to escalate this to the bridge."
-        elif "time" in command and "what" not in command:
-            return misc_commands.misc_command("what time is it", ai_adapter, git_interface)
-        elif "how are you" in command or "how's it going" in command:
-            return "I’m doing great, thanks for asking! How can I assist you today?"
-        elif "hello" in command or "hi" in command:
-            return "Hi there! I’m Grok-Local, ready to help with your tasks."
-        else:
-            return f"Command '{command}' not recognized by local tools. Try 'grok <command>' for bridge inference or use a specific local command like 'checkpoint <msg>'."
+            return f"Ollama not running or timed out: {str(e)}. Try 'grok <command>' to escalate."
