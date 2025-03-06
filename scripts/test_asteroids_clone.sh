@@ -18,23 +18,37 @@ pkill -f "ollama serve" || echo "No Ollama process to stop."
 echo "Starting Ollama fresh (output redirected)..."
 ollama serve > /dev/null 2>&1 &
 OLLAMA_PID=$!
-sleep 10  # 10s for Ollama startup
+sleep 20  # Increased to 20s for deepseek-r1:8b startup
 
-# Test Asteroids clone with debug
+# Test Asteroids clone with debug and retries
 echo "Testing Asteroids clone command with running Ollama (debug on)..."
-python -m grok_local --debug "Clone the Asteroids game" || echo "Asteroids clone failed, continuing..."
+for attempt in {1..3}; do
+    echo "Attempt $attempt of 3..."
+    output=$(python -m grok_local --debug "Clone the Asteroids game" 2>&1)
+    echo "$output"
+    if echo "$output" | grep -q "Saved game code to 'projects/asteroids/asteroids.py'"; then
+        echo "Success on attempt $attempt!"
+        break
+    elif [ $attempt -lt 3 ]; then
+        echo "Failed, retrying in 10s..."
+        sleep 10
+    else
+        echo "Asteroids clone failed after 3 attempts, continuing..."
+    fi
+done
 
 # Verify file creation
 echo "Checking for Asteroids game file..."
 if [ -f "grok_local/projects/asteroids/asteroids.py" ]; then
     echo "Asteroids game file created successfully at grok_local/projects/asteroids/asteroids.py!"
+    head -n 10 grok_local/projects/asteroids/asteroids.py  # Show first 10 lines
 else
     echo "Asteroids game file not found—check output!"
 fi
 
 # Test direct mode checkpoint
 echo "Testing direct mode checkpoint..."
-python -m grok_local --do "checkpoint 'Asteroids clone test'" || echo "Direct mode failed, continuing..."
+python -m grok_local --do "checkpoint 'Asteroids clone retry test'" || echo "Direct mode failed, continuing..."
 
 # Clean up
 echo "Stopping Ollama..."
