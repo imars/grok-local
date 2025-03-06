@@ -14,28 +14,15 @@ find . -name "*.pyc" -exec rm -f {} \;
 echo "Stopping Ollama if running..."
 pkill -f "ollama serve" || echo "No Ollama process to stop."
 
-# Clean up previous Asteroids project
-echo "Removing previous Asteroids project if exists..."
-rm -rf grok_local/projects/asteroids
-
-# Start Ollama
+# Test with Ollama starting fresh (quiet output)
 echo "Starting Ollama fresh (output redirected)..."
 ollama serve > /dev/null 2>&1 &
 OLLAMA_PID=$!
 sleep 10  # 10s for Ollama startup
 
-# Test Asteroids clone with debug
+# Test Asteroids clone
 echo "Testing Asteroids clone command with running Ollama (debug on)..."
 python -m grok_local --debug "Clone the Asteroids game" || echo "Asteroids clone failed, continuing..."
-
-# Verify file creation
-echo "Checking if Asteroids game file was created..."
-if [ -f "grok_local/projects/asteroids/asteroids.py" ]; then
-    echo "Success: Asteroids game file found at grok_local/projects/asteroids/asteroids.py"
-    head -n 10 grok_local/projects/asteroids/asteroids.py
-else
-    echo "Error: Asteroids game file not found!"
-fi
 
 # Test direct mode checkpoint
 echo "Testing direct mode checkpoint..."

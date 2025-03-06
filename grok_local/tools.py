@@ -109,8 +109,6 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
                 ),
                 "stream": False
             }
-            if debug:
-                print(f"Debug: Using model {selected_model} for command: {command}")
             resp = requests.post(OLLAMA_URL, json=payload, timeout=60)
             if resp.status_code == 200:
                 response = resp.json().get("response", "I processed your request, but got no clear answer.")
