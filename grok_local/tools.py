@@ -14,7 +14,7 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
 
     # Route to existing command handlers
     if command.startswith("git "):
-        return git_commands.git_command(command, git_interface)
+        return git_commands.handle_git_command(command, git_interface)
     elif command.startswith(("create file ", "read file ", "write ", "append ", "delete file ")):
         return file_commands.file_command(command)
     elif command.startswith("checkpoint "):
@@ -25,6 +25,36 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
          command.startswith(("create spaceship fuel script", "create x login stub")):
         return misc_commands.misc_command(command, ai_adapter, git_interface)
     else:
+        # Check for Git summary requests
+        git_summary_keywords = ["summarize", "changes", "log", "recent"]
+        if any(keyword in command for keyword in git_summary_keywords) and ("repo" in command or "repository" in command):
+            # Use handle_git_command with a concise log request
+            git_log = git_commands.handle_git_command("git log 3", git_interface)  # Default to last 3 commits
+            if debug:
+                print(f"Debug: Raw git log output: {git_log}")
+            try:
+                payload = {
+                    "model": "llama3.2:latest",
+                    "prompt": (
+                        f"Act as Grok-Local, a CLI agent built by xAI. The user asked: '{command}'. "
+                        f"Here’s the real Git log output for the last 3 commits:\n{git_log}\n"
+                        f"Summarize this Git log data concisely and truthfully—do not invent commits or details. "
+                        f"Return a friendly response with the summary."
+                    ),
+                    "stream": False
+                }
+                resp = requests.post(OLLAMA_URL, json=payload, timeout=30)
+                if resp.status_code == 200:
+                    return resp.json().get("response", "I processed the Git log, but got no clear summary.")
+                else:
+                    if debug:
+                        print(f"Debug: Ollama failed with {resp.status_code} - {resp.text}")
+                    return f"Got Git log:\n{git_log}\nBut couldn’t summarize it with Ollama."
+            except requests.RequestException as e:
+                if debug:
+                    print(f"Debug: Ollama not running or failed for Git summary: {e}")
+                return f"Got Git log:\n{git_log}\nBut Ollama isn’t available to summarize it."
+
         # Model selection: override or hybrid auto-selection
         if model:
             selected_model = model
@@ -51,11 +81,11 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
                     else:
                         if debug:
                             print(f"Debug: Ollama complexity check failed with {resp.status_code} - {resp.text}")
-                        selected_model = "llama3.2:latest"  # Default to light if assessment fails
+                        selected_model = "llama3.2:latest"
                 except requests.RequestException as e:
                     if debug:
                         print(f"Debug: Ollama complexity check not running or failed: {e}")
-                    selected_model = "llama3.2:latest"  # Fallback to light if Ollama down
+                    selected_model = "llama3.2:latest"
 
         # Execute with selected model
         try:
@@ -82,7 +112,6 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
             else:
                 if debug:
                     print(f"Debug: Ollama failed with {resp.status_code} - {resp.text}")
-                # No print here—quiet unless debug
         except requests.RequestException as e:
             if debug:
                 print(f"Debug: Ollama not running or failed: {e}")

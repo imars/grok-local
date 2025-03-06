@@ -21,18 +21,22 @@ OLLAMA_PID=$!
 sleep 5  # Give Ollama a moment to start
 
 echo "Testing short command with fresh Ollama..."
-python -m grok_local "Hi there"
+python -m grok_local "Hi there" || echo "Short command failed, continuing..."
 
 echo "Testing conversational command with fresh Ollama..."
-python -m grok_local "How are you today?"
+python -m grok_local "How are you today?" || echo "Conversational command failed, continuing..."
 
-# Test with Ollama running (with debug for medium command)
-echo "Testing medium command with running Ollama (debug on)..."
-python -m grok_local --debug "Can you summarize the latest changes in this repo?"
+# Test with Ollama running (with debug for Git summary)
+echo "Testing Git summary command with running Ollama (debug on)..."
+python -m grok_local --debug "Can you summarize the latest changes in this repo?" || echo "Git summary failed, continuing..."
+
+# Test raw Git log for comparison
+echo "Testing raw Git log command..."
+python -m grok_local "git log -n 3 --oneline" || echo "Raw Git log failed, continuing..."
 
 # Test direct mode (no debug)
 echo "Testing direct mode checkpoint..."
-python -m grok_local --do "checkpoint 'Quiet timeout test'"
+python -m grok_local --do "checkpoint 'Git function alignment test'" || echo "Direct mode failed, continuing..."
 
 # Clean up
 echo "Stopping Ollama..."
