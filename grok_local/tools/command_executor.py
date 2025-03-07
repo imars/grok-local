@@ -1,54 +1,9 @@
 import requests
-import os
 import sys
-import subprocess
-from datetime import datetime
-from .commands import git_commands, file_commands, checkpoint_commands, bridge_commands, misc_commands
-
-OLLAMA_URL = "http://localhost:11434/api/generate"
-PROJECTS_DIR = os.path.join(os.path.dirname(__file__), "projects")
-LOG_DIR = os.path.join(os.path.dirname(__file__), "logs")
-LOG_FILE = os.path.join(LOG_DIR, "agent_conversations.log")
-
-os.makedirs(LOG_DIR, exist_ok=True)
-
-def log_conversation(message):
-    """Log agent conversation to a file."""
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with open(LOG_FILE, "a") as f:
-        f.write(f"[{timestamp}] {message}\n")
-
-def debug_script(script_path, debug=False):
-    """Run a Python script and return its output or error trace."""
-    try:
-        result = subprocess.run(
-            ["python", script_path],
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
-        if result.returncode == 0:
-            output = result.stdout
-            if debug:
-                print(f"Debug: Script ran successfully: {output}", file=sys.stderr)
-            log_conversation(f"Debug script {script_path}: Success - {output}")
-            return output
-        else:
-            error = result.stderr
-            if debug:
-                print(f"Debug: Script failed: {error}", file=sys.stderr)
-            log_conversation(f"Debug script {script_path}: Error - {error}")
-            return f"Error: {error}"
-    except subprocess.TimeoutExpired:
-        error = "Error: Script execution timed out after 30s"
-        if debug:
-            print(f"Debug: {error}", file=sys.stderr)
-        log_conversation(f"Debug script {script_path}: {error}")
-        return error
-    except Exception as e:
-        error = f"Error: Failed to run script: {str(e)}"
-        log_conversation(f"Debug script {script_path}: {error}")
-        return error
+from .config import OLLAMA_URL, PROJECTS_DIR
+from .logging import log_conversation
+from .script_runner import debug_script
+from ..commands import git_commands, file_commands, checkpoint_commands, bridge_commands, misc_commands
 
 def execute_command(command, git_interface, ai_adapter, use_git=True, model=None, debug=False):
     """Execute a command via the local agent's tools, with hybrid Ollama inference."""
@@ -112,7 +67,7 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
                 ),
                 "stream": False
             }
-            resp = requests.post(OLLAMA_URL, json=payload, timeout=900)  # Increased to 900s
+            resp = requests.post(OLLAMA_URL, json=payload, timeout=1200)  # 20 minutes
             if resp.status_code == 200:
                 response = resp.json().get("response", "No clear answer.")
                 log_conversation(f"Command: {command}\nResponse: {response}")

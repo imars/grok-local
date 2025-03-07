@@ -1,5 +1,5 @@
 #!/bin/bash
-# test_asteroids_clone.sh: Test grok_local cloning Asteroids with deepseek-r1:8b
+# test_asteroids_clone.sh: Test grok_local cloning a complete Asteroids game with iteration
 
 set -e  # Exit on error
 
@@ -16,9 +16,9 @@ find . -name "*.pyc" -exec rm -f {} \;
 echo "Stopping Ollama if running..."
 pkill -f "ollama serve" || echo "No Ollama process to stop."
 
-echo "Starting Ollama with extended timeout, logging to $LOG_FILE..."
+echo "Starting Ollama with extended timeout, logging to $LOG_FILE (warnings silenced)..."
 export OLLAMA_LOAD_TIMEOUT=10m
-ollama serve >> "$LOG_FILE" 2>&1 &
+ollama serve >> "$LOG_FILE" 2>/dev/null &
 OLLAMA_PID=$!
 sleep 5  # Initial wait
 if ! ps -p $OLLAMA_PID > /dev/null; then
@@ -29,20 +29,25 @@ fi
 echo "Ollama running with PID $OLLAMA_PID"
 
 echo "Pre-loading deepseek-r1:8b..."
-curl -X POST http://localhost:11434/api/generate -d '{"model": "deepseek-r1:8b", "prompt": "Warm-up", "stream": false}' >> "$LOG_FILE" 2>&1
+curl -X POST http://localhost:11434/api/generate -d '{"model": "deepseek-r1:8b", "prompt": "Warm-up", "stream": false}' >> "$LOG_FILE" 2>/dev/null
 
-echo "Waiting 300s for deepseek-r1:8b to be fully ready..."
-sleep 295  # Total 300s
+echo "Waiting 360s for deepseek-r1:8b to be fully ready..."
+sleep 355  # Total 360s
 
 echo "Checking available models..."
-ollama list >> "$LOG_FILE" 2>&1
+ollama list >> "$LOG_FILE" 2>/dev/null
 cat "$LOG_FILE" | tail -n 10
 
 echo "Testing Asteroids clone command with running Ollama (debug on)..."
 for attempt in {1..3}; do
     echo "Attempt $attempt of 3..."
     set +e
-    output=$(python -m grok_local --debug "Clone the Asteroids game" 2>&1)
+    if [ $attempt -eq 1 ]; then
+        prompt="Clone the Asteroids game, creating a complete, runnable Pygame script with Ship and Asteroid classes, player movement with arrow keys, asteroid spawning and movement, collision detection, and rendering on an 800x600 screen. Generate only Python code in ```python\n<code>\n``` format without including CLI commands like 'create file' or 'debug script'—the script will be saved and tested automatically."
+    else
+        prompt="Debug and refine 'projects/asteroids/asteroids.py' to ensure it’s a complete, runnable Asteroids game with Ship and Asteroid classes, player movement with arrow keys, asteroid spawning and movement, collision detection, and rendering on an 800x600 screen. Use 'debug script projects/asteroids/asteroids.py' to test and fix errors, but generate only Python code in ```python\n<code>\n``` format without including CLI commands—the script will be saved and tested automatically."
+    fi
+    output=$(python -m grok_local --debug "$prompt" 2>&1)
     EXIT_CODE=$?
     set -e
     echo "Python exit code: $EXIT_CODE"
@@ -50,7 +55,7 @@ for attempt in {1..3}; do
     if [ $EXIT_CODE -ne 0 ]; then
         echo "Python command failed with exit code $EXIT_CODE"
         if [ $attempt -lt 3 ]; then
-            echo "Retrying in 10s..."
+            echo "Retrying in 10s with refined prompt..."
             sleep 10
             continue
         else
@@ -58,11 +63,13 @@ for attempt in {1..3}; do
             break
         fi
     fi
-    if echo "$output" | grep -q "Saved game code to 'projects/asteroids/asteroids.py'"; then
-        echo "Success on attempt $attempt!"
+    if echo "$output" | grep -q "Saved game code to 'projects/asteroids/asteroids.py'" && \
+       echo "$output" | grep -q "Debug result:.*pygame" && \
+       ! echo "$output" | grep -q "Error:"; then
+        echo "Success on attempt $attempt! Game appears runnable."
         break
     elif [ $attempt -lt 3 ]; then
-        echo "Failed, retrying in 10s..."
+        echo "Failed (incomplete or errors), retrying in 10s with refined prompt..."
         sleep 10
     else
         echo "Asteroids clone failed after 3 attempts, continuing..."
@@ -72,16 +79,16 @@ done
 echo "Checking for Asteroids game file..."
 if [ -f "grok_local/projects/asteroids/asteroids.py" ]; then
     echo "Asteroids game file created successfully!"
-    head -n 10 grok_local/projects/asteroids/asteroids.py
+    head -n 30 grok_local/projects/asteroids/asteroids.py
 else
     echo "Asteroids game file not found—check output!"
 fi
 
 echo "Testing direct mode checkpoint..."
-python -m grok_local --do "checkpoint 'Asteroids clone retry test'" || echo "Direct mode failed, continuing..."
+python -m grok_local --do "checkpoint 'Completed functional Asteroids game clone'" || echo "Direct mode failed, continuing..."
 
 echo "Checking Ollama process status..."
-ollama ps >> "$LOG_FILE" 2>&1
+ollama ps >> "$LOG_FILE" 2>/dev/null
 cat "$LOG_FILE" | tail -n 10
 
 echo "Stopping Ollama..."

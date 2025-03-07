@@ -1,21 +1,17 @@
 import json
-import os
-import uuid
+import sys
 from datetime import datetime
-from grok_checkpoint import save_checkpoint
+import uuid
+import os
 
-def checkpoint_command(command, git_interface, use_git=True, chat_address=None):
-    parts = command.split(maxsplit=1)
-    if len(parts) < 2:
-        return "Error: Checkpoint requires a message (e.g., 'checkpoint \"Update\"')"
-
-    message = parts[1].strip()
-    if message.startswith('"') and message.endswith('"'):
-        message = message[1:-1]
-
+def checkpoint_command(command, git_interface=None, use_git=True):
+    message = command.split("checkpoint ", 1)[1].strip("'\"")
+    checkpoint_file = "checkpoints/checkpoint.json"
+    os.makedirs(os.path.dirname(checkpoint_file), exist_ok=True)
     chat_id = str(uuid.uuid4())
     timestamp = datetime.now().isoformat()
-    checkpoint_data = {
+
+    checkpoint = {
         "description": {
             "message": message,
             "timestamp": timestamp,
@@ -23,30 +19,29 @@ def checkpoint_command(command, git_interface, use_git=True, chat_address=None):
             "group": "default"
         },
         "timestamp": timestamp,
-        "files": ["grok_bootstrap.py"],  # Default file, adjust as needed
-        "current_task": "",  # Could be parameterized in future
-        "chat_address": chat_address if chat_address else str(uuid.uuid4()),
+        "files": [f"grok_local/projects/asteroids/asteroids.py"],  # Adjust as needed
+        "current_task": "Building Asteroids game",
+        "chat_address": chat_id,
         "chat_group": "default"
     }
-    filepath = os.path.join("checkpoints", "checkpoint.json")
-    os.makedirs("checkpoints", exist_ok=True)
 
-    # Load existing checkpoints if file exists, append new entry
-    existing_checkpoints = []
-    if os.path.exists(filepath):
-        try:
-            with open(filepath, 'r') as f:
-                existing_checkpoints = json.load(f)
-            if not isinstance(existing_checkpoints, list):
-                existing_checkpoints = [existing_checkpoints]
-        except (json.JSONDecodeError, IOError) as e:
-            print(f"Warning: Failed to load existing checkpoints: {e}", file=sys.stderr)
+    report = f"Checkpoint saved: \"{message}\" to {checkpoint_file}"
 
-    existing_checkpoints.append(checkpoint_data)
-    with open(filepath, 'w') as f:
+    try:
+        with open(checkpoint_file, "r") as f:
+            existing_checkpoints = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Warning: Failed to load existing checkpoints: {e}", file=sys.stderr)
+        existing_checkpoints = []
+
+    if not isinstance(existing_checkpoints, list):
+        print(f"Warning: Resetting malformed checkpoint file", file=sys.stderr)
+        existing_checkpoints = []
+
+    existing_checkpoints.append(checkpoint)
+
+    with open(checkpoint_file, "w") as f:
         json.dump(existing_checkpoints, f, indent=4)
-
-    report = f"Checkpoint saved: \"{message}\" to {filepath}"
 
     if use_git and git_interface:
         commit_message = f"Checkpoint: \"{message}\" (Chat: {chat_id}, Group: default)"
@@ -56,14 +51,14 @@ def checkpoint_command(command, git_interface, use_git=True, chat_address=None):
     return report
 
 def list_checkpoints_command(command):
-    filepath = os.path.join("checkpoints", "checkpoint.json")
-    if not os.path.exists(filepath):
-        return "No checkpoints found."
-
-    with open(filepath, 'r') as f:
-        checkpoints = json.load(f)
-
-    if isinstance(checkpoints, list):
-        return "\n".join([f"- {cp['description']['timestamp']}: {cp['description']['message']} (Chat: {cp['description']['chat_id']})" for cp in checkpoints])
-    else:
-        return f"- {checkpoints['description']['timestamp']}: {checkpoints['description']['message']} (Chat: {checkpoints['description']['chat_id']})"
+    checkpoint_file = "checkpoints/checkpoint.json"
+    try:
+        with open(checkpoint_file, "r") as f:
+            checkpoints = json.load(f)
+        if not checkpoints:
+            return "No checkpoints found."
+        return "\n".join([f"{cp['timestamp']}: {cp['description']['message']}" for cp in checkpoints])
+    except FileNotFoundError:
+        return "No checkpoints file found."
+    except json.JSONDecodeError as e:
+        return f"Error reading checkpoints: {e}"
