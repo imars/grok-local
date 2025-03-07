@@ -1,138 +1,115 @@
 import pygame
 import random
 import math
-import time
 
-# Set up constants
+# Constants
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 SHIP_SPEED = 5
-SHIP_ROTATION_SPEED = 0.3
-ASTEROID_SPEED = 1
-ASTEROID_SIZE_MIN = 20
-ASTEROID_SIZE_MAX = 30
-ASTEROID_COLOR_SPACE = (0, 0, 255)  # Blue color palette
+ASTEROID_SPEED = 2
+ASTEROID_SPAWN_RATE = 0.05  # Spawns asteroids every 1/0.05 ~20 seconds
 
 class Ship:
     def __init__(self):
-        self.x = SCREEN_WIDTH // 2
-        self.y = SCREEN_HEIGHT // 2
+        self.image = pygame.Surface((40, 40))
+        self.image.fill('white')
+        self.rect = self.image.get_rect(center=(400, 300))
+        self.velocity = math向量(0, 0)
         self.angle = 0
-        self.image = pygame.image.load("ship.png").convert_alpha()
-    
-    def update(self, keys):
-        # Handle movement and rotation based on key inputs
-        speed = SHIP_SPEED
-        dx = 0
-        dy = 0
         
-        if pygame.KUP in keys or pygame.KDOWN in keys:
-            dy = -speed
-        if pygame.KDP in keys or pygame.KUP in keys:
-            dy = +speed
-            
-        if pygame.KLEFT in keys:
-            self.x -= speed * math.cos(self.angle)
-        if pygame.KRIGHT in keys:
-            self.x += speed * math.cos(self.angle)
-        
-        # Rotate ship based on arrow keys
-        if pygame.KUP in keys:
-            self.angle -= SHIP_ROTATION_SPEED
-        if pygame.KDOWN in keys:
-            self.angle += SHIP_ROTATION_SPEED
-            
+    def rotate(self, direction):
+        self.angle += direction
         self.image = pygame.transform.rotate(self.image, -self.angle)
-
+        
+    def move(self):
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            self.velocity.x = -SHIP_SPEED
+        elif keys[pygame.K_RIGHT]:
+            self.velocity.x = SHIP_SPEED
+            
+    def update(self):
+        self.velocity.x += math.sin(self.angle) * ASTEROID_SPEED * 0.01
+        self.rect.center = (self.image.get_width() // 2 + self.rect.centerx, 
+                          self.image.get_height() // 2 + self.rect.centery)
+        
 class Asteroid:
     def __init__(self):
-        self.x = random.randint(0, SCREEN_WIDTH)
-        self.y = random.randint(0, SCREEN_HEIGHT)
-        self.size = random.uniform(ASTEROID_SIZE_MIN, ASTEROID_SIZE_MAX)
-        self.image = pygame.image.frombuffer(ASTEROID_COLOR_SPACE[int(random.uniform(0, 255))], 
-                                       (self.size//2, self.size//2))
-        # Randomize position slightly within the buffer
-        self.x += random.uniform(-self.size/2, self.size/2)
-        self.y += random.uniform(-self.size/2, self.size/2)
-    
+        self.image = pygame.Surface((30, 30))
+        self.image.fill('gray')
+        self.rect = self.image.get_rect(random.choice([(-800, -800), (800, -800), (-800, 800), (800, 800)]))
+        self.velocity = math向量(0, 0)
+        
     def update(self):
-        self.x = (self.x + random.uniform(-ASTEROID_SPEED, ASTEROID_SPEED))
-        if self.x < 0 or self.x > SCREEN_WIDTH:
-            self.x = max(0, min(SCREEN_WIDTH, self.x))
-    
-    def collision(self, ship):
-        # Check bounding box collision
-        return (abs(self.x - ship.x) <= self.size/2 + 1 and 
-                abs(self.y - ship.y) <= self.size/2 + 1)
-
-def draw_text(text, x, y, size=20):
-    font = pygame.font.Font(None, size)
-    text_surface = font.render(text, True, (0, 0, 0))
-    text_rect = text_surface.get_rect(center=(x, y))
-    screen.blit(text_surface, text_rect)
-
-def draw_screen():
-    # Clear the screen
-    screen.fill((0, 0, 0))
-    
-    # Draw asteroids
-    for asteroid in asteroids:
-        screen.blit(asteroid.image, (asteroid.x - asteroid.size//2, asteroid.y - asteroid.size//2))
-    
-    # Draw ship
-    screen.blit(ship.image, 
-               (ship.x + ship.size//2, ship.y + ship.size//2))
-
-def handle_keys(keys):
-    global ship, asteroids, game_over
-    if not game_over:
-        ship.update(keys)
-        for asteroid in asteroids:
-            asteroid.update()
+        self.velocity.x += random.uniform(-1, 1) * ASTEROID_SPEED * 0.02
+        self.rect.centerx += self.velocity.x
+        self.rect.centery += self.velocity.y
         
-        # Check collisions
-        if any(asteroid.collision(ship) for asteroid in asteroids):
-            print("Game Over!")
-            game_over = True
-        
-        # Add new asteroids periodically
-        if time.time() % 30 < current_time:
-            asteroids.append(Asteroid())
-            
-    return time.time()
+    def check_collision(self, objects):
+        for obj in objects:
+            if (self.rect.colliderect(obj.rect)):
+                return True
+        return False
 
 def main():
-    global screen, ship, asteroids, game_over
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("Asteroids Game")
+    clock = pygame.time.Clock()
     
     ship = Ship()
-    asteroids = []
-    game_over = False
-    current_time = 0
+    asteroids = [Asteroid() for _ in range(5)]
     
-    clock = pygame.time.Clock()
+    def spawn_asteroids():
+        if random.random() < ASTEROID_SPAWN_RATE:
+            new_asteroid = Asteroid()
+            asteroids.append(new_asteroid)
+            
     running = True
-    
     while running:
-        time.sleep(1/60)
+        screen.fill('black')
         
         # Handle events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            elif event.type == pygame.KEYDOWN:
-                keys = pygame.key.get_pressed()
                 
-        screen.fill((0, 0, 0))
-        handle_keys(pygame.key.get_pressed())
-        draw_screen()
+        # Spawn asteroids
+        spawn_asteroids()
         
-        current_time = time.time()
+        # Update game state
+        ship.update()
+        [a.update() for a in asteroids]
+        
+        # Check collisions
+        ship_collisions = []
+        for asteroid in asteroids:
+            if asteroid.check_collision(ship):
+                ship_collisions.append(asteroid)
+                
+            for other_asteroid in asteroids:
+                if asteroid != other_asteroid and other_asteroid.check_collision(asteroid):
+                    asteroidDeaths = [a for a in asteroids if a.rect == other_asteroid.rect]
+                    asteroids.extend(a for a in asteroidDeaths)
+                    break
+                    
+        # Remove dead asteroids
+        new_asteroids = []
+        for a in asteroids:
+            if not a.dead:
+                new_asteroids.append(a)
+                
+        asteroids = new_asteroids
+        
+        # Draw everything
+        ship.image.fill('white')
+        screen.blit(ship.image, (ship.rect.centerx - 20, ship.rect.centery - 20))
+        
+        for asteroid in asteroids:
+            asteroid.image.fill('gray')
+            screen.blit(asteroid.image, (asteroid.rect.centerx - 15, asteroid.rect.centery - 15))
+            
+        pygame.display.flip()
         clock.tick(60)
-    
-    pygame.quit()
-
+        
 if __name__ == "__main__":
     main()
