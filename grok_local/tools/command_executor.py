@@ -1,5 +1,6 @@
 import requests
 import sys
+import os
 from .config import OLLAMA_URL, PROJECTS_DIR
 from .logging import log_conversation
 from .script_runner import debug_script
@@ -62,12 +63,12 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
                 "prompt": (
                     f"Act as Grok-Local, a CLI agent. Respond to this command: '{command}'. "
                     f"You have tools: 'git <command>', 'create file <name>', 'checkpoint <msg>', 'debug script <path>'. "
-                    f"For coding tasks, generate complete, runnable Python code in ```python\n<code>\n``` and save to 'projects/<project_name>/'. "
+                    f"For coding tasks, generate complete, runnable Python code in ```python\n<code>\n``` format with all necessary classes (Ship, Asteroid) and constants (e.g., SCREEN_WIDTH=800, SCREEN_HEIGHT=600) defined within the script, avoiding external imports beyond pygame, math, and random. "
                     f"If debugging, run the script with 'debug script <path>' and refine based on output/errors. Return a concise response."
                 ),
                 "stream": False
             }
-            resp = requests.post(OLLAMA_URL, json=payload, timeout=1200)  # 20 minutes
+            resp = requests.post(OLLAMA_URL, json=payload, timeout=1200)
             if resp.status_code == 200:
                 response = resp.json().get("response", "No clear answer.")
                 log_conversation(f"Command: {command}\nResponse: {response}")

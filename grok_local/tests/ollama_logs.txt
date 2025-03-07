@@ -1,10 +1,10 @@
-[GIN] 2025/03/07 - 17:13:25 | 200 | 14.269122637s |       127.0.0.1 | POST     "/api/generate"
-{"model":"deepseek-r1:8b","created_at":"2025-03-07T17:13:25.359064Z","response":"\u003cthink\u003e\n\n\u003c/think\u003e\n\nHello! How can I assist you today? 😊","done":true,"done_reason":"stop","context":[128011,96375,5352,128012,128013,271,128014,271,9906,0,2650,649,358,7945,499,3432,30,27623,232],"total_duration":13747136907,"load_duration":6611550836,"prompt_eval_count":5,"prompt_eval_duration":3022000000,"eval_count":16,"eval_duration":4094000000}[GIN] 2025/03/07 - 17:19:20 | 200 |    1.692587ms |       127.0.0.1 | HEAD     "/"
-[GIN] 2025/03/07 - 17:19:20 | 200 |   10.829237ms |       127.0.0.1 | GET      "/api/tags"
+[GIN] 2025/03/07 - 18:06:40 | 200 | 14.297795429s |       127.0.0.1 | POST     "/api/generate"
+{"model":"deepseek-r1:8b","created_at":"2025-03-07T18:06:40.087951Z","response":"\u003cthink\u003e\n\n\u003c/think\u003e\n\nHello! How can I assist you today? 😊","done":true,"done_reason":"stop","context":[128011,96375,5352,128012,128013,271,128014,271,9906,0,2650,649,358,7945,499,3432,30,27623,232],"total_duration":13612580483,"load_duration":6106062065,"prompt_eval_count":5,"prompt_eval_duration":3244000000,"eval_count":16,"eval_duration":4257000000}[GIN] 2025/03/07 - 18:12:35 | 200 |     100.075µs |       127.0.0.1 | HEAD     "/"
+[GIN] 2025/03/07 - 18:12:35 | 200 |    7.500103ms |       127.0.0.1 | GET      "/api/tags"
 NAME                  ID              SIZE      MODIFIED    
 deepseek-r1:8b        b06f7ffc236b    4.9 GB    3 weeks ago    
 deepseek-r1:latest    0a8c26691023    4.7 GB    3 weeks ago    
 llama3.2:latest       a80c4f17acd5    2.0 GB    6 weeks ago    
-[GIN] 2025/03/07 - 17:29:47 | 200 |        10m23s |       127.0.0.1 | POST     "/api/generate"
-[GIN] 2025/03/07 - 17:38:14 | 200 |         8m11s |       127.0.0.1 | POST     "/api/generate"
-[GIN] 2025/03/07 - 17:48:32 | 200 |         10m4s |       127.0.0.1 | POST     "/api/generate"
+[GIN] 2025/03/07 - 18:25:38 | 200 |        12m59s |       127.0.0.1 | POST     "/api/generate"
+[GIN] 2025/03/07 - 18:33:40 | 200 |         7m42s |       127.0.0.1 | POST     "/api/generate"
+[GIN] 2025/03/07 - 18:49:54 | 200 |         16m0s |       127.0.0.1 | POST     "/api/generate"
