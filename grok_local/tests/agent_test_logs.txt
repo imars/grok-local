@@ -1,0 +1,66 @@
+Clearing .pyc files...
+Stopping Ollama if running...
+Starting Ollama, logging to grok_local/tests/agent_test_logs.txt (warnings silenced)...
+[GIN] 2025/03/08 - 05:43:59 | 200 |    4.066989ms |       127.0.0.1 | GET      "/api/tags"
+Ollama running with PID 11218
+Running agent framework tests...
+Test 1: Generate factorial function
+[GIN] 2025/03/08 - 05:44:26 | 200 | 24.146379291s |       127.0.0.1 | POST     "/api/generate"
+Exit code: 0
+INFO     [browser_use] BrowserUse logging setup complete with level info
+INFO     [root] Anonymized telemetry enabled. See https://docs.browser-use.com/development/telemetry for more information.
+Debug: Skipping complexity check, assuming 'complex'
+Debug: Processing command: generate a python function to compute the factorial of a number.
+Debug: Script ran successfully: 
+Debug: Processing command: Generate a Python function to compute the factorial of a number.
+def factorial(n):
+    if not isinstance(n, int) or n < 0:
+        raise ValueError("Input must be a non-negative integer")
+    if n <= 1:
+        return 1
+    result = 1
+    for i in range(2, n + 1):
+        result *= i
+    return result
+Saved code to '/Users/ian/dev/projects/agents/local/grok/repo/grok_local/tools/../projects/output/output.py'!
+Debug result: 
+Test 1 passed
+----------------------------------------
+Test 2: Fix syntax error in broken function
+[GIN] 2025/03/08 - 05:47:29 | 200 |          3m0s |       127.0.0.1 | POST     "/api/generate"
+Exit code: 0
+INFO     [browser_use] BrowserUse logging setup complete with level info
+INFO     [root] Anonymized telemetry enabled. See https://docs.browser-use.com/development/telemetry for more information.
+Debug: Skipping complexity check, assuming 'complex'
+Debug: Processing command: fix the syntax error in 'projects/test.py' and make it add two numbers.
+Debug: Script ran successfully: 8
+
+Debug: Script ran successfully: 8
+
+Debug: Processing command: Fix the syntax error in 'projects/test.py' and make it add two numbers.
+def add_numbers(a, b):
+    print(a + b)
+
+# Call the function with two numbers
+add_numbers(5, 3)
+Saved code to '/Users/ian/dev/projects/agents/local/grok/repo/grok_local/tools/../projects/output/output.py'!
+Debug result: 8
+Test 2 passed
+----------------------------------------
+Test 3: Generate list reversal function
+[GIN] 2025/03/08 - 05:47:38 | 200 |  5.771500849s |       127.0.0.1 | POST     "/api/generate"
+Exit code: 0
+INFO     [browser_use] BrowserUse logging setup complete with level info
+INFO     [root] Anonymized telemetry enabled. See https://docs.browser-use.com/development/telemetry for more information.
+Debug: Skipping complexity check, assuming 'complex'
+Debug: Processing command: generate a python function to reverse a list.
+Debug: Script ran successfully: 
+Debug: Processing command: Generate a Python function to reverse a list.
+def reverse_list(input_list):
+    return input_list[::-1]
+Saved code to '/Users/ian/dev/projects/agents/local/grok/repo/grok_local/tools/../projects/output/output.py'!
+Debug result: 
+Test 3 passed
+----------------------------------------
+Stopping Ollama...
+Tests complete! Logs saved to grok_local/tests/agent_test_logs.txt

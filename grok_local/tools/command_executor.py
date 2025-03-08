@@ -5,9 +5,9 @@ from .config import OLLAMA_URL, PROJECTS_DIR
 from .logging import log_conversation
 from .script_runner import debug_script
 from ..commands import git_commands, file_commands, checkpoint_commands, bridge_commands, misc_commands
+from ..framework.orchestrator import Orchestrator
 
 def execute_command(command, git_interface, ai_adapter, use_git=True, model=None, debug=False):
-    """Execute a command via the local agent's tools, with hybrid Ollama inference."""
     command = command.strip().lower()
 
     restricted = ["curl", "wget", "http"]
@@ -31,63 +31,14 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
         script_path = command.split("debug script ", 1)[1].strip()
         return debug_script(script_path, debug)
     else:
-        complexity = "complex"  # Skip complexity check
         if debug:
             print("Debug: Skipping complexity check, assuming 'complex'", file=sys.stderr)
-
-        if model:
-            selected_model = model
-        elif complexity == "complex":
-            selected_model = "deepseek-r1:8b"
-        else:
-            cmd_length = len(command)
-            coding_keywords = ["clone", "game", "code", "build"]
-            if any(keyword in command for keyword in coding_keywords):
-                selected_model = "deepseek-r1:8b"
-                if debug:
-                    print("Debug: Coding keywords detected, using 'deepseek-r1:8b'", file=sys.stderr)
-            elif cmd_length < 50:
-                selected_model = "llama3.2:latest"
-            elif cmd_length > 200:
-                selected_model = "deepseek-r1:8b"
-            else:
-                selected_model = "llama3.2:latest"
-
-        if debug:
-            print(f"Debug: Selected model: {selected_model}", file=sys.stderr)
             print(f"Debug: Processing command: {command}", file=sys.stderr)
-
-        try:
-            payload = {
-                "model": selected_model,
-                "prompt": (
-                    f"Act as Grok-Local, a CLI agent. Respond to this command: '{command}'. "
-                    f"You have tools: 'git <command>', 'create file <name>', 'checkpoint <msg>', 'debug script <path>'. "
-                    f"For coding tasks, generate complete, runnable Python code in ```python\n<code>\n``` format with all necessary classes (Ship, Asteroid) and constants (e.g., SCREEN_WIDTH=800, SCREEN_HEIGHT=600) defined within the script, avoiding external imports beyond pygame, math, and random. "
-                    f"If debugging, run the script with 'debug script <path>' and refine based on output/errors. Return a concise response."
-                ),
-                "stream": False
-            }
-            resp = requests.post(OLLAMA_URL, json=payload, timeout=1200)
-            if resp.status_code == 200:
-                response = resp.json().get("response", "No clear answer.")
-                log_conversation(f"Command: {command}\nResponse: {response}")
-                if "```python" in response and "asteroids" in command.lower():
-                    code_block = response.split("```python")[1].split("```")[0].strip()
-                    project_dir = os.path.join(PROJECTS_DIR, "asteroids")
-                    os.makedirs(project_dir, exist_ok=True)
-                    script_path = os.path.join(project_dir, "asteroids.py")
-                    with open(script_path, "w") as f:
-                        f.write(code_block)
-                    response += f"\nSaved game code to '{script_path}'!"
-                    debug_result = debug_script(script_path, debug)
-                    response += f"\nDebug result: {debug_result}"
-                return response
-            else:
-                error = "Failed to process with local inference. Try 'grok <command>' to escalate."
-                log_conversation(f"Command: {command}\nError: {error}")
-                return error
-        except requests.RequestException as e:
-            error = f"Ollama not running or timed out: {str(e)}. Try 'grok <command>' to escalate."
-            log_conversation(f"Command: {command}\nError: {error}")
-            return error
+        orchestrator = Orchestrator()
+        code, result = orchestrator.run_task(command, debug=debug)
+        project_dir = os.path.join(PROJECTS_DIR, "output")
+        os.makedirs(project_dir, exist_ok=True)
+        script_path = os.path.join(project_dir, "output.py")
+        with open(script_path, "w") as f:
+            f.write(code)
+        return f"{code}\nSaved code to '{script_path}'!\nDebug result: {result}"
