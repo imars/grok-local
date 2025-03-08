@@ -10,15 +10,18 @@ from ..framework.orchestrator import Orchestrator
 def assess_complexity(command, debug=False):
     command = command.lower()
     cmd_length = len(command)
-    easy_keywords = ["factorial", "list", "add", "reverse"]
-    complex_keywords = ["game", "clone", "pygame", "build"]
+    simple_keywords = ["factorial", "list", "add", "reverse"]
+    moderate_keywords = ["game", "clone", "pygame", "script"]
+    advanced_keywords = ["3d", "universe", "persistent", "trade", "avatar"]
     
-    if any(keyword in command for keyword in easy_keywords) and cmd_length < 50:
-        complexity = "easy"
-    elif any(keyword in command for keyword in complex_keywords) or cmd_length > 100:
-        complexity = "complex"
+    if any(keyword in command for keyword in simple_keywords) and cmd_length < 50:
+        complexity = "simple"
+    elif any(keyword in command for keyword in moderate_keywords) or (50 <= cmd_length <= 150):
+        complexity = "moderate"
+    elif any(keyword in command for keyword in advanced_keywords) or cmd_length > 150:
+        complexity = "advanced"
     else:
-        complexity = "medium"  # Default for ambiguous cases
+        complexity = "moderate"  # Default for ambiguous cases
     
     if debug:
         print(f"Debug: Assessed complexity: {complexity} for command: {command}", file=sys.stderr)

@@ -16,13 +16,17 @@ class Orchestrator:
 
     def run_task(self, initial_task: str, max_iterations=3, debug=False, model=None):
         task = Task(description=initial_task, agent_role="developer")
-        # Prioritize passed model, fallback to complexity-based logic
+        # Model selection: Passed model > complexity > default
         if model:
             effective_model = model
-        elif "factorial" in initial_task.lower() or "reverse a list" in initial_task.lower() or "add" in initial_task.lower():
-            effective_model = "llama3.2:latest"  # Easy tasks
+        elif any(kw in initial_task.lower() for kw in ["factorial", "list", "add", "reverse"]):
+            effective_model = "llama3.2:latest"  # Simple
+        elif any(kw in initial_task.lower() for kw in ["game", "clone", "pygame", "script"]):
+            effective_model = "deepseek-r1:8b"  # Moderate
+        elif any(kw in initial_task.lower() for kw in ["3d", "universe", "persistent", "trade", "avatar"]):
+            effective_model = "grok3" if "grok3" in os.environ.get("AVAILABLE_MODELS", "") else "deepseek-r1:8b"  # Advanced
         else:
-            effective_model = "deepseek-r1:8b"  # Complex tasks
+            effective_model = "deepseek-r1:8b"  # Default moderate
         if debug:
             log_conversation(f"Orchestrator: Using model {effective_model} for task: {initial_task}")
         self.agents["developer"].model = effective_model
