@@ -62,5 +62,21 @@
     {
         "key": "generate a python function to reverse a list.",
         "value": "def reverse_list(input_list):\n    return input_list[::-1]"
+    },
+    {
+        "key": "generate a python function to compute the factorial of a number.",
+        "value": "def factorial(n):\n    if not isinstance(n, int) or n < 0:\n        raise ValueError(\"Input must be a non-negative integer\")\n    elif n <= 1:\n        return 1\n    result = 1\n    for i in range(2, n + 1):\n        result *= i\n    return result"
+    },
+    {
+        "key": "fix the syntax error in 'projects/test.py' and make it add two numbers.",
+        "value": "# fix_project.py\n\nnumber1 = int(input(\"Enter first number: \"))\nnumber2 = int(input(\"Enter second number: \"))\n\nsum_numbers = number1 + number2\n\nprint(f\"The sum of {number1} and {number2} is {sum_numbers}\")"
+    },
+    {
+        "key": "debug:# fix_project.py\n\nnumber1 = int(input(\"Enter first number: \"))\nnumber2 = int(input(\"Enter second number: \"))\n\nsum_numbers = number1 + number2\n\nprint(f\"The sum of {number1} and {number2} is {sum_numbers}\")",
+        "value": "Fixed: import sys\n\n# Read all input at once\ninput_line = sys.stdin.readline().strip()\n\n# Split into two numbers\nparts = input_line.split()\nif len(parts) != 2:\n    print(\"Error: Invalid input\")\n    sys.exit(1)\n\nnumber1 = int(parts[0])\nnumber2 = int(parts[1])\n\nsum_numbers = number1 + number2\n\nprint(f\"The sum of {number1} and {number2} is {sum_numbers}\")\nError: Error: Script execution timed out after 30s"
+    },
+    {
+        "key": "debug:import sys\n\n# Read all input at once\ninput_line = sys.stdin.readline().strip()\n\n# Split into two numbers\nparts = input_line.split()\nif len(parts) != 2:\n    print(\"Error: Invalid input\")\n    sys.exit(1)\n\nnumber1 = int(parts[0])\nnumber2 = int(parts[1])\n\nsum_numbers = number1 + number2\n\nprint(f\"The sum of {number1} and {number2} is {sum_numbers}\")",
+        "value": "Fixed: import sys\n\ninput_line = sys.stdin.read().strip()\n\nparts = input_line.split()\nif len(parts) != 2:\n    print(\"Error: Invalid input\")\n    sys.exit(1)\n\nnumber1 = int(parts[0])\nnumber2 = int(parts[1])\n\nsum_numbers = number1 + number2\nprint(f\"The sum of {number1} and {number2} is {sum_numbers}\")\nError: Error: Script execution timed out after 30s"
     }
 ]

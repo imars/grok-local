@@ -7,6 +7,23 @@ from .script_runner import debug_script
 from ..commands import git_commands, file_commands, checkpoint_commands, bridge_commands, misc_commands
 from ..framework.orchestrator import Orchestrator
 
+def assess_complexity(command, debug=False):
+    command = command.lower()
+    cmd_length = len(command)
+    easy_keywords = ["factorial", "list", "add", "reverse"]
+    complex_keywords = ["game", "clone", "pygame", "build"]
+    
+    if any(keyword in command for keyword in easy_keywords) and cmd_length < 50:
+        complexity = "easy"
+    elif any(keyword in command for keyword in complex_keywords) or cmd_length > 100:
+        complexity = "complex"
+    else:
+        complexity = "medium"  # Default for ambiguous cases
+    
+    if debug:
+        print(f"Debug: Assessed complexity: {complexity} for command: {command}", file=sys.stderr)
+    return complexity
+
 def execute_command(command, git_interface, ai_adapter, use_git=True, model=None, debug=False):
     command = command.strip().lower()
 
@@ -31,11 +48,9 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
         script_path = command.split("debug script ", 1)[1].strip()
         return debug_script(script_path, debug)
     else:
-        if debug:
-            print("Debug: Skipping complexity check, assuming 'complex'", file=sys.stderr)
-            print(f"Debug: Processing command: {command}", file=sys.stderr)
+        complexity = assess_complexity(command, debug)
         orchestrator = Orchestrator()
-        code, result = orchestrator.run_task(command, debug=debug)
+        code, result = orchestrator.run_task(command, debug=debug, model=model)
         project_dir = os.path.join(PROJECTS_DIR, "output")
         os.makedirs(project_dir, exist_ok=True)
         script_path = os.path.join(project_dir, "output.py")

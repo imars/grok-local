@@ -16,8 +16,13 @@ class Orchestrator:
 
     def run_task(self, initial_task: str, max_iterations=3, debug=False, model=None):
         task = Task(description=initial_task, agent_role="developer")
-        # Prioritize passed model, fallback to task-based logic
-        effective_model = model if model else ("llama3.2:latest" if "factorial" in initial_task.lower() or "reverse a list" in initial_task.lower() else "deepseek-r1:8b")
+        # Prioritize passed model, fallback to complexity-based logic
+        if model:
+            effective_model = model
+        elif "factorial" in initial_task.lower() or "reverse a list" in initial_task.lower() or "add" in initial_task.lower():
+            effective_model = "llama3.2:latest"  # Easy tasks
+        else:
+            effective_model = "deepseek-r1:8b"  # Complex tasks
         if debug:
             log_conversation(f"Orchestrator: Using model {effective_model} for task: {initial_task}")
         self.agents["developer"].model = effective_model

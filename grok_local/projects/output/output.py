@@ -1,2 +1,9 @@
-def reverse_list(input_list):
-    return input_list[::-1]
+def factorial(n):
+    if not isinstance(n, int) or n < 0:
+        raise ValueError("Input must be a non-negative integer")
+    elif n <= 1:
+        return 1
+    result = 1
+    for i in range(2, n + 1):
+        result *= i
+    return result
