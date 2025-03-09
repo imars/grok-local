@@ -3,7 +3,6 @@
 # Note: Located in grok_local/tests/, runs from repo root or tests dir.
 
 # Setup
-# Navigate to repo root from tests/ (if run from there) or stay if already at root
 if [[ "$PWD" =~ /grok_local/tests$ ]]; then
     cd ../..
 else
@@ -56,8 +55,8 @@ run_test "Create spaceship fuel script" "create spaceship fuel script" "TODO: Im
 # Test 8: Create an X login stub (placeholder)
 run_test "Create X login stub" "create x login stub" "TODO: Implement X login stub generation" ""
 
-# Test 9: Handle unknown command (with --do)
-run_test "Unknown command" "calculate factorial of 5" "def factorial" "--do"
+# Test 9: Handle unknown command (with --do, expect StubAI response)
+run_test "Unknown command" "calculate factorial of 5" "Stubbed response" "--do"
 
 # Test 10: Save a checkpoint
 run_test "Save checkpoint" "checkpoint 'Test checkpoint from script'" "Checkpoint saved" ""
