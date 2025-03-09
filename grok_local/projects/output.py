@@ -1,1 +1,1 @@
-format, no explanations.
+Stubbed response

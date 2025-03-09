@@ -12,7 +12,7 @@ class StubAI(AIAdapter):
     def delegate(self, request):
         logger.debug(f"Stubbed delegation for: {request}")
         if "spaceship fuel script" in request.lower():
-            return "```python\nprint('Stubbed spaceship fuel script')\n```"
+            return "print('Stubbed spaceship fuel script')"
         elif "x login stub" in request.lower():
-            return "```python\nprint('Stubbed X login script')\n```"
-        return "```python\nStubbed response\n```"
+            return "print('Stubbed X login script')"
+        return f"Stubbed response for: {request}"

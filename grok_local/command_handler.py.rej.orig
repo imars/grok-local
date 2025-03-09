@@ -1,0 +1,9 @@
+@@ -27,7 +27,7 @@
+             return execute_command(command, self.git_interface, self.ai_adapter, model=parsed_args.model)
+         
+         misc_keywords = ["what time is it", "version", "clean repo", "list files", "tree", "copy"]
+-    if any(kw in command for kw in misc_keywords):
++    if command in misc_keywords or any(command.startswith(kw + " ") for kw in misc_keywords if kw == "copy"):
+             print(f"Debug: Routing to misc_commands for '{command}'", file=sys.stderr)
+             return misc_commands.misc_command(command, self.ai_adapter, self.git_interface)
+ 
