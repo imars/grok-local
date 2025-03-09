@@ -14,14 +14,13 @@ class DeveloperAgent(BaseAgent):
         response = self._call_model(prompt)
         log_conversation(f"Developer: Received response at {datetime.now()}: {response}")
         try:
-            # Extract code between ```python and ```
             if "```python" in response:
                 code = response.split("```python")[1].split("```")[0].strip()
             else:
-                code = response.strip()  # Fallback: use raw response
+                code = response.strip()
                 log_conversation(f"Developer: Warning - No ```python block found, using raw response: {code}")
         except IndexError:
-            code = response.strip()  # Fallback on error
+            code = response.strip()
             log_conversation(f"Developer: Error parsing code block, using raw response: {code}")
         memory.store(task.description, code)
         return code

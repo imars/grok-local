@@ -1,11 +1,17 @@
 #!/bin/bash
 # test_agent_architecture.sh (Mar 09, 2025): Runs 10 simple tests for grok_local agent architecture.
+# Note: Located in grok_local/tests/, runs from repo root or tests dir.
 
 # Setup
-cd /Users/ian/dev/projects/agents/local/grok/repo/
-echo "Running tests for grok_local agent architecture..."
-echo "Results will be logged to test_results.log"
-rm -f test_results.log
+# Navigate to repo root from tests/ (if run from there) or stay if already at root
+if [[ "$PWD" =~ /grok_local/tests$ ]]; then
+    cd ../..
+else
+    cd /Users/ian/dev/projects/agents/local/grok/repo/
+fi
+echo "Running tests for grok_local agent architecture from $(pwd)..."
+echo "Results will be logged to grok_local/tests/test_results.log"
+rm -f grok_local/tests/test_results.log
 
 # Helper function to run a test and check output
 run_test() {
@@ -16,9 +22,9 @@ run_test() {
     echo "Running: $TEST_NAME"
     RESULT=$(python -m grok_local $DO_FLAG "$COMMAND" 2>/dev/null)
     if echo "$RESULT" | grep -q "$EXPECTED"; then
-        echo "PASS: $TEST_NAME" >> test_results.log
+        echo "PASS: $TEST_NAME" >> grok_local/tests/test_results.log
     else
-        echo "FAIL: $TEST_NAME" >> test_results.log
+        echo "FAIL: $TEST_NAME" >> grok_local/tests/test_results.log
     fi
     echo "  Command: python -m grok_local $DO_FLAG \"$COMMAND\""
     echo "  Expected (contains): $EXPECTED"
@@ -58,9 +64,9 @@ run_test "Save checkpoint" "checkpoint 'Test checkpoint from script'" "Checkpoin
 
 # Summary
 echo "Test Summary:"
-cat test_results.log
-echo "Manual test commands:"
+cat grok_local/tests/test_results.log
+echo "Manual test commands (run from repo root):"
 echo "  python -m grok_local \"what time is it\""
 echo "  python -m grok_local \"list files\""
 echo "  python -m grok_local --do \"calculate factorial of 5\""
-echo "Tests completed. See test_results.log for details."
+echo "Tests completed. See grok_local/tests/test_results.log for details."
