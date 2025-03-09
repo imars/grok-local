@@ -4,11 +4,12 @@ import argparse
 import time
 import signal
 import sys
-from .command_handler import CommandHandler
+sys.path.insert(0, '.')  # Prioritize local dir
+from grok_local.command_handler import CommandHandler
 from git_ops import get_git_interface
-from .ai_adapters.stub_ai import StubAI
+from grok_local.ai_adapters.stub_ai import StubAI
 
-print(f"Imported CommandHandler from {CommandHandler.__module__}", file=sys.stderr)
+print(f"Debug: Imported CommandHandler from {CommandHandler.__module__}", file=sys.stderr)
 
 BRIDGE_PROCESS = None
 

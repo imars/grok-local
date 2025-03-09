@@ -1,1 +1,1 @@
-Error: HTTPConnectionPool(host='localhost', port=11434): Max retries exceeded with url: /api/generate (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x10de34f50>: Failed to establish a new connection: [Errno 61] Connection refused'))
+format, no explanations.

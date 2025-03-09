@@ -18,26 +18,33 @@ class CommandHandler:
         
         parsed_args = self.parser.parse_args(args)
         command = " ".join(parsed_args.command).strip().lower()
+        print(f"Debug: Handling command: '{command}'", file=sys.stderr)
         
         if not command:
             return "No command provided. Use --help for options."
         
         if parsed_args.do:
+            print(f"Debug: Using execute_command for '{command}'", file=sys.stderr)
             return execute_command(command, self.git_interface, self.ai_adapter, model=parsed_args.model)
         
-        if command.startswith("git "):
+        misc_keywords = ["what time is it", "version", "clean repo", "list files", "tree", "copy"]
+        if any(kw in command for kw in misc_keywords):
+            print(f"Debug: Routing to misc_commands for '{command}'", file=sys.stderr)
+            return misc_commands.misc_command(command, self.ai_adapter, self.git_interface)
+        elif command.startswith("git "):
+            print(f"Debug: Routing to git_commands for '{command}'", file=sys.stderr)
             return git_commands.handle_git_command(command, self.git_interface)
         elif command.startswith(("create file ", "read file ", "write ", "append ", "delete file ")):
+            print(f"Debug: Routing to file_commands for '{command}'", file=sys.stderr)
             return file_commands.file_command(command)
         elif command.startswith("checkpoint "):
+            print(f"Debug: Routing to checkpoint_commands for '{command}'", file=sys.stderr)
             return checkpoint_commands.checkpoint_command(command, self.git_interface, use_git=True)
         elif command.startswith("bridge "):
+            print(f"Debug: Routing to bridge_commands for '{command}'", file=sys.stderr)
             return bridge_commands.handle_bridge_command(command[7:], self.ai_adapter)
-        elif command.startswith("copy "):
-            return misc_commands.misc_command(command, self.ai_adapter, self.git_interface)
-        elif command in ["list checkpoints", "what time is it", "version", "clean repo", "list files", "tree"]:
-            return misc_commands.misc_command(command, self.ai_adapter, self.git_interface)
         else:
+            print(f"Debug: Fallback to execute_command for '{command}'", file=sys.stderr)
             return execute_command(command, self.git_interface, self.ai_adapter, model=parsed_args.model)
 
 if __name__ == "__main__":
