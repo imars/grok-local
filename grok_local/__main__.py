@@ -3,7 +3,7 @@ import atexit
 import argparse
 import time
 import signal
-from .command_handler import ask_local
+from .command_handler import CommandHandler  # Updated import
 from git_ops import get_git_interface
 from .ai_adapters.stub_ai import StubAI
 
@@ -42,7 +42,8 @@ def main():
     atexit.register(stop_bridge)
 
     if args.command:
-        print(ask_local(args.command, ai_adapter, git_interface, args.debug, use_git=not args.no_git, direct=args.do, model=args.model))
+        handler = CommandHandler(git_interface, ai_adapter)
+        print(handler.handle([args.command] + ([f"--do={args.do}", "--model={args.model}"] if args.model else [])))
     else:
         print("Interactive mode not implemented yet. Provide a command.")
 

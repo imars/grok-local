@@ -1,3 +1,43 @@
+Clearing .pyc files...
+Stopping Ollama if running...
+No Ollama process to stop.
+Starting Ollama, logging to grok_local/tests/escalation_logs.txt (warnings silenced)...
+[GIN] 2025/03/08 - 18:36:30 | 200 |    4.958336ms |       127.0.0.1 | GET      "/api/tags"
+Ollama running with PID 2653
+Running escalation tests...
+Test 1: Generate factorial function
+[GIN] 2025/03/08 - 18:36:58 | 200 | 26.316869985s |       127.0.0.1 | POST     "/api/generate"
+Exit code: 0
+INFO     [browser_use] BrowserUse logging setup complete with level info
+INFO     [root] Anonymized telemetry enabled. See https://docs.browser-use.com/development/telemetry for more information.
+Debug: Assessed complexity: moderate for command: generate a python function to compute the factorial of a number.
+Debug: Script ran successfully: 
+Debug: Processing command: Generate a Python function to compute the factorial of a number.
+def factorial(n):
+    if not isinstance(n, int) or n < 0:
+        raise ValueError("Input must be a non-negative integer")
+    if n <= 1:
+        return 1
+    result = 1
+    for i in range(2, n + 1):
+        result *= i
+    return result
+Saved code to '/Users/ian/dev/projects/agents/local/grok/repo/grok_local/tools/../projects/output/output.py'!
+Debug result: 
+Test 1 passed
+----------------------------------------
+Test 2: Generate Asteroids game
+[GIN] 2025/03/08 - 18:45:17 | 200 |         8m13s |       127.0.0.1 | POST     "/api/generate"
+Exit code: 0
+INFO     [browser_use] BrowserUse logging setup complete with level info
+INFO     [root] Anonymized telemetry enabled. See https://docs.browser-use.com/development/telemetry for more information.
+Debug: Assessed complexity: moderate for command: generate a python script for an asteroids game with ship and asteroid classes, arrow key movement, and collision detection.
+Debug: Script failed:   File "/Users/ian/dev/projects/agents/local/grok/repo/grok_local/projects/output.py", line 1
+    <code>
+    ^
+SyntaxError: invalid syntax
+
+Debug: Processing command: Generate a Python script for an Asteroids game with Ship and Asteroid classes, arrow key movement, and collision detection.
 <code>
 import pygame
 import random
@@ -105,3 +145,12 @@ while not game_over:
 
 pygame.quit()
 </code>
+Saved code to '/Users/ian/dev/projects/agents/local/grok/repo/grok_local/tools/../projects/output/output.py'!
+Debug result: Error:   File "/Users/ian/dev/projects/agents/local/grok/repo/grok_local/projects/output.py", line 1
+    <code>
+    ^
+SyntaxError: invalid syntax
+Test 2 failed
+----------------------------------------
+Test 3: Generate 3D universe game
+[GIN] 2025/03/08 - 18:52:46 | 500 |         7m24s |       127.0.0.1 | POST     "/api/generate"

@@ -1,0 +1,19 @@
+[
+    "grok_local/command_handler.py",
+    "grok_local/__main__.py",
+    "grok_local/grok_bridge.py",
+    "scripts/test_bridge_e2e.sh",
+    "grok_local/commands/__init__.py",
+    "grok_local/commands/git_commands.py",
+    "grok_local/commands/file_commands.py",
+    "grok_local/commands/bridge_commands.py",
+    "grok_local/commands/checkpoint_commands.py",
+    "grok_local/commands/misc_commands.py",
+    "grok_local/tools/__init__.py",
+    "grok_local/tools/config.py",
+    "grok_local/tools/logging.py",
+    "grok_checkpoint.py",
+    "grok_bootstrap.py",
+    "bootstrap_utils.py",
+    "agent_config.py"
+]

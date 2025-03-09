@@ -1,8 +1,15 @@
+import os
 from datetime import datetime
-from .config import LOG_FILE
+
+LOG_FILE = os.path.join(os.path.dirname(__file__), "..", "grok_local.log")
 
 def log_conversation(message):
-    """Log agent conversation to a file."""
+    """Log a message to the specified log file with a timestamp."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with open(LOG_FILE, "a") as f:
-        f.write(f"[{timestamp}] {message}\n")
+    log_entry = f"[{timestamp}] {message}\n"
+    try:
+        os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+        with open(LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(log_entry)
+    except Exception as e:
+        print(f"Failed to log message: {str(e)}", file=sys.stderr)

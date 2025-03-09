@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import requests
-from ..tools import OLLAMA_URL, log_conversation
+from ..tools.config import OLLAMA_URL
+from ..tools.logging import log_conversation
 
 class BaseAgent(ABC):
     def __init__(self, model="deepseek-r1:8b"):

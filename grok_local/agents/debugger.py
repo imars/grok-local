@@ -1,6 +1,6 @@
 from .base_agent import BaseAgent
 from ..framework.task import Task
-from ..tools import debug_script, log_conversation
+from ..tools.logging import log_conversation
 from datetime import datetime
 
 class DebuggerAgent(BaseAgent):
@@ -12,12 +12,12 @@ class DebuggerAgent(BaseAgent):
         code = task.description.split("Fix code:")[1].strip()
         error = task.input_data
         context = memory.retrieve(f"debug:{code}") or ""
-        prompt = f"Fix this code given the error:\nCode:\n```python\n{code}\n```\nError: {error}\nContext: {context}\nReturn only fixed code in ```python\n<code>\n``` format, no explanations."
+        prompt = f"Fix this code given the error:\nCode:\n\nError: {error}\nContext: {context}\nReturn only fixed code in  format, no explanations."
         log_conversation(f"Debugger: Starting model call at {datetime.now()} with prompt length: {len(prompt)}")
         response = self._call_model(prompt)
         log_conversation(f"Debugger: Model call completed at {datetime.now()}")
         try:
-            fixed_code = response.split("```python")[1].split("```")[0].strip()
+            fixed_code = response.split("")[0].strip()
         except IndexError:
             fixed_code = response  # Fallback if no code block
         memory.store(f"debug:{code}", f"Fixed: {fixed_code}\nError: {error}")

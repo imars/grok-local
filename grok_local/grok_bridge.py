@@ -1,55 +1,46 @@
-from flask import Flask, request
-import sys
+import requests
+import time
+from flask import Flask, request, jsonify
+from grok_local.tools import log_conversation
 
 app = Flask(__name__)
-responses = {}
-current_request = None
+BRIDGE_URL = "http://0.0.0.0:5000"
+responses = {}  # Store responses for simplicity in testing
 
-@app.route('/channel', methods=['GET', 'POST'])
-def channel():
-    global current_request
-    print(f"Request to /channel: {request.method} {request.args} {request.get_json(silent=True)}", file=sys.stderr)
-    if request.method == 'POST':
-        data = request.get_json()
-        if data and 'input' in data and 'id' in data:
-            input_text = data['input']
-            req_id = data['id']
-            response_url = f"https://{request.host}/response?id={req_id}&response=[your_response_here]"
-            current_request = (
-                f"Input: \"{input_text}\"\n"
-                f"Identifier: \"{req_id}\"\n"
-                f"Instructions: \"Grok, process this input: '{input_text}'. Browse: {response_url}\""
-            )
-            print(f"Posted request: {req_id}", file=sys.stderr)
-            return {"status": "Request posted", "id": req_id}, 200
-        print("Invalid POST data", file=sys.stderr)
-        return {"error": "Invalid request data"}, 400
-    print("Serving channel page", file=sys.stderr)
-    return current_request if current_request else "No request posted yet.", 200
+@app.route('/ask', methods=['POST'])
+def ask_grok():
+    data = request.json
+    question = data.get('question')
+    if not question:
+        return jsonify({"error": "No question provided"}), 400
+    
+    request_id = f"{time.time():.0f}-{hash(question) % 10000:04d}"
+    responses[request_id] = {"status": "pending", "question": question}
+    log_conversation(f"Posted request: {request_id}")
+    return jsonify({"id": request_id, "status": "pending"}), 200
 
 @app.route('/response', methods=['GET'])
-def log_response():
-    print(f"Request to /response: {request.method} {request.args}", file=sys.stderr)
-    req_id = request.args.get('id')
+def post_response():
+    request_id = request.args.get('id')
     response = request.args.get('response')
-    if req_id and response:
-        responses[req_id] = response
-        print(f"Logged response for {req_id}: {response}", file=sys.stderr)
-        return "Response received"
-    print("Invalid response request", file=sys.stderr)
-    return "Invalid request", 400
+    if not request_id or not response:
+        return jsonify({"error": "Missing id or response"}), 400
+    if request_id not in responses:
+        return jsonify({"error": "Invalid request ID"}), 404
+    
+    responses[request_id] = {"status": "completed", "response": response}
+    log_conversation(f"Response received for {request_id}: {response}")
+    return jsonify({"id": request_id, "response": response, "status": "Response received"}), 200
 
-@app.route('/get-response', methods=['GET'])
-def get_response():
-    print(f"Request to /get-response: {request.method} {request.args}", file=sys.stderr)
-    req_id = request.args.get('id')
-    if req_id in responses:
-        print(f"Returning response for {req_id}: {responses[req_id]}", file=sys.stderr)
-        return responses[req_id]
-    print(f"No response yet for {req_id}", file=sys.stderr)
-    return "No response yet", 404
+def fetch_response(request_id, timeout=25):
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        if request_id in responses and responses[request_id]["status"] == "completed":
+            response = responses[request_id]["response"]
+            log_conversation(f"Fetched response for {request_id}: {response}")
+            return response
+        time.sleep(1)
+    raise TimeoutError(f"No response for {request_id} within {timeout}s")
 
 if __name__ == "__main__":
-    app.debug = True
-    print("Starting GrokBridge...", file=sys.stderr)
-    app.run(host='0.0.0.0', port=5000, threaded=True)
+    app.run(host="0.0.0.0", port=5000)

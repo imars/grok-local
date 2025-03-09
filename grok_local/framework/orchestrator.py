@@ -1,7 +1,8 @@
 from .task import Task
 from .memory import Memory
 from ..agents import DeveloperAgent, DebuggerAgent, DesignerAgent, UserAgent
-from ..tools import debug_script, log_conversation
+from ..tools.script_runner import debug_script
+from ..tools.logging import log_conversation
 from datetime import datetime
 
 class Orchestrator:
@@ -34,7 +35,7 @@ class Orchestrator:
         code = self.agents["developer"].run(task, self.memory)
         if debug:
             log_conversation(f"Orchestrator: Developer returned code at {datetime.now()}: {code}")
-        code = code.strip().replace("```python", "").replace("```", "").strip()
+        code = code.strip().replace("", "").strip()
         script_path = "grok_local/projects/output.py"
         with open(script_path, "w") as f:
             f.write(code)
@@ -44,7 +45,7 @@ class Orchestrator:
                 if "Error:" in debug_result:
                     task = Task(description=f"Fix code: {code}", input_data=debug_result, agent_role="debugger")
                     code = self.agents["debugger"].run(task, self.memory)
-                    code = code.strip().replace("```python", "").replace("```", "").strip()
+                    code = code.strip().replace("", "").strip()
                     with open(script_path, "w") as f:
                         f.write(code)
                 else:

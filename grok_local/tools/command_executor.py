@@ -21,7 +21,7 @@ def assess_complexity(command, debug=False):
     elif any(keyword in command for keyword in advanced_keywords) or cmd_length > 150:
         complexity = "advanced"
     else:
-        complexity = "moderate"  # Default for ambiguous cases
+        complexity = "moderate"
     
     if debug:
         print(f"Debug: Assessed complexity: {complexity} for command: {command}", file=sys.stderr)
@@ -32,7 +32,7 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
 
     restricted = ["curl", "wget", "http"]
     if any(r in command for r in restricted):
-        return "I can't perform direct external operations like that. Try 'grok <command>' for bridge assistance or specify a local command."
+        return "I can't perform direct external operations like that. Try a local command."
 
     if command.startswith("git "):
         return git_commands.handle_git_command(command, git_interface)
@@ -42,10 +42,9 @@ def execute_command(command, git_interface, ai_adapter, use_git=True, model=None
         return checkpoint_commands.checkpoint_command(command, git_interface, use_git)
     elif command == "list checkpoints":
         return checkpoint_commands.list_checkpoints_command(command)
-    elif command.startswith("grok "):
-        return bridge_commands.bridge_command(command, ai_adapter)
-    elif command in ["what time is it", "version", "clean repo", "list files"] or \
-         command.startswith(("create spaceship fuel script", "create x login stub")):
+    elif command.startswith("bridge "):
+        return bridge_commands.handle_bridge_command(command[7:], ai_adapter)
+    elif command in ["what time is it", "version", "clean repo", "list files", "tree"] or          command.startswith(("create spaceship fuel script", "create x login stub", "copy ")):
         return misc_commands.misc_command(command, ai_adapter, git_interface)
     elif command.startswith("debug script "):
         script_path = command.split("debug script ", 1)[1].strip()

@@ -1,79 +1,46 @@
-import re
-import requests
-import time
-import subprocess
-import uuid
-from .commands import git_commands, file_commands, send_to_grok, checkpoint_commands, misc_commands
-from .tools import execute_command
+import argparse
+import sys
+from grok_local.commands import git_commands, file_commands, checkpoint_commands, bridge_commands, misc_commands
+from grok_local.tools import execute_command
 
-BRIDGE_URL = "http://0.0.0.0:5000"
-BRIDGE_PROCESS = None
+class CommandHandler:
+    def __init__(self, git_interface, ai_adapter):
+        self.git_interface = git_interface
+        self.ai_adapter = ai_adapter
+        self.parser = argparse.ArgumentParser(description="Grok Local CLI")
+        self.parser.add_argument("command", nargs="*", help="Command to execute")
+        self.parser.add_argument("--do", action="store_true", help="Execute command directly")
+        self.parser.add_argument("--model", help="Specify model for inference")
 
-def start_bridge():
-    global BRIDGE_PROCESS
-    if BRIDGE_PROCESS is None or BRIDGE_PROCESS.poll() is not None:
-        BRIDGE_PROCESS = subprocess.Popen(["python", "grok_local/grok_bridge.py"])
-        print("Started grok_bridge at http://0.0.0.0:5000")
-        time.sleep(2)
-
-def ask_local(command, ai_adapter, git_interface, debug=False, use_git=True, direct=False, model=None):
-    command = command.strip()
-    if debug:
-        print(f"Debug: Processing command: {command}")
-
-    # Handle bridge commands explicitly
-    if re.match(r'^grok\s+', command):
-        start_bridge()
-        return send_to_grok(f"send to grok {command[5:]}", ai_adapter)
-
-    if direct:
-        # Direct execution mode with local inference fallback
-        if re.match(r'^git\s+', command):
-            return git_commands.git_command(command, git_interface)
-        elif re.match(r'^(create|read|write|append|delete)\s+file\s+', command):
+    def handle(self, args=None):
+        if args is None:
+            args = sys.argv[1:]
+        
+        parsed_args = self.parser.parse_args(args)
+        command = " ".join(parsed_args.command).strip().lower()
+        
+        if not command:
+            return "No command provided. Use --help for options."
+        
+        if parsed_args.do:
+            return execute_command(command, self.git_interface, self.ai_adapter, model=parsed_args.model)
+        
+        if command.startswith("git "):
+            return git_commands.handle_git_command(command, self.git_interface)
+        elif command.startswith(("create file ", "read file ", "write ", "append ", "delete file ")):
             return file_commands.file_command(command)
-        elif re.match(r'^checkpoint\s+', command):
-            return checkpoint_commands.checkpoint_command(command, git_interface, use_git)
-        elif command == "list checkpoints":
-            return checkpoint_commands.list_checkpoints_command(command)
-        elif re.match(r'^(what time is it|version|x login|clean repo|list files|create spaceship fuel script|create x login stub)', command.lower()):
-            return misc_commands.misc_command(command, ai_adapter, git_interface)
-        elif re.match(r'^infer\s+', command):
-            start_bridge()
-            req_id = str(uuid.uuid4())
-            sub_command = command[6:].strip()
-            payload = {
-                "input": (
-                    f"Execute this command with your tool: '{sub_command}'. "
-                    f"Tool: execute_command(command) - runs local commands (git, checkpoint, etc.) and returns results. "
-                    f"Restrictions: no external calls (e.g., curl, wget) unless whitelisted. "
-                    f"Respond with the tool's output or explain why you can't proceed."
-                ),
-                "id": req_id
-            }
-            if debug:
-                print(f"Debug: Sending to bridge: {payload}")
-            try:
-                resp = requests.post(f"{BRIDGE_URL}/channel", json=payload, timeout=5)
-                if debug:
-                    print(f"Debug: POST response: {resp.status_code} - {resp.text}")
-                if resp.status_code != 200:
-                    return f"Error sending to bridge: {resp.text}"
-                max_attempts, delay = 10, 2
-                for attempt in range(max_attempts):
-                    resp = requests.get(f"{BRIDGE_URL}/get-response", params={"id": req_id}, timeout=5)
-                    if debug:
-                        print(f"Debug: GET attempt {attempt + 1}: {resp.status_code} - {resp.text}")
-                    if resp.status_code == 200:
-                        return resp.text
-                    elif resp.status_code != 404:
-                        return f"Error fetching inference: {resp.text}"
-                    time.sleep(delay)
-                return "No inference response from agent within timeout"
-            except requests.RequestException as e:
-                return f"Error connecting to bridge: {e}"
+        elif command.startswith("checkpoint "):
+            return checkpoint_commands.checkpoint_command(command, self.git_interface, use_git=True)
+        elif command.startswith("bridge "):
+            return bridge_commands.handle_bridge_command(command[7:], self.ai_adapter)
+        elif command.startswith("copy "):
+            return misc_commands.misc_command(command, self.ai_adapter, self.git_interface)
+        elif command in ["list checkpoints", "what time is it", "version", "clean repo", "list files", "tree"]:
+            return misc_commands.misc_command(command, self.ai_adapter, self.git_interface)
         else:
-            return execute_command(command, git_interface, ai_adapter, use_git, model=model, debug=debug)
-    else:
-        # Inference mode: use local agent directly
-        return execute_command(command, git_interface, ai_adapter, use_git, model=model, debug=debug)
+            return execute_command(command, self.git_interface, self.ai_adapter, model=parsed_args.model)
+
+if __name__ == "__main__":
+    from grok_local.tools import GitInterface, AIAdapter
+    handler = CommandHandler(GitInterface(), AIAdapter())
+    print(handler.handle())
