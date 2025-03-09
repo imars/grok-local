@@ -81,31 +81,28 @@ def copy_files_to_clipboard(file_paths):
         return f"Failed to copy to clipboard: {str(e)}"
 
 def misc_command(command, ai_adapter, git_interface):
-    command_parts = command.strip().lower().split()
-    base_command = command_parts[0] if command_parts else command.strip().lower()
-    
-    if base_command == "what time is it":
+    command = command.strip().lower()  # Already lowercased, but ensure consistency
+    if command == "what time is it":
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    elif base_command == "version":
+    elif command == "version":
         return "grok_local v0.1.0"
-    elif base_command == "clean repo":
+    elif command == "clean repo":
         return git_interface.clean_repo()
-    elif base_command == "list files":
+    elif command == "list files":
         files = os.listdir(".")
         return "\n".join(files)
-    elif base_command == "copy" and len(command_parts) > 1:
-        file_paths = command_parts[1:]
+    elif command.startswith("copy "):
+        file_paths = command.split()[1:]
         if not file_paths:
             return "No files specified to copy. Usage: copy <file1> <file2> ..."
         return copy_files_to_clipboard(file_paths)
-    elif base_command == "tree":
-        show_timestamps = "--timestamps" in command_parts
-        tree_output = generate_tree("grok_local", exclude_dirs={"__pycache__"}, show_timestamps=show_timestamps)
-        log_conversation(f"Generated directory tree for grok_local{' with timestamps' if show_timestamps else ''}")
+    elif command == "tree":
+        tree_output = generate_tree("grok_local", exclude_dirs={"__pycache__"})
+        log_conversation("Generated directory tree for grok_local")
         return f"Directory tree of grok_local:\n{tree_output}"
-    elif base_command == "create" and "spaceship fuel script" in command:
+    elif command == "create spaceship fuel script":
         return "TODO: Implement spaceship fuel script generation"
-    elif base_command == "create" and "x login stub" in command:
+    elif command == "create x login stub":
         return "TODO: Implement X login stub generation"
     else:
         return f"Unknown misc command: {command}"
