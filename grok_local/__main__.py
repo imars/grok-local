@@ -3,9 +3,13 @@ import atexit
 import argparse
 import time
 import signal
+import sys
 from .command_handler import CommandHandler  # Updated import
 from git_ops import get_git_interface
 from .ai_adapters.stub_ai import StubAI
+
+# Debug import
+print(f"Imported CommandHandler from {CommandHandler.__module__}", file=sys.stderr)
 
 BRIDGE_PROCESS = None
 

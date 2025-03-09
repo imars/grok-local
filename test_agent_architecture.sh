@@ -1,6 +1,5 @@
 #!/bin/bash
 # test_agent_architecture.sh (Mar 09, 2025): Runs 10 simple tests for grok_local agent architecture.
-# Note: Uses python -m grok_local for modular execution with direct commands.
 
 # Setup
 cd /Users/ian/dev/projects/agents/local/grok/repo/
@@ -13,7 +12,7 @@ run_test() {
     TEST_NAME="$1"
     COMMAND="$2"
     EXPECTED="$3"
-    DO_FLAG="$4"  # Optional --do flag
+    DO_FLAG="$4"
     echo "Running: $TEST_NAME"
     RESULT=$(python -m grok_local $DO_FLAG "$COMMAND" 2>/dev/null)
     if echo "$RESULT" | grep -q "$EXPECTED"; then
@@ -51,7 +50,7 @@ run_test "Create spaceship fuel script" "create spaceship fuel script" "TODO: Im
 # Test 8: Create an X login stub (placeholder)
 run_test "Create X login stub" "create x login stub" "TODO: Implement X login stub generation" ""
 
-# Test 9: Handle unknown command (with --do to test execute_command)
+# Test 9: Handle unknown command (with --do)
 run_test "Unknown command" "calculate factorial of 5" "def factorial" "--do"
 
 # Test 10: Save a checkpoint
@@ -60,4 +59,8 @@ run_test "Save checkpoint" "checkpoint 'Test checkpoint from script'" "Checkpoin
 # Summary
 echo "Test Summary:"
 cat test_results.log
+echo "Manual test commands:"
+echo "  python -m grok_local \"what time is it\""
+echo "  python -m grok_local \"list files\""
+echo "  python -m grok_local --do \"calculate factorial of 5\""
 echo "Tests completed. See test_results.log for details."
