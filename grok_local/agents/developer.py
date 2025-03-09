@@ -13,7 +13,7 @@ class DeveloperAgent(BaseAgent):
         context = memory.retrieve(task.description) or ""
         prompt = f"Generate Python code for: {task.description}. Context: {context}\nReturn only code in ```python format, no explanations."
         log_conversation(f"Developer: Sending prompt at {datetime.now()}: {prompt}")
-        response = self.stub_ai.delegate(prompt)  # Direct StubAI call
+        response = self.stub_ai.delegate(prompt)
         log_conversation(f"Developer: Received response at {datetime.now()}: {response}")
         try:
             if "```python" in response:

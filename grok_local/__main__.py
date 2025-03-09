@@ -4,7 +4,7 @@ import argparse
 import time
 import signal
 import sys
-sys.path.insert(0, '.')  # Prioritize local dir
+sys.path.insert(0, '.')
 from grok_local.command_handler import CommandHandler
 from git_ops import get_git_interface
 from grok_local.ai_adapters.stub_ai import StubAI
